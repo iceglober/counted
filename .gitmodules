@@ -1,0 +1,3 @@
+[submodule ".claude/plugins/design-for-ai"]
+	path = .claude/plugins/design-for-ai
+	url = https://github.com/ryanthedev/design-for-ai.git
