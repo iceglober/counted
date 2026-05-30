@@ -1,0 +1,48 @@
+{
+  "name": "counted",
+  "private": true,
+  "description": "Privacy-focused app analytics with composable dashboards",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iceglober/counted.git"
+  },
+  "homepage": "https://counted.dev",
+  "packageManager": "bun@1.2.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "next": "^16.2.6",
+    "pg": "^8.21.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@types/node": "^25.9.1",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.0",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^10.4.1",
+    "eslint-config-next": "^16.2.6",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4.3.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  }
+}
