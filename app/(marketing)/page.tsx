@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TallyMark } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { dashboardSections } from "@/lib/mock-data";
 import type { MetricData, TimeSeriesData, BreakdownItem } from "@/lib/mock-data";
 
@@ -130,6 +131,7 @@ export default function HomePage() {
           <div className="flex items-center gap-6">
             <a href="#features" className="text-sm text-text-secondary hover:text-text-primary transition-colors">Features</a>
             <a href="#sdk" className="text-sm text-text-secondary hover:text-text-primary transition-colors">SDK</a>
+            <ThemeToggle />
             <Link href="/login" className="text-sm text-accent hover:text-accent-hover transition-colors">Sign in</Link>
           </div>
         </div>

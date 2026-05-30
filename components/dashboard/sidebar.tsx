@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TallyMark, ChevronDown, BarChart, Hash, Settings, ExternalLink } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { projects } from "@/lib/mock-data";
 
 const nav = [
@@ -76,6 +77,10 @@ export function Sidebar() {
 
       {/* Bottom */}
       <div className="px-3 py-3 border-t border-border space-y-0.5">
+        <div className="flex items-center justify-between px-2.5 py-1">
+          <span className="text-xs text-text-tertiary">Theme</span>
+          <ThemeToggle />
+        </div>
         <Link
           href={`/${currentProject.id}/settings`}
           className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-text-secondary hover:text-text-primary hover:bg-surface-2 transition-colors"

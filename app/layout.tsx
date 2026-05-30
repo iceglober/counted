@@ -37,6 +37,13 @@ export default function RootLayout({
       lang="en"
       className={`${instrumentSerif.variable} ${outfit.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="font-sans">{children}</body>
     </html>
   );

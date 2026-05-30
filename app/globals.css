@@ -24,6 +24,27 @@
   --animate-slide-in: slide-in 0.3s ease-out both;
 }
 
+:root {
+  color-scheme: dark;
+}
+
+:root.light {
+  --color-surface-0: #F6F5F1;
+  --color-surface-1: #FFFFFF;
+  --color-surface-2: #EEEEE8;
+  --color-surface-3: #E2E1DB;
+  --color-border: #DDD9D0;
+  --color-border-hover: #C8C4BA;
+  --color-text-primary: #1C1B18;
+  --color-text-secondary: #6B695F;
+  --color-text-tertiary: #A09E94;
+  --color-accent: #B8912E;
+  --color-accent-hover: #A37F22;
+  --color-success: #1D8A52;
+  --color-error: #C93C3C;
+  color-scheme: light;
+}
+
 @keyframes rise {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
@@ -46,6 +67,7 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
 
   ::selection {
