@@ -10,11 +10,7 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
-  trustedOrigins: [
-    "https://app.counted.dev",
-    "https://counted.dev",
-    "https://www.counted.dev",
-  ],
+  trustedOrigins: process.env.TRUSTED_ORIGINS?.split(",") ?? [],
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
