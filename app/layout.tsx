@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Azeret_Mono, Outfit, JetBrains_Mono } from "next/font/google";
+import { CountedAnalytics } from "@/components/analytics";
 import "./globals.css";
 
 const azeretMono = Azeret_Mono({
@@ -45,7 +46,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <CountedAnalytics />
+        {children}
+      </body>
     </html>
   );
 }
