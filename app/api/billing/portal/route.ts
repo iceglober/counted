@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { requireSession } from "@/lib/auth-guard";
 import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
@@ -17,7 +17,7 @@ export async function POST() {
     return NextResponse.json({ error: "No billing account" }, { status: 404 });
   }
 
-  const portalSession = await stripe.billingPortal.sessions.create({
+  const portalSession = await getStripe().billingPortal.sessions.create({
     customer: sub.stripeCustomerId,
     return_url: `${process.env.BETTER_AUTH_URL}/dashboard`,
   });

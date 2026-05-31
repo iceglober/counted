@@ -1,8 +1,15 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-05-27.dahlia",
-});
+let _stripe: Stripe | null = null;
+
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: "2026-05-27.dahlia",
+    });
+  }
+  return _stripe;
+}
 
 export const PLANS = {
   free: {
@@ -17,7 +24,7 @@ export const PLANS = {
     projects: -1,
     priceMonthly: 12,
     priceAnnual: 120,
-    stripePriceMonthly: process.env.STRIPE_PRICE_MONTHLY_ID!,
-    stripePriceAnnual: process.env.STRIPE_PRICE_ANNUAL_ID!,
+    get stripePriceMonthly() { return process.env.STRIPE_PRICE_MONTHLY_ID!; },
+    get stripePriceAnnual() { return process.env.STRIPE_PRICE_ANNUAL_ID!; },
   },
 } as const;

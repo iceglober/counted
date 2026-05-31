@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET!,
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       const userId = session.metadata?.userId;
       if (!userId || !session.subscription) break;
 
-      const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+      const sub = await getStripe().subscriptions.retrieve(session.subscription as string);
 
       await db
         .update(subscriptions)

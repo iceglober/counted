@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe, PLANS } from "@/lib/stripe";
+import { getStripe, PLANS } from "@/lib/stripe";
 import { requireSession } from "@/lib/auth-guard";
 import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   if (sub?.stripeCustomerId) {
     customerId = sub.stripeCustomerId;
   } else {
-    const customer = await stripe.customers.create({
+    const customer = await getStripe().customers.create({
       email: session!.user.email,
       metadata: { userId: session!.user.id },
     });
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }).onConflictDoNothing();
   }
 
-  const checkoutSession = await stripe.checkout.sessions.create({
+  const checkoutSession = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
