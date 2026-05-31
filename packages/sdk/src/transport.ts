@@ -13,14 +13,14 @@ export function sendBeacon(url: string, events: RawEvent[]): boolean {
 export async function sendFetch(
   url: string,
   events: RawEvent[],
-  appKey: string,
+  projectKey: string,
 ): Promise<boolean> {
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "App-Key": appKey,
+        "Project-Key": projectKey,
       },
       body: JSON.stringify(events.length === 1 ? events[0] : events),
       keepalive: true,

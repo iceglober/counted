@@ -8,7 +8,7 @@ const DEFAULT_FLUSH_INTERVAL = 30_000;
 const DEFAULT_MAX_BATCH_SIZE = 50;
 
 export class Analytics {
-  private appKey: string;
+  private projectKey: string;
   private host: string;
   private flushInterval: number;
   private maxBatchSize: number;
@@ -17,7 +17,7 @@ export class Analytics {
   private enabled = true;
 
   constructor(options: AnalyticsOptions) {
-    this.appKey = options.appKey;
+    this.projectKey = options.projectKey;
     this.host = options.host ?? DEFAULT_HOST;
     this.flushInterval = options.flushInterval ?? DEFAULT_FLUSH_INTERVAL;
     this.maxBatchSize = options.maxBatchSize ?? DEFAULT_MAX_BATCH_SIZE;
@@ -50,7 +50,7 @@ export class Analytics {
     const batch = this.buffer.splice(0, this.maxBatchSize);
     const url = `${this.host}/api/v0/event`;
 
-    await sendFetch(url, batch, this.appKey);
+    await sendFetch(url, batch, this.projectKey);
   }
 
   disable(): void {

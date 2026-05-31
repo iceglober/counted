@@ -57,7 +57,7 @@ export default function Home() {
           <span className="text-accent">const</span>
           {" analytics = "}
           <span className="text-accent">new</span>
-          {" Analytics({ appKey: \"A-US-...\" });\n"}
+          {" Analytics({ projectKey: \"A-US-...\" });\n"}
           {"analytics.track(\"page_view\", { path: \"/\" });"}
         </pre>
       </section>

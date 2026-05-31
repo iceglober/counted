@@ -1,7 +1,7 @@
 export type EventProperties = Record<string, string | number | boolean>;
 
 export type AnalyticsOptions = {
-  appKey: string;
+  projectKey: string;
   host?: string;
   flushInterval?: number;
   maxBatchSize?: number;

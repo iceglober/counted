@@ -64,7 +64,7 @@ See `.env.example` for the full list. Key ones:
 - `TRUSTED_ORIGINS` — comma-separated list of allowed origins
 - `RESEND_API_KEY` / `RESEND_FROM` — email sending
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_*_ID` — billing
-- `NEXT_PUBLIC_COUNTED_APP_KEY` — dog-food analytics tracking
+- `NEXT_PUBLIC_COUNTED_PROJECT_KEY` — dog-food analytics tracking
 
 ## For maintainers
 

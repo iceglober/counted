@@ -5,7 +5,7 @@ let instance: Analytics | null = null;
 
 export function init(appKey: string, opts?: { appVersion?: string; host?: string }) {
   instance = new Analytics({
-    appKey,
+    projectKey: appKey,
     host: opts?.host,
   });
 }

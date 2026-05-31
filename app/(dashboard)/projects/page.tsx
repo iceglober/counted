@@ -193,7 +193,7 @@ export default function ProjectsPage() {
 {`import { Analytics } from "@counted/sdk";
 
 const analytics = new Analytics({
-  appKey: "${detail.apiKey}",
+  projectKey: "${detail.apiKey}",
 });
 
 analytics.track("page_view", { path: "/" });`}

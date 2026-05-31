@@ -68,13 +68,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const appKey = request.headers.get("app-key");
-  if (!appKey) {
-    return NextResponse.json({ error: "Missing App-Key header" }, { status: 401 });
+  const projectKey = request.headers.get("project-key") ?? request.headers.get("app-key");
+  if (!projectKey) {
+    return NextResponse.json({ error: "Missing Project-Key header" }, { status: 401 });
   }
 
   const project = await db.query.projects.findFirst({
-    where: eq(projects.apiKey, appKey),
+    where: eq(projects.apiKey, projectKey),
   });
 
   if (!project) {

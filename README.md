@@ -26,7 +26,7 @@ npm install @counted/sdk
 ```typescript
 import { Analytics } from "@counted/sdk";
 
-const analytics = new Analytics({ appKey: "A-US-..." });
+const analytics = new Analytics({ projectKey: "A-US-..." });
 analytics.track("page_view", { path: "/" });
 ```
 
@@ -41,7 +41,7 @@ import { AnalyticsProvider, useAnalytics } from "@counted/react";
 
 function App() {
   return (
-    <AnalyticsProvider appKey="A-US-...">
+    <AnalyticsProvider projectKey="A-US-...">
       <MyApp />
     </AnalyticsProvider>
   );
