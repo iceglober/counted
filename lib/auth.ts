@@ -10,6 +10,11 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
+  trustedOrigins: [
+    "https://app.counted.dev",
+    "https://counted.dev",
+    "https://www.counted.dev",
+  ],
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
