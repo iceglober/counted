@@ -15,7 +15,12 @@ async function flush() {
   const batch = buffer;
   buffer = [];
 
-  await db.insert(events).values(batch);
+  try {
+    await db.insert(events).values(batch);
+  } catch (err) {
+    console.error("[event-buffer] flush failed, re-queuing", batch.length, "events:", err);
+    buffer.unshift(...batch);
+  }
 }
 
 export async function bufferEvents(rows: EventRow[]) {
@@ -31,9 +36,9 @@ export async function bufferEvents(rows: EventRow[]) {
   }
 
   if (!flushTimer) {
-    flushTimer = setTimeout(async () => {
+    flushTimer = setTimeout(() => {
       flushTimer = null;
-      await flush();
+      flush().catch((err) => console.error("[event-buffer] scheduled flush failed:", err));
     }, FLUSH_INTERVAL_MS);
   }
 }

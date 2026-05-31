@@ -2,15 +2,40 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { TallyMark } from "@/components/icons";
+import { CountedLogo } from "@/components/icons";
+import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [sentEmail, setSentEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (email) setSent(true);
+    if (!email) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await authClient.signIn.magicLink({
+        email,
+        callbackURL: "/dashboard",
+      });
+
+      if (result.error) {
+        setError(result.error.message ?? "Failed to send magic link");
+      } else {
+        setSentEmail(email);
+        setSent(true);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -18,7 +43,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="flex items-center gap-2.5 mb-10">
-          <TallyMark className="w-6 h-6 text-accent" />
+          <CountedLogo className="w-6 h-6 text-accent" />
           <span className="font-display text-2xl tracking-wide">Counted</span>
         </div>
 
@@ -27,7 +52,7 @@ export default function LoginPage() {
             <h1 className="text-xl font-semibold">Check your email</h1>
             <p className="text-sm text-text-secondary mt-2 leading-relaxed">
               We sent a sign-in link to{" "}
-              <span className="text-text-primary font-medium">{email}</span>.
+              <span className="text-text-primary font-medium">{sentEmail}</span>.
               Click the link to continue.
             </p>
             <button
@@ -60,10 +85,15 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="mt-4 w-full px-4 py-2.5 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover transition-colors focus:outline-none focus:ring-2 focus:ring-accent/40 focus:ring-offset-2 focus:ring-offset-surface-0"
+              disabled={loading}
+              className="mt-4 w-full px-4 py-2.5 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover transition-colors focus:outline-none focus:ring-2 focus:ring-accent/40 focus:ring-offset-2 focus:ring-offset-surface-0 disabled:opacity-50"
             >
-              Send magic link
+              {loading ? "Sending..." : "Send magic link"}
             </button>
+
+            {error && (
+              <p className="mt-2 text-sm text-error">{error}</p>
+            )}
           </form>
         )}
 

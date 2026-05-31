@@ -1,7 +1,9 @@
-import type { MetricData } from "@/lib/mock-data";
-import { ArrowUpRight, ArrowDownRight } from "@/components/icons";
+import type { MetricData } from "@/lib/types";
+import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 function Sparkline({ data }: { data: number[] }) {
+  if (data.length < 2) return <div className="w-20 h-7" />;
+
   const w = 80;
   const h = 28;
   const pad = 2;
@@ -27,34 +29,49 @@ function Sparkline({ data }: { data: number[] }) {
     path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
   }
 
+  const trending = data[data.length - 1] >= data[0];
+
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-20 h-7" preserveAspectRatio="none">
-      <path d={path} fill="none" stroke="var(--color-accent)" strokeWidth="1.5" />
+      <path
+        d={path}
+        fill="none"
+        stroke={trending ? "var(--color-success)" : "var(--color-error)"}
+        strokeWidth="1.5"
+        opacity="0.8"
+      />
     </svg>
   );
 }
 
 export function MetricCard({ title, data }: { title: string; data: MetricData }) {
   const positive = data.trend >= 0;
+  const hasTrend = data.trend !== 0;
 
   return (
-    <div className="bg-surface-1 border border-border rounded-lg p-5 hover:border-border-hover transition-colors">
+    <div className="w-full bg-surface-1 border border-border rounded-lg p-5 hover:border-border-hover transition-colors">
       <div className="text-xs text-text-secondary uppercase tracking-wider">{title}</div>
       <div className="mt-3 flex items-end justify-between gap-3">
         <div className="text-2xl font-semibold tracking-tight tabular-nums">{data.value}</div>
         <Sparkline data={data.sparkline} />
       </div>
-      <div className="mt-2.5 flex items-center gap-1">
-        {positive ? (
-          <ArrowUpRight className="w-3.5 h-3.5 text-success" />
-        ) : (
-          <ArrowDownRight className="w-3.5 h-3.5 text-error" />
-        )}
-        <span className={`text-xs font-medium tabular-nums ${positive ? "text-success" : "text-error"}`}>
-          {positive ? "+" : ""}{data.trend}%
-        </span>
-        <span className="text-xs text-text-tertiary ml-1">vs prev period</span>
-      </div>
+      {hasTrend ? (
+        <div className="mt-2.5 flex items-center gap-1">
+          {positive ? (
+            <ArrowUpRight className="w-3.5 h-3.5 text-success" />
+          ) : (
+            <ArrowDownRight className="w-3.5 h-3.5 text-error" />
+          )}
+          <span className={`text-xs font-medium tabular-nums ${positive ? "text-success" : "text-error"}`}>
+            {positive ? "+" : ""}{data.trend}%
+          </span>
+          <span className="text-xs text-text-tertiary ml-1">vs prev period</span>
+        </div>
+      ) : (
+        <div className="mt-2.5">
+          <span className="text-xs text-text-tertiary">No prior data for comparison</span>
+        </div>
+      )}
     </div>
   );
 }

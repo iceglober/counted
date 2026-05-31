@@ -11,6 +11,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./aptabase": {
+      "types": "./dist/aptabase.d.ts",
+      "import": "./dist/aptabase.js",
+      "require": "./dist/aptabase.cjs"
     }
   },
   "files": ["dist"],

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: var(--font-instrument), "Instrument Serif", serif;
+  --font-display: var(--font-brand), "Azeret Mono", monospace;
   --font-sans: var(--font-outfit), "Outfit", sans-serif;
   --font-mono: var(--font-jetbrains), "JetBrains Mono", monospace;
 
@@ -58,6 +58,12 @@
 @keyframes slide-in {
   from { opacity: 0; transform: translateX(16px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* Pointer cursor on interactive elements */
+button, a, [role="button"], select, label[for], summary,
+input[type="checkbox"], input[type="radio"], input[type="submit"] {
+  cursor: pointer;
 }
 
 @layer base {

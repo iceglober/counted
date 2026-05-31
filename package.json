@@ -24,11 +24,18 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@stripe/stripe-js": "^9.7.0",
+    "better-auth": "^1.6.12",
     "drizzle-orm": "^0.45.2",
+    "kysely": "0.28.17",
+    "lucide-react": "^1.17.0",
     "next": "^16.2.6",
     "pg": "^8.21.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "react-responsive-masonry": "^2.7.2",
+    "resend": "^6.12.4",
+    "stripe": "^22.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
@@ -46,5 +53,8 @@
     "tailwindcss": "^4.3.0",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3"
+  },
+  "resolutions": {
+    "kysely": "0.28.17"
   }
 }

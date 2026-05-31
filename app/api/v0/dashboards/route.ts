@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dashboards } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { requireProjectAccess } from "@/lib/auth-guard";
 
 export async function GET(request: NextRequest) {
   const projectId = request.nextUrl.searchParams.get("projectId");
   if (!projectId) {
     return NextResponse.json({ error: "projectId required" }, { status: 400 });
+  }
+
+  const access = await requireProjectAccess(projectId);
+  if (access.error) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const result = await db.query.dashboards.findMany({
@@ -25,6 +31,11 @@ export async function POST(request: NextRequest) {
       { error: "projectId, name, and slug are required" },
       { status: 400 },
     );
+  }
+
+  const access = await requireProjectAccess(projectId);
+  if (access.error) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const [result] = await db

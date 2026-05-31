@@ -18,6 +18,7 @@
     "directory": "packages/migrate"
   },
   "dependencies": {
+    "csv-parse": "^6.2.1",
     "pg": "^8.13.0"
   },
   "devDependencies": {

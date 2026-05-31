@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
-  serverExternalPackages: ["drizzle-orm"],
+  output: "standalone",
+  serverExternalPackages: ["drizzle-orm", "better-auth"],
 };
 
 export default config;

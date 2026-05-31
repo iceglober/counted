@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Outfit, JetBrains_Mono } from "next/font/google";
+import { Azeret_Mono, Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const instrumentSerif = Instrument_Serif({
-  weight: "400",
+const azeretMono = Azeret_Mono({
+  weight: ["500"],
   subsets: ["latin"],
-  variable: "--font-instrument",
+  variable: "--font-brand",
   display: "swap",
 });
 
@@ -35,12 +35,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${instrumentSerif.variable} ${outfit.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+      className={`${azeretMono.variable} ${outfit.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}`,
+            __html: `try{var t=localStorage.getItem("theme"),a=localStorage.getItem("accent"),l=false;if(t==="light")l=true;else if(t==="auto"&&matchMedia("(prefers-color-scheme:light)").matches)l=true;if(l)document.documentElement.classList.add("light");if(a){var c=JSON.parse(a);document.documentElement.style.setProperty("--color-accent",l?c.lightColor:c.color);document.documentElement.style.setProperty("--color-accent-hover",l?c.lightHover:c.hover)}}catch(e){}`,
           }}
         />
       </head>
