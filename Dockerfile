@@ -14,6 +14,7 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN mkdir -p public
+RUN cd packages/sdk && bun run build && cd ../react && bun run build
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun run build
 
