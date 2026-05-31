@@ -15,7 +15,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN mkdir -p public
 RUN cd packages/sdk && bunx tsup --no-dts && cd ../react && bunx tsup --no-dts
+ARG RAILWAY_GIT_COMMIT_SHA
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV RAILWAY_GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
 RUN bun run build
 
 # Production

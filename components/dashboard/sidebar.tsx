@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CountedLogo } from "@/components/icons";
@@ -63,10 +64,47 @@ export function Sidebar() {
           <Settings className="w-4 h-4" />
           Settings
         </Link>
-        <div className="px-2.5 pt-2 text-[10px] text-text-tertiary/40 font-mono tabular-nums">
-          {process.env.BUILD_ID}
-        </div>
+        <BuildTag />
       </div>
     </aside>
+  );
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
+function BuildTag() {
+  const [hovering, setHovering] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+
+  return (
+    <div className="px-2.5 pt-2 relative">
+      <span
+        className="text-[10px] text-text-tertiary/40 font-mono tabular-nums cursor-default"
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+        onMouseMove={(e) => setPos({ x: e.clientX, y: e.clientY })}
+      >
+        {process.env.BUILD_ID}
+      </span>
+      {hovering && (
+        <div
+          style={{ position: "fixed", left: pos.x + 12, top: pos.y - 8, pointerEvents: "none", zIndex: 99999 }}
+          className="px-2 py-1 text-xs font-medium text-accent bg-surface-2 border border-accent/20 rounded shadow-sm whitespace-nowrap"
+        >
+          Updated {timeAgo(process.env.BUILD_TIME ?? "")}
+        </div>
+      )}
+    </div>
   );
 }
