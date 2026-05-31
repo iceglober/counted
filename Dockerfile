@@ -26,6 +26,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=build /app/lib/db ./lib/db
 
 EXPOSE 3000
 ENV PORT=3000
