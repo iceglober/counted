@@ -5,7 +5,7 @@ import type { Insight, InsightQuery, MetricData, TimeSeriesData, BreakdownItem, 
 import { MetricCard } from "./metric-card";
 import { AreaChart } from "./area-chart";
 import { Breakdown } from "./breakdown";
-import { InsightConfigurator } from "./insight-configurator";
+import { InsightConfigurator } from "./configurator";
 import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star } from "lucide-react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { useProjects } from "./dashboard-shell";
@@ -151,29 +151,21 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
     setEditingId(id);
   }
 
-  function saveInsightConfig(insightId: string, config: { title: string; type: "metric" | "timeseries" | "breakdown"; query: InsightQuery; projectId: string }) {
+  function handleConfigChange(insightId: string, config: Partial<Insight> & { query: InsightQuery }) {
     setInsights((prev) => {
       const updated = prev.map((ins) =>
         ins.id === insightId
-          ? {
-              ...ins,
-              title: config.title,
-              type: config.type,
-              query: config.query,
-              projectId: config.projectId,
-              span: config.type === "metric" ? 1 as const : 2 as const,
-            }
+          ? { ...ins, ...config, span: config.type === "metric" ? 1 as const : (config.span ?? ins.span) }
           : ins,
       );
       persistAndRefresh(updated);
       return updated;
     });
-    setEditingId(null);
   }
 
-  function cancelEdit(insightId: string) {
+  function dismissConfigurator(insightId: string) {
     const insight = insights.find((ins) => ins.id === insightId);
-    if (insight && !insight.title) {
+    if (insight && !insight.title && !insight.query) {
       setInsights((prev) => prev.filter((ins) => ins.id !== insightId));
     }
     setEditingId(null);
@@ -286,13 +278,11 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
             <div key={insight.id} className="relative group/insight w-full">
               {editingId === insight.id ? (
                 <InsightConfigurator
-                  initialTitle={insight.title}
-                  initialType={insight.type}
-                  initialQuery={insight.query}
-                  initialProjectId={insight.projectId ?? projectId}
+                  initialInsight={insight}
                   projects={projects}
-                  onSave={(config) => saveInsightConfig(insight.id, config)}
-                  onCancel={() => cancelEdit(insight.id)}
+                  timeRange={timeRangeMap[timeRange]}
+                  onConfigChange={(config) => handleConfigChange(insight.id, config)}
+                  onDismiss={() => dismissConfigurator(insight.id)}
                 />
               ) : (
                 <>

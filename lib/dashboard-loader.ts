@@ -3,14 +3,9 @@ import { dashboards } from "./db/schema";
 import { eq, and } from "drizzle-orm";
 import { buildQuery } from "./query-engine";
 import type {
-  Insight, MetricData, TimeSeriesData,
-  BreakdownItem, InsightLayout, TimeRange,
+  Insight, MetricData, InsightLayout, TimeRange,
 } from "./types";
-
-function formatBucketLabel(bucket: string | Date): string {
-  const d = bucket instanceof Date ? bucket : new Date(bucket);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+import { mapQueryResultToInsightData } from "./query-transform";
 
 function computePreviousTimeRange(timeRange: TimeRange): TimeRange {
   if (timeRange.type === "relative") {
@@ -37,37 +32,6 @@ function unitToMs(unit: string): number {
     case "weeks": return 604_800_000;
     case "months": return 2_592_000_000;
     default: return 86_400_000;
-  }
-}
-
-function mapQueryResultToInsightData(
-  insight: InsightLayout,
-  rows: Record<string, unknown>[],
-): Insight["data"] {
-  switch (insight.type) {
-    case "metric": {
-      const value = rows[0]?.value ?? 0;
-      return {
-        value: Number(value).toLocaleString("en-US"),
-        trend: 0,
-        sparkline: [],
-      } satisfies MetricData;
-    }
-    case "timeseries": {
-      return {
-        labels: rows.map((r) => formatBucketLabel(r.bucket as string)),
-        values: rows.map((r) => Number(r.value)),
-      } satisfies TimeSeriesData;
-    }
-    case "breakdown": {
-      const labelKey = Object.keys(rows[0] ?? {}).find((k) => k !== "value") ?? "label";
-      return {
-        items: rows.map((r) => ({
-          label: String(r[labelKey] ?? "unknown"),
-          value: Number(r.value),
-        })),
-      } satisfies { items: BreakdownItem[] };
-    }
   }
 }
 
@@ -127,7 +91,7 @@ export async function loadDashboardData(
       type: layout.type,
       title: layout.title,
       span: layout.span,
-      data: mapQueryResultToInsightData(layout, rows),
+      data: mapQueryResultToInsightData(layout.type, rows),
       query: layout.query,
     };
   });
