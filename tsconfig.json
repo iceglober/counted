@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@counted/sdk": [
+        "./packages/sdk/src/index.ts"
       ]
     }
   },
