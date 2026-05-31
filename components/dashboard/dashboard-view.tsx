@@ -80,7 +80,7 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
     }
   }
 
-  const persistAndRefresh = useCallback(async (updated: Insight[]) => {
+  const persistLayout = useCallback(async (updated: Insight[]) => {
     if (!dashboardId) return;
     const layout = {
       insights: updated.map((ins) => ({
@@ -97,7 +97,9 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ layout }),
     });
+  }, [dashboardId, projectId]);
 
+  const refreshInsights = useCallback(async () => {
     const res = await fetch("/api/v0/dashboard-data", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -107,7 +109,7 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
       const data = await res.json();
       setInsights(data.insights);
     }
-  }, [dashboardId, projectId, timeRange]);
+  }, [projectId, timeRange]);
 
   async function handleTimeRangeChange(tr: string) {
     setTimeRange(tr);
@@ -131,7 +133,7 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
   function removeInsight(insightId: string) {
     setInsights((prev) => {
       const updated = prev.filter((ins) => ins.id !== insightId);
-      persistAndRefresh(updated);
+      persistLayout(updated).then(() => refreshInsights());
       return updated;
     });
   }
@@ -158,17 +160,14 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
           ? { ...ins, ...config, span: config.type === "metric" ? 1 as const : (config.span ?? ins.span) }
           : ins,
       );
-      persistAndRefresh(updated);
+      persistLayout(updated);
       return updated;
     });
   }
 
   function dismissConfigurator(insightId: string) {
-    const insight = insights.find((ins) => ins.id === insightId);
-    if (insight && !insight.title && !insight.query) {
-      setInsights((prev) => prev.filter((ins) => ins.id !== insightId));
-    }
     setEditingId(null);
+    refreshInsights();
   }
 
   return (
