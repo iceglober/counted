@@ -68,11 +68,4 @@ See `.env.example` for the full list. Key ones:
 
 ## For maintainers
 
-Product planning, financial models, roadmap, and operational docs live in a separate private repo: **iceglober/counted-internal**. This includes:
-
-- `ROADMAP.md` — prioritized feature roadmap
-- `DESIGN.md` — technical design document
-- `financial-model.ts` — CLI financial model (`bun financial-model.ts`)
-- `visualizer.html` — interactive financial dashboard (open in browser)
-
-Do not commit business strategy, pricing decisions, competitive analysis, or financial data to this public repo.
+Internal docs live in a separate private repo. Ask a maintainer for access.
