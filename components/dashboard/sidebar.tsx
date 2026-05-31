@@ -63,6 +63,9 @@ export function Sidebar() {
           <Settings className="w-4 h-4" />
           Settings
         </Link>
+        <div className="px-2.5 pt-2 text-[10px] text-text-tertiary/40 font-mono tabular-nums">
+          {process.env.BUILD_ID}
+        </div>
       </div>
     </aside>
   );
