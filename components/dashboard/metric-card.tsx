@@ -45,8 +45,9 @@ function Sparkline({ data }: { data: number[] }) {
 }
 
 export function MetricCard({ title, data }: { title: string; data: MetricData }) {
-  const positive = data.trend >= 0;
-  const hasTrend = data.trend !== 0;
+  if (!data) return null;
+  const positive = (data.trend ?? 0) >= 0;
+  const hasTrend = (data.trend ?? 0) !== 0;
 
   return (
     <div className="w-full bg-surface-1 border border-border rounded-lg p-5 hover:border-border-hover transition-colors">

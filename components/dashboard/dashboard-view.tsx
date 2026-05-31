@@ -13,9 +13,20 @@ import { EditableText } from "@/components/editable-text";
 import { ActionButton } from "@/components/action-button";
 
 function InsightRenderer({ insight }: { insight: Insight }) {
+  if (!insight.data) {
+    return (
+      <div className="w-full bg-surface-1 border border-border rounded-lg p-5">
+        <div className="text-xs text-text-secondary uppercase tracking-wider mb-3">{insight.title || "Untitled"}</div>
+        <div className="h-20 flex items-center justify-center text-text-tertiary text-sm">No data</div>
+      </div>
+    );
+  }
+
   switch (insight.type) {
-    case "metric":
-      return <MetricCard title={insight.title} data={insight.data as MetricData} />;
+    case "metric": {
+      const m = insight.data as MetricData;
+      return <MetricCard title={insight.title} data={{ value: m?.value ?? "0", trend: m?.trend ?? 0, sparkline: m?.sparkline ?? [] }} />;
+    }
     case "timeseries": {
       const ts = insight.data as TimeSeriesData;
       return <AreaChart title={insight.title} data={{ labels: ts?.labels ?? [], values: ts?.values ?? [] }} />;
