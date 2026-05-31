@@ -13,7 +13,7 @@ const APP_HOST = "app.counted.dev";
 
 const MARKETING_PATHS = new Set(["/", "/pricing"]);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
 
