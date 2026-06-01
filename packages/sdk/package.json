@@ -1,6 +1,6 @@
 {
   "name": "@counted/sdk",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Privacy-focused analytics SDK — lightweight event tracking with no cookies",
   "type": "module",
   "main": "dist/index.cjs",

@@ -1,6 +1,6 @@
 {
   "name": "@counted/migrate",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Migration CLI — import historical events from Aptabase into Counted",
   "type": "module",
   "bin": {
