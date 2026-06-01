@@ -1,4 +1,4 @@
-FROM oven/bun:1.2.0 AS base
+FROM oven/bun:1.3.14 AS base
 WORKDIR /app
 
 # Install dependencies
@@ -7,6 +7,12 @@ COPY package.json bun.lock ./
 COPY packages/sdk/package.json packages/sdk/
 COPY packages/react/package.json packages/react/
 COPY packages/migrate/package.json packages/migrate/
+COPY packages/api/package.json packages/api/
+COPY packages/claude-code/package.json packages/claude-code/
+COPY packages/codex-cli/package.json packages/codex-cli/
+COPY packages/cursor/package.json packages/cursor/
+COPY packages/gemini-cli/package.json packages/gemini-cli/
+COPY packages/opencode/package.json packages/opencode/
 RUN bun install --frozen-lockfile
 
 # Build
