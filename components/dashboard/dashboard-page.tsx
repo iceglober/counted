@@ -56,9 +56,9 @@ export function DashboardPage({ dashboards, activeDashboardId, activeDashboardNa
           if (activeDashboardId) tabsRef.current?.remove(activeDashboardId);
           const remaining = dashboards.filter((d) => d.id !== activeDashboardId);
           if (remaining.length > 0) {
-            router.push(`/${projectId}?dashboard=${remaining[0].id}`);
+            router.push(`/dashboards?dashboard=${remaining[0].id}`);
           } else {
-            router.push(`/${projectId}`);
+            router.push(`/dashboards`);
           }
           router.refresh();
         }}

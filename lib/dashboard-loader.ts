@@ -141,3 +141,19 @@ export async function loadDashboardData(
 
   return { insights, dashboardId: dashboard.id };
 }
+
+export async function loadDashboardById(
+  dashboardId: string,
+  timeRange: TimeRange,
+): Promise<{ insights: Insight[]; dashboardId: string }> {
+  const dashboard = await db.query.dashboards.findFirst({
+    where: eq(dashboards.id, dashboardId),
+  });
+
+  if (!dashboard) {
+    return { insights: [], dashboardId };
+  }
+
+  const result = await loadDashboardData(dashboard.projectId, timeRange, dashboardId);
+  return { insights: result.insights, dashboardId };
+}

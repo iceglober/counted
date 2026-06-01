@@ -22,7 +22,7 @@ export default function LoginPage() {
     try {
       const result = await authClient.signIn.magicLink({
         email,
-        callbackURL: "/dashboard",
+        callbackURL: "/dashboards",
       });
 
       if (result.error) {

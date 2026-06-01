@@ -64,7 +64,7 @@ export const DashboardTabs = forwardRef<DashboardTabsRef, Props>(
       if (res.ok) {
         const dashboard = await res.json();
         setDashboards((prev) => sortDashboards([...prev, { id: dashboard.id, name: dashboard.name, isDefault: false }]));
-        router.push(`/${projectId}?dashboard=${dashboard.id}`);
+        router.push(`/dashboards?dashboard=${dashboard.id}`);
       }
     }
 
@@ -73,7 +73,7 @@ export const DashboardTabs = forwardRef<DashboardTabsRef, Props>(
         {dashboards.map((d) => (
           <Link
             key={d.id}
-            href={`/${projectId}?dashboard=${d.id}`}
+            href={`/dashboards?dashboard=${d.id}`}
             className={`flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors ${
               d.id === activeDashboardId
                 ? "bg-accent/15 text-accent font-medium"

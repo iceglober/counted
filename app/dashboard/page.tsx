@@ -17,11 +17,11 @@ export default async function DashboardRedirect() {
   });
 
   if (memberships.length > 0) {
-    redirect(`/${memberships[0].project.id}`);
+    redirect("/dashboards");
   }
 
   // No projects — create a default one
-  const result = await db.transaction(async (tx) => {
+  await db.transaction(async (tx) => {
     const [project] = await tx
       .insert(projects)
       .values({ name: "My App", apiKey: generateApiKey() })
@@ -40,9 +40,7 @@ export default async function DashboardRedirect() {
       layout: createDefaultLayout(),
       isDefault: true,
     });
-
-    return project;
   });
 
-  redirect(`/${result.id}`);
+  redirect("/dashboards");
 }

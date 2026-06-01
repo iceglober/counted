@@ -34,9 +34,9 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // App domain: redirect / to /dashboard
+  // App domain: redirect / to /dashboards
   if (host === APP_HOST && pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/dashboards", request.url));
   }
 
   return NextResponse.next();
