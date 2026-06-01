@@ -10,7 +10,6 @@ COPY packages/migrate/package.json packages/migrate/
 COPY packages/api/package.json packages/api/
 COPY packages/claude-code/package.json packages/claude-code/
 COPY packages/codex-cli/package.json packages/codex-cli/
-COPY packages/cursor/package.json packages/cursor/
 COPY packages/gemini-cli/package.json packages/gemini-cli/
 COPY packages/opencode/package.json packages/opencode/
 RUN bun install --frozen-lockfile
