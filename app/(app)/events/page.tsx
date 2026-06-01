@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useProjects } from "@/components/dashboard/dashboard-shell";
 import { Dropdown } from "@/components/dropdown";
 
@@ -11,30 +12,29 @@ type EventRow = {
   locale: string | null;
   timestamp: string;
   props: Record<string, unknown>;
+  project_id: string;
+  project_name?: string;
 };
 
 export default function EventsPage() {
   const projects = useProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState(projects[0]?.id ?? "");
+  const [selectedProjectId, setSelectedProjectId] = useState("all");
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!selectedProjectId) return;
     setLoading(true);
-    fetch(`/api/v0/query`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        projectId: selectedProjectId,
-        query: { measure: "count" },
-        timeRange: { type: "relative", value: 30, unit: "days" },
-      }),
-    }).catch(() => {});
+    const param = selectedProjectId === "all"
+      ? projects.map((p) => `projectId=${p.id}`).join("&")
+      : `projectId=${selectedProjectId}`;
 
-    fetch(`/api/v0/events-list?projectId=${selectedProjectId}`)
+    fetch(`/api/v0/events-list?${param}`)
       .then((r) => r.json())
-      .then(setEvents)
+      .then((rows: EventRow[]) => {
+        const projectMap = Object.fromEntries(projects.map((p) => [p.id, p.name]));
+        setEvents(rows.map((r) => ({ ...r, project_name: projectMap[r.project_id] })));
+      })
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
   }, [selectedProjectId]);
@@ -46,12 +46,18 @@ export default function EventsPage() {
           <h1 className="text-xl font-semibold">Events</h1>
           <p className="text-sm text-text-secondary mt-0.5">Last 100 events</p>
         </div>
-        <Dropdown
-          value={selectedProjectId}
-          options={projects.map((p) => ({ value: p.id, label: p.name }))}
-          onChange={setSelectedProjectId}
-          className="w-48"
-        />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-text-tertiary">Project</span>
+          <Dropdown
+            value={selectedProjectId}
+            options={[
+              { value: "all", label: "All projects" },
+              ...projects.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+            onChange={setSelectedProjectId}
+            className="w-48"
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -65,6 +71,7 @@ export default function EventsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-1 border-b border-border text-text-secondary text-xs uppercase tracking-wider">
+                <th className="text-left px-4 py-3 font-medium">Project</th>
                 <th className="text-left px-4 py-3 font-medium">Event</th>
                 <th className="text-left px-4 py-3 font-medium">Session</th>
                 <th className="text-left px-4 py-3 font-medium">OS</th>
@@ -79,6 +86,11 @@ export default function EventsPage() {
                   key={i}
                   className="border-b border-border last:border-0 hover:bg-surface-1/50 transition-colors"
                 >
+                  <td className="px-4 py-3">
+                    <Link href="/projects" className="text-xs text-accent hover:text-accent-hover transition-colors">
+                      {event.project_name ?? "—"}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 font-medium text-text-primary">{event.event_name}</td>
                   <td className="px-4 py-3 text-text-secondary font-mono text-xs">{event.session_id}</td>
                   <td className="px-4 py-3 text-text-secondary">{event.os_name ?? "—"}</td>
