@@ -53,7 +53,7 @@ jobs:
           cd ../migrate && bun run build
 
       - name: Apply schema
-        run: bun run db:migrate
+        run: MIGRATE_STRICT=1 bun scripts/migrate-resilient.ts
 
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium

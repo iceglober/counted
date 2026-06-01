@@ -52,4 +52,6 @@ for (const f of failures) {
 }
 
 await pool.end();
-process.exit(0);
+// Startup use exits 0 so the server always boots; CI sets MIGRATE_STRICT=1 to
+// fail loudly if any statement couldn't be applied.
+process.exit(process.env.MIGRATE_STRICT === "1" && failures.length ? 1 : 0);
