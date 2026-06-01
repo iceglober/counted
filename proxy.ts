@@ -11,7 +11,7 @@ const CORS_HEADERS = {
 const MARKETING_HOSTS = new Set(["counted.dev", "www.counted.dev"]);
 const APP_HOST = "app.counted.dev";
 
-const MARKETING_PATHS = new Set(["/", "/pricing"]);
+const MARKETING_PATHS = new Set(["/", "/pricing", "/sitemap.xml", "/robots.txt"]);
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
