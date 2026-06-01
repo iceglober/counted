@@ -61,3 +61,38 @@ test("add, configure, preview, persist, and resize an insight", async ({ page })
   ]);
   expect(resizePut.ok(), `resize PUT should succeed, got ${resizePut.status()}`).toBeTruthy();
 });
+
+test("reorder insights by keyboard drag-and-drop", async ({ page }) => {
+  await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
+
+  // @hello-pangea/dnd stamps each drag handle with the draggable's id, in DOM
+  // (== layout) order. Read the order, drag the first card one slot right, re-read.
+  const handles = page.locator("[data-rfd-drag-handle-draggable-id]");
+  await expect(async () => expect(await handles.count()).toBeGreaterThan(1)).toPass();
+  const order = () =>
+    handles.evaluateAll((els) =>
+      els.map((e) => e.getAttribute("data-rfd-drag-handle-draggable-id")),
+    );
+  const before = await order();
+
+  // Keyboard DnD: focus the handle, Space lifts, ArrowRight moves, Space drops.
+  await handles.first().focus();
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(150); // let dnd register the lift
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(150);
+  const [dragPut] = await Promise.all([
+    page.waitForResponse(
+      (r) => r.url().includes("/api/v0/dashboards/") && r.request().method() === "PUT",
+    ),
+    page.keyboard.press("Space"), // drop -> handleDragEnd -> persistLayout
+  ]);
+  expect(dragPut.ok(), `reorder PUT should succeed, got ${dragPut.status()}`).toBeTruthy();
+
+  // The first insight moved one position right; the second took its place.
+  await expect(async () => {
+    const after = await order();
+    expect(after[0]).toBe(before[1]);
+    expect(after[1]).toBe(before[0]);
+  }).toPass();
+});
