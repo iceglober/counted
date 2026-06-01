@@ -16,6 +16,11 @@
       "types": "./dist/aptabase.d.ts",
       "import": "./dist/aptabase.js",
       "require": "./dist/aptabase.cjs"
+    },
+    "./auto-track": {
+      "types": "./dist/auto-track.d.ts",
+      "import": "./dist/auto-track.js",
+      "require": "./dist/auto-track.cjs"
     }
   },
   "files": ["dist"],
