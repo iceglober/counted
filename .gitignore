@@ -39,3 +39,10 @@ __pycache__/
 
 # npm auth (never commit tokens)
 .npmrc
+
+# playwright
+/test-results
+/playwright-report
+/blob-report
+/.playwright
+/tests/e2e/.auth

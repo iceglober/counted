@@ -25,6 +25,8 @@ export function ActionButton({ label, onClick, icon, className }: Props) {
         onMouseLeave={() => setHovering(false)}
         onMouseMove={handleMouseMove}
         className={className}
+        aria-label={label}
+        title={label}
       >
         {icon}
       </button>
