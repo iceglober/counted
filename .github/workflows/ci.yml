@@ -50,12 +50,16 @@ jobs:
           BETTER_AUTH_URL: "http://localhost:3000"
           NEXT_PUBLIC_BETTER_AUTH_URL: "http://localhost:3000"
 
-  publish-sdks:
-    name: Publish SDKs
+  release:
+    name: Release SDKs
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     needs: check
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -73,20 +77,13 @@ jobs:
           cd ../react && bun run build
           cd ../migrate && bun run build
 
-      - name: Configure npm
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-
-      - name: Publish @counted/sdk
-        run: cd packages/sdk && npm publish --access public --provenance || true
+      - name: Create release PR or publish
+        uses: changesets/action@v1
+        with:
+          version: npx @changesets/cli version
+          publish: npx @changesets/cli publish
+          title: "Version Packages"
+          commit: "chore: version packages"
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish @counted/react
-        run: cd packages/react && npm publish --access public --provenance || true
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish @counted/migrate
-        run: cd packages/migrate && npm publish --access public --provenance || true
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
