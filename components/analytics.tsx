@@ -4,24 +4,25 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { Analytics } from "@counted/sdk";
 
-const PROJECT_KEY = process.env.NEXT_PUBLIC_COUNTED_PROJECT_KEY;
-
 export function CountedAnalytics() {
   const analyticsRef = useRef<Analytics | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!PROJECT_KEY) return;
-    if (!analyticsRef.current) {
-      analyticsRef.current = new Analytics({
-        projectKey: PROJECT_KEY,
-        host: process.env.NEXT_PUBLIC_COUNTED_HOST ?? "https://app.counted.dev",
-      });
-    }
-  }, []);
+    const key = process.env.NEXT_PUBLIC_COUNTED_PROJECT_KEY;
+    const host = process.env.NEXT_PUBLIC_COUNTED_HOST ?? "https://app.counted.dev";
 
-  useEffect(() => {
-    analyticsRef.current?.track("page_view", { path: pathname });
+    if (!key) {
+      console.debug("[counted] NEXT_PUBLIC_COUNTED_PROJECT_KEY not set, skipping analytics");
+      return;
+    }
+
+    if (!analyticsRef.current) {
+      analyticsRef.current = new Analytics({ projectKey: key, host });
+      console.debug("[counted] Analytics initialized", { key: key.slice(0, 10) + "...", host });
+    }
+
+    analyticsRef.current.track("page_view", { path: pathname });
   }, [pathname]);
 
   return null;
