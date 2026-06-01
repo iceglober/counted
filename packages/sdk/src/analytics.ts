@@ -1,5 +1,5 @@
 import type { AnalyticsOptions, EventProperties, RawEvent } from "./types";
-import { getSessionId } from "./session";
+import { getSessionId, configureSession } from "./session";
 import { detectSystemProps } from "./system-props";
 import { sendBeacon, sendFetch } from "./transport";
 
@@ -21,6 +21,11 @@ export class Analytics {
     this.host = options.host ?? DEFAULT_HOST;
     this.flushInterval = options.flushInterval ?? DEFAULT_FLUSH_INTERVAL;
     this.maxBatchSize = options.maxBatchSize ?? DEFAULT_MAX_BATCH_SIZE;
+
+    configureSession({
+      sessionId: options.sessionId,
+      sessionTimeout: options.sessionTimeout,
+    });
 
     this.startTimer();
     this.registerUnloadHandler();
@@ -72,6 +77,10 @@ export class Analytics {
   private startTimer(): void {
     if (this.timer) return;
     this.timer = setInterval(() => this.flush(), this.flushInterval);
+    // Prevent the timer from keeping Node.js alive
+    if (typeof this.timer === "object" && "unref" in this.timer) {
+      this.timer.unref();
+    }
   }
 
   private stopTimer(): void {
@@ -82,14 +91,22 @@ export class Analytics {
   }
 
   private registerUnloadHandler(): void {
-    if (typeof globalThis.addEventListener !== "function") return;
+    // Browser: flush on page hide
+    if (typeof globalThis.document !== "undefined") {
+      globalThis.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden" && this.buffer.length > 0) {
+          const url = `${this.host}/api/v0/event`;
+          sendBeacon(url, this.buffer);
+          this.buffer = [];
+        }
+      });
+    }
 
-    globalThis.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden" && this.buffer.length > 0) {
-        const url = `${this.host}/api/v0/event`;
-        sendBeacon(url, this.buffer);
-        this.buffer = [];
-      }
-    });
+    // Node.js: flush on process exit
+    if (typeof globalThis.process !== "undefined" && globalThis.process.on) {
+      globalThis.process.on("beforeExit", () => {
+        this.flush();
+      });
+    }
   }
 }

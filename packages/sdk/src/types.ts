@@ -5,6 +5,8 @@ export type AnalyticsOptions = {
   host?: string;
   flushInterval?: number;
   maxBatchSize?: number;
+  sessionId?: string;
+  sessionTimeout?: number;
 };
 
 export type SystemProps = {
