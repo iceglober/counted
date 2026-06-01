@@ -12,6 +12,18 @@ export const auth = betterAuth({
     schema,
   }),
   trustedOrigins: process.env.TRUSTED_ORIGINS?.split(",").map(s => s.trim()).filter(Boolean),
+  socialProviders: {
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID ?? "",
+      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
+      enabled: !!process.env.GITHUB_CLIENT_ID,
+    },
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      enabled: !!process.env.GOOGLE_CLIENT_ID,
+    },
+  },
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
