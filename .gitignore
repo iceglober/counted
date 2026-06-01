@@ -36,3 +36,6 @@ drizzle/meta/
 .playwright-cli/
 __pycache__/
 __pycache__/
+
+# npm auth (never commit tokens)
+.npmrc
