@@ -166,11 +166,21 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
 
   function handleConfigChange(insightId: string, config: Partial<Insight> & { query: InsightQuery }) {
     setInsights((prev) => {
-      const updated = prev.map((ins) =>
-        ins.id === insightId
-          ? { ...ins, ...config, span: config.type === "metric" ? 1 as const : (config.span ?? ins.span) }
-          : ins,
-      );
+      const updated = prev.map((ins) => {
+        if (ins.id !== insightId) return ins;
+        const typeChanged = config.type && config.type !== ins.type;
+        const defaultData = config.type === "metric"
+          ? { value: "0", trend: 0, sparkline: [] }
+          : config.type === "timeseries"
+            ? { labels: [], values: [] }
+            : { items: [] };
+        return {
+          ...ins,
+          ...config,
+          data: typeChanged ? defaultData : ins.data,
+          span: config.type === "metric" ? 1 as const : (config.span ?? ins.span),
+        };
+      });
       persistLayout(updated);
       return updated;
     });

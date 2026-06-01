@@ -2,7 +2,7 @@ import type { MetricData } from "@/lib/types";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 function Sparkline({ data }: { data: number[] }) {
-  if (data.length < 2) return <div className="w-20 h-7" />;
+  if (!data || data.length < 2) return <div className="w-20 h-7" />;
 
   const w = 80;
   const h = 28;
@@ -53,7 +53,7 @@ export function MetricCard({ title, data }: { title: string; data: MetricData })
     <div className="w-full bg-surface-1 border border-border rounded-lg p-5 hover:border-border-hover transition-colors">
       <div className="text-xs text-text-secondary uppercase tracking-wider">{title}</div>
       <div className="mt-3 flex items-end justify-between gap-3">
-        <div className="text-2xl font-semibold tracking-tight tabular-nums">{data.value}</div>
+        <div className="text-2xl font-semibold tracking-tight tabular-nums">{data.value ?? "—"}</div>
         <Sparkline data={data.sparkline} />
       </div>
       {hasTrend ? (
