@@ -7,13 +7,34 @@ Thanks for your interest in contributing. Here's how to get started.
 ```bash
 git clone https://github.com/iceglober/counted.git
 cd counted
-bun install
-cp .env.example .env.local
-# Edit .env.local with your local Postgres URL and a dev auth secret
+bun run setup
+```
+
+This starts TimescaleDB via Docker, installs dependencies, creates `.env.local`, builds SDKs, and seeds the database with 3 projects and ~1,400 realistic events across 30 days.
+
+Then start the dev server:
+
+```bash
 bun run dev
 ```
 
-You'll need PostgreSQL running locally. The schema is pushed with `bun run db:push`.
+Login as `test@counted.dev` via magic link. To get the token without email:
+
+```bash
+docker compose exec db psql -U counted -c "SELECT identifier FROM verification ORDER BY created_at DESC LIMIT 1;"
+```
+
+### Manual setup
+
+If you prefer to manage your own Postgres:
+
+```bash
+bun install
+cp .env.example .env.local
+# Edit DATABASE_URL in .env.local
+bun run db:push
+bun scripts/seed.ts
+```
 
 ## Making Changes
 
