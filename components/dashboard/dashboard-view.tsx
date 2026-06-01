@@ -14,30 +14,20 @@ import { EditableText } from "@/components/editable-text";
 import { ActionButton } from "@/components/action-button";
 import { Onboarding } from "./onboarding";
 import { AgentSetup } from "./agent-setup";
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-  type DragStartEvent,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  arrayMove,
-  rectSortingStrategy,
-  sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import GridLayout, { useContainerWidth, type Layout, type LayoutItem } from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
+
+// Grid cells are fixed-height (react-grid-layout requires explicit h). Heights
+// are per insight type; the one being configured gets extra room.
+const TYPE_HEIGHT: Record<string, number> = { metric: 2, timeseries: 4, breakdown: 4, funnel: 4, retention: 4 };
+const EDIT_HEIGHT = 8;
+const ROW_HEIGHT = 72;
+const COLS = 3;
 
 function InsightRenderer({ insight }: { insight: Insight }) {
   if (!insight.data) {
     return (
-      <div className="w-full bg-surface-1 border border-border rounded-lg p-5">
+      <div className="w-full h-full bg-surface-1 border border-border rounded-lg p-5">
         <div className="text-xs text-text-secondary uppercase tracking-wider mb-3">{insight.title || "Untitled"}</div>
         <div className="h-20 flex items-center justify-center text-text-tertiary text-sm">No data</div>
       </div>
@@ -74,88 +64,21 @@ const timeRangeMap: Record<string, TimeRange> = {
   "Last 90 days": { type: "relative", value: 90, unit: "days" },
 };
 
-// One insight as a sortable grid cell. The drag handle (not the whole card)
-// carries the listeners, so charts stay interactive.
-function SortableInsight({
-  insight,
-  isEditing,
-  projects,
-  timeRange,
-  onConfigChange,
-  onDismiss,
-  onEdit,
-  onResize,
-  onRemove,
-}: {
-  insight: Insight;
-  isEditing: boolean;
-  projects: { id: string; name: string }[];
-  timeRange: TimeRange;
-  onConfigChange: (config: Partial<Insight> & { query: InsightQuery }) => void;
-  onDismiss: () => void;
-  onEdit: () => void;
-  onResize: () => void;
-  onRemove: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: insight.id,
-    disabled: isEditing,
-  });
-
-  const style: React.CSSProperties = {
-    gridColumn: `span ${Math.min(insight.span, 3)}`,
-    transform: CSS.Transform.toString(transform),
-    transition,
-    // The held item is rendered (shrunk) in the DragOverlay; fade its origin.
-    opacity: isDragging ? 0.4 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} data-insight-id={insight.id} className="relative group/insight w-full min-w-0">
-      {isEditing ? (
-        <InsightConfigurator
-          initialInsight={insight}
-          projects={projects}
-          timeRange={timeRange}
-          onConfigChange={onConfigChange}
-          onDismiss={onDismiss}
-        />
-      ) : (
-        <>
-          <InsightRenderer insight={insight} />
-          <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover/insight:opacity-100 transition-all">
-            <button
-              {...attributes}
-              {...listeners}
-              data-drag-handle
-              aria-label="Drag to reorder"
-              className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-text-primary shadow-sm transition-colors cursor-grab active:cursor-grabbing touch-none"
-            >
-              <GripVertical className="w-3 h-3" />
-            </button>
-            <ActionButton
-              label={SPAN_LABELS[SPAN_CYCLE[insight.span] ?? 2]}
-              onClick={onResize}
-              icon={insight.span >= 3 ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-              className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
-            />
-            <ActionButton
-              label="Configure"
-              onClick={onEdit}
-              icon={<Pencil className="w-3 h-3" />}
-              className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
-            />
-            <ActionButton
-              label="Remove"
-              onClick={onRemove}
-              icon={<X className="w-3 h-3" />}
-              className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-error hover:border-error/40 shadow-sm transition-colors"
-            />
-          </div>
-        </>
-      )}
-    </div>
-  );
+// Pack insights left-to-right into COLS columns (wrapping), using each card's
+// span as width. react-grid-layout then keeps everything inside the grid and
+// compacts vertically — cards can't warp or escape the right edge.
+function computeLayout(insights: Insight[], editingId: string | null): LayoutItem[] {
+  const layout: LayoutItem[] = [];
+  let x = 0, y = 0, rowMax = 0;
+  for (const ins of insights) {
+    const w = Math.min(ins.span ?? 2, COLS);
+    const h = ins.id === editingId ? EDIT_HEIGHT : (TYPE_HEIGHT[ins.type] ?? 3);
+    if (x + w > COLS) { x = 0; y += rowMax; rowMax = 0; }
+    layout.push({ i: ins.id, x, y, w, h });
+    x += w;
+    rowMax = Math.max(rowMax, h);
+  }
+  return layout;
 }
 
 type Props = {
@@ -174,25 +97,17 @@ type Props = {
 export function DashboardView({ initialInsights, projectId, projectKey, dashboardId, dashboardName = "Dashboard", isDefault, shareToken: initialShareToken, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
   const [insights, setInsights] = useState(initialInsights);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [name, setName] = useState(dashboardName);
   const [timeRange, setTimeRange] = useState("Last 30 days");
   const [timeOpen, setTimeOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [titleEditing, setTitleEditing] = useState(false);
   const [shareToken, setShareToken] = useState(initialShareToken);
   const [shareCopied, setShareCopied] = useState(false);
   const projects = useProjects();
+  const { width, containerRef, mounted } = useContainerWidth();
 
-  const sensors = useSensors(
-    // A small drag threshold so clicking the handle/buttons doesn't start a drag.
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  useEffect(() => setMounted(true), []);
   useEffect(() => setInsights(initialInsights), [initialInsights]);
   useEffect(() => setName(dashboardName), [dashboardName]);
 
@@ -331,26 +246,20 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     });
   }
 
-  function handleDragStart(event: DragStartEvent) {
-    setActiveId(String(event.active.id));
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    setActiveId(null);
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
+  // After a drag, re-derive the insight order from the new grid positions
+  // (top-to-bottom, left-to-right) and persist.
+  function handleDragStop(newLayout: Layout) {
+    const order = [...newLayout].sort((a, b) => a.y - b.y || a.x - b.x).map((l) => l.i);
     setInsights((prev) => {
-      const from = prev.findIndex((i) => i.id === active.id);
-      const to = prev.findIndex((i) => i.id === over.id);
-      if (from === -1 || to === -1) return prev;
-      const updated = arrayMove(prev, from, to);
-      persistLayout(updated);
-      return updated;
+      const byId = new Map(prev.map((i) => [i.id, i]));
+      const reordered = order.map((id) => byId.get(id)).filter(Boolean) as Insight[];
+      if (reordered.length !== prev.length) return prev;
+      const changed = reordered.some((ins, i) => ins.id !== prev[i].id);
+      if (!changed) return prev;
+      persistLayout(reordered);
+      return reordered;
     });
   }
-
-  const activeInsight = activeId ? insights.find((i) => i.id === activeId) : null;
 
   // An agent-eval dashboard is recognisable by its insights filtering on agent
   // events — show the plugin-setup card on it until the first event arrives.
@@ -488,56 +397,70 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         <AgentSetup projectKey={projectKey} projectId={projectId} />
       )}
 
-      {/* Insights grid with drag-and-drop. min-w-0 on the cells + grid reflow
-          (rectSortingStrategy) keeps wide insights wrapping to the next row
-          instead of overflowing off the right. */}
-      {mounted ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={() => setActiveId(null)}
+      {/* Insight grid. react-grid-layout keeps every card inside the grid and
+          compacts vertically; only the dragged card shrinks (CSS in globals). */}
+      <div ref={containerRef}>
+      {mounted && width > 0 && insights.length > 0 ? (
+        <GridLayout
+          className="layout"
+          width={width}
+          layout={computeLayout(insights, editingId)}
+          gridConfig={{ cols: COLS, rowHeight: ROW_HEIGHT, margin: [16, 16], containerPadding: [0, 0] }}
+          dragConfig={{ enabled: !editingId, handle: ".drag-handle" }}
+          resizeConfig={{ enabled: false }}
+          onDragStop={(l: Layout) => handleDragStop(l)}
         >
-          <SortableContext items={insights.map((i) => i.id)} strategy={rectSortingStrategy}>
-            <div data-insight-grid className="grid grid-cols-3 gap-4">
-              {insights.map((insight) => (
-                <SortableInsight
-                  key={insight.id}
-                  insight={insight}
-                  isEditing={editingId === insight.id}
-                  projects={projects}
-                  timeRange={timeRangeMap[timeRange]}
-                  onConfigChange={(config) => handleConfigChange(insight.id, config)}
-                  onDismiss={() => dismissConfigurator(insight.id)}
-                  onEdit={() => setEditingId(insight.id)}
-                  onResize={() => resizeInsight(insight.id)}
-                  onRemove={() => removeInsight(insight.id)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-          {/* The held insight, shrunk to a compact chip that follows the cursor. */}
-          <DragOverlay>
-            {activeInsight ? (
-              <div data-drag-overlay className="w-56 bg-surface-2 border border-accent/40 rounded-lg shadow-xl px-3 py-2.5 flex items-center gap-2 cursor-grabbing">
-                <GripVertical className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
-                <span className="text-xs font-medium text-text-primary truncate">
-                  {activeInsight.title || "Untitled"}
-                </span>
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      ) : (
-        <div className="grid grid-cols-3 gap-4">
           {insights.map((insight) => (
-            <div key={insight.id} className="w-full min-w-0" style={{ gridColumn: `span ${Math.min(insight.span, 3)}` }}>
-              <InsightRenderer insight={insight} />
+            <div key={insight.id} data-insight-id={insight.id}>
+              {editingId === insight.id ? (
+                <div className="h-full overflow-auto">
+                  <InsightConfigurator
+                    initialInsight={insight}
+                    projects={projects}
+                    timeRange={timeRangeMap[timeRange]}
+                    onConfigChange={(config) => handleConfigChange(insight.id, config)}
+                    onDismiss={() => dismissConfigurator(insight.id)}
+                  />
+                </div>
+              ) : (
+                <div className="relative group/insight h-full">
+                  <div className="insight-card h-full overflow-hidden">
+                    <InsightRenderer insight={insight} />
+                  </div>
+                  <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover/insight:opacity-100 transition-all z-10">
+                    <button
+                      className="drag-handle p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-text-primary shadow-sm transition-colors cursor-grab active:cursor-grabbing touch-none"
+                      aria-label="Drag to reorder"
+                      data-drag-handle
+                    >
+                      <GripVertical className="w-3 h-3" />
+                    </button>
+                    <ActionButton
+                      label={SPAN_LABELS[SPAN_CYCLE[insight.span] ?? 2]}
+                      onClick={() => resizeInsight(insight.id)}
+                      icon={insight.span >= 3 ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+                      className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
+                    />
+                    <ActionButton
+                      label="Configure"
+                      onClick={() => setEditingId(insight.id)}
+                      icon={<Pencil className="w-3 h-3" />}
+                      className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
+                    />
+                    <ActionButton
+                      label="Remove"
+                      onClick={() => removeInsight(insight.id)}
+                      icon={<X className="w-3 h-3" />}
+                      className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-error hover:border-error/40 shadow-sm transition-colors"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ))}
-        </div>
-      )}
+        </GridLayout>
+      ) : null}
+      </div>
 
       {insights.length === 0 && (
         <Onboarding

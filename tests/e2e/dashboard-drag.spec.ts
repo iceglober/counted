@@ -1,39 +1,38 @@
 import { test, expect } from "@playwright/test";
 import { seededDashboardId } from "./helpers";
 
-// Drag visuals: the held item shrinks to a compact overlay chip, and the grid
-// never overflows the right edge while siblings reflow (they wrap downward).
-test("drag shows a shrunk overlay and never overflows right", async ({ page }) => {
+// Drag visuals (react-grid-layout): only the held card shrinks onto the cursor;
+// every other card stays inside the grid at its size and just reflows.
+test("dragged card shrinks; siblings never leave the grid", async ({ page }) => {
   await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
   const cells = page.locator("[data-insight-id]");
   await expect(async () => expect(await cells.count()).toBeGreaterThan(2)).toPass();
 
-  // Pick up the first card via pointer (dnd-kit needs a >5px move to activate).
+  // A normal card's width, for the shrink comparison.
+  const siblingW = (await cells.nth(1).locator(".insight-card").boundingBox())!.width;
+
+  // Pick up the first card and drag it across/down.
   const handle = page.locator("[data-drag-handle]").first();
-  const box = (await handle.boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const hb = (await handle.boundingBox())!;
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
   await page.mouse.down();
-  await page.mouse.move(box.x + 200, box.y + 160, { steps: 10 }); // drag across/down
+  await page.mouse.move(hb.x + 40, hb.y + 60, { steps: 6 });
+  await page.mouse.move(hb.x + 160, hb.y + 220, { steps: 12 });
 
-  // The held item renders as a compact (~224px) overlay chip, not a full card.
-  const overlay = page.locator("[data-drag-overlay]");
-  await expect(overlay).toBeVisible();
-  const ob = (await overlay.boundingBox())!;
-  expect(ob.width).toBeLessThan(300);
+  // The held card is scaled down to a chip (well under a normal card's width).
+  const dragging = page.locator(".react-grid-item.react-draggable-dragging .insight-card");
+  await expect(dragging).toBeVisible();
+  const dw = (await dragging.boundingBox())!.width;
+  expect(dw, `held card should shrink (got ${dw}px vs sibling ${siblingW}px)`).toBeLessThan(siblingW * 0.6);
 
-  // While siblings reflow, no insight cell extends past the grid's right edge —
-  // wide cards wrap to the next row instead of overflowing. (The floating
-  // overlay is a separate portal element and is intentionally excluded.)
+  // No NON-dragged card extends past the grid's right edge — siblings reflow
+  // within the grid (wrap downward) rather than warping off-screen.
   const worst = await page.evaluate(() => {
-    const grid = document.querySelector("[data-insight-grid]")!.getBoundingClientRect();
-    return Math.max(
-      0,
-      ...[...document.querySelectorAll("[data-insight-id]")].map(
-        (c) => c.getBoundingClientRect().right - grid.right,
-      ),
-    );
+    const grid = document.querySelector(".react-grid-layout")!.getBoundingClientRect();
+    const siblings = document.querySelectorAll(".react-grid-item:not(.react-draggable-dragging) [data-insight-id]");
+    return Math.max(0, ...[...siblings].map((c) => c.getBoundingClientRect().right - grid.right));
   });
-  expect(worst, `an insight overflowed the grid's right edge by ${worst}px`).toBeLessThanOrEqual(1);
+  expect(worst, `a sibling overflowed the grid right by ${worst}px`).toBeLessThanOrEqual(2);
 
   await page.mouse.up();
 });

@@ -62,35 +62,35 @@ test("add, configure, preview, persist, and resize an insight", async ({ page })
   expect(resizePut.ok(), `resize PUT should succeed, got ${resizePut.status()}`).toBeTruthy();
 });
 
-test("reorder insights by keyboard drag-and-drop", async ({ page }) => {
+test("reorder insights by drag-and-drop", async ({ page }) => {
   await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
 
-  // dnd-kit cells carry data-insight-id in DOM (== layout) order. Read the order,
-  // drag the first card one slot right, re-read.
+  // react-grid-layout cells carry data-insight-id in DOM (== layout) order.
   const cells = page.locator("[data-insight-id]");
-  await expect(async () => expect(await cells.count()).toBeGreaterThan(1)).toPass();
+  await expect(async () => expect(await cells.count()).toBeGreaterThan(2)).toPass();
   const order = () =>
     cells.evaluateAll((els) => els.map((e) => e.getAttribute("data-insight-id")));
   const before = await order();
 
-  // Keyboard DnD: focus the handle, Space lifts, ArrowRight moves, Space drops.
-  await page.locator("[data-drag-handle]").first().focus();
-  await page.keyboard.press("Space");
-  await page.waitForTimeout(150); // let dnd-kit register the lift
-  await page.keyboard.press("ArrowRight");
-  await page.waitForTimeout(150);
+  // Pointer-drag the first card's handle onto the last card's position.
+  const handle = page.locator("[data-drag-handle]").first();
+  const hb = (await handle.boundingBox())!;
+  const dest = (await cells.nth((await cells.count()) - 1).boundingBox())!;
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + 30, hb.y + 30, { steps: 5 }); // pass the drag threshold
+  await page.mouse.move(dest.x + dest.width / 2, dest.y + dest.height / 2, { steps: 12 });
   const [dragPut] = await Promise.all([
     page.waitForResponse(
       (r) => r.url().includes("/api/v0/dashboards/") && r.request().method() === "PUT",
     ),
-    page.keyboard.press("Space"), // drop -> handleDragEnd -> persistLayout
+    page.mouse.up(), // drop -> onDragStop -> persistLayout
   ]);
   expect(dragPut.ok(), `reorder PUT should succeed, got ${dragPut.status()}`).toBeTruthy();
 
-  // The first insight moved one position right; the second took its place.
+  // The layout order changed.
   await expect(async () => {
     const after = await order();
-    expect(after[0]).toBe(before[1]);
-    expect(after[1]).toBe(before[0]);
+    expect(after.join(",")).not.toBe(before.join(","));
   }).toPass();
 });

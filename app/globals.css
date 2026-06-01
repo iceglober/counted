@@ -81,3 +81,28 @@ input[type="checkbox"], input[type="radio"], input[type="submit"] {
     color: var(--color-text-primary);
   }
 }
+
+/* react-grid-layout — dashboard drag interactions */
+.react-grid-item .insight-card {
+  transition: transform 130ms ease, opacity 130ms ease;
+}
+/* Cards fill their grid cell so there's no gap below short content. */
+.insight-card > * {
+  height: 100%;
+}
+/* Only the dragged card shrinks onto the cursor; siblings stay full-size and
+   are kept inside the grid by react-grid-layout's positioning. */
+.react-grid-item.react-draggable-dragging {
+  z-index: 50;
+}
+.react-grid-item.react-draggable-dragging .insight-card {
+  transform: scale(0.4);
+  transform-origin: top right;
+  opacity: 0.92;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.react-grid-placeholder {
+  background: var(--color-accent) !important;
+  opacity: 0.12 !important;
+  border-radius: 0.5rem !important;
+}
