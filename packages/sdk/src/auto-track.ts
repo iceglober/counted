@@ -1,4 +1,15 @@
 import { Analytics } from "./analytics";
+import type { EventProperties } from "./types";
+
+/** Build page-view props, omitting empty values (props can't hold undefined). */
+function pageViewProps(): EventProperties {
+  const props: EventProperties = { path: window.location.pathname };
+  const { search } = window.location;
+  if (search) props.search = search;
+  if (document.referrer) props.referrer = document.referrer;
+  if (document.title) props.title = document.title;
+  return props;
+}
 
 /**
  * Auto-track page views on route changes.
@@ -23,22 +34,11 @@ export function autoTrack(analytics: Analytics): () => void {
     if (url === lastUrl) return;
     lastUrl = url;
 
-    const { pathname, search } = window.location;
-    analytics.track("page_view", {
-      path: pathname,
-      search: search || undefined,
-      referrer: document.referrer || undefined,
-      title: document.title || undefined,
-    });
+    analytics.track("page_view", pageViewProps());
   }
 
   // Track initial page view
-  analytics.track("page_view", {
-    path: window.location.pathname,
-    search: window.location.search || undefined,
-    referrer: document.referrer || undefined,
-    title: document.title || undefined,
-  });
+  analytics.track("page_view", pageViewProps());
 
   // Intercept pushState and replaceState
   const origPushState = history.pushState.bind(history);
