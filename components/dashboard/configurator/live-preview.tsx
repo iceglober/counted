@@ -46,10 +46,10 @@ export function LivePreview({ type, data, loading, error, incomplete, meta }: Pr
   if (!data) return null;
 
   const isEmpty = type === "metric"
-    ? (data as MetricData).value === "0"
+    ? (data as MetricData)?.value === "0"
     : type === "timeseries"
-      ? (data as TimeSeriesData).values.length === 0
-      : ((data as { items: BreakdownItem[] }).items?.length ?? 0) === 0;
+      ? ((data as TimeSeriesData)?.values?.length ?? 0) === 0
+      : ((data as { items: BreakdownItem[] })?.items?.length ?? 0) === 0;
 
   if (isEmpty) {
     return (
