@@ -42,6 +42,21 @@ trackSessionEnd({ durationMs: 180000, toolUseCount: 42, fileEditCount: 8 });
 
 Sessions in agent contexts are different from browser sessions. The SDK is configured with `sessionTimeout: 0` — sessions never auto-reset. You control session boundaries explicitly via `trackSessionStart` / `trackSessionEnd`.
 
+## Compare agent setups
+
+Every event carries a **setup fingerprint** so you can break metrics down by
+agentic configuration ("setup A errors 2× more than setup B"):
+
+- `setupHash` — a stable digest of your setup: model, prompts (`CLAUDE.md`,
+  `.claude/agents/*`), and tools/permissions (`.claude/settings.json`,
+  `permission_mode`). Only the **digest** is sent — prompt content never leaves
+  the machine. `setupHashVersion` tracks the scheme.
+- `model` — sent in the clear (low-sensitivity), so breakdowns are readable.
+- `setupLabel` — optional human bucket; set `COUNTED_SETUP_LABEL="reviewer-v2"`.
+
+In Counted, add a breakdown insight grouped by `setupHash` (or `setupLabel`) over
+`tool_use` outcome, `command_run` exit codes, or `file_edit` volume.
+
 ## License
 
 MIT

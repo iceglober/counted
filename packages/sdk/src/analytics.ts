@@ -15,12 +15,14 @@ export class Analytics {
   private buffer: RawEvent[] = [];
   private timer: ReturnType<typeof setInterval> | null = null;
   private enabled = true;
+  private context: EventProperties;
 
   constructor(options: AnalyticsOptions) {
     this.projectKey = options.projectKey;
     this.host = options.host ?? DEFAULT_HOST;
     this.flushInterval = options.flushInterval ?? DEFAULT_FLUSH_INTERVAL;
     this.maxBatchSize = options.maxBatchSize ?? DEFAULT_MAX_BATCH_SIZE;
+    this.context = { ...(options.context ?? {}) };
 
     configureSession({
       sessionId: options.sessionId,
@@ -31,6 +33,14 @@ export class Analytics {
     this.registerUnloadHandler();
   }
 
+  /**
+   * Register ("super") properties merged into every subsequent event. Useful
+   * for stable context like an experiment/setup id, build, or environment.
+   */
+  register(props: EventProperties): void {
+    this.context = { ...this.context, ...props };
+  }
+
   track(eventName: string, props?: EventProperties): void {
     if (!this.enabled) return;
 
@@ -39,7 +49,8 @@ export class Analytics {
       sessionId: getSessionId(),
       eventName,
       systemProps: detectSystemProps(),
-      props: props ?? {},
+      // Registered context first; per-call props win on key collision.
+      props: { ...this.context, ...(props ?? {}) },
     };
 
     this.buffer.push(event);

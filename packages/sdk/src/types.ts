@@ -7,6 +7,11 @@ export type AnalyticsOptions = {
   maxBatchSize?: number;
   sessionId?: string;
   sessionTimeout?: number;
+  /**
+   * Registered ("super") properties merged into every event's props. Set once
+   * here or later via `register()`. Per-call props win on key collision.
+   */
+  context?: EventProperties;
 };
 
 export type SystemProps = {

@@ -55,6 +55,21 @@ OpenCode surfaces tool failures on the event stream rather than the after-hook,
 so per-tool `outcome` is currently always `success`; failures aren't attributed
 to a specific tool yet.
 
+## Compare agent setups
+
+Every event carries a **setup fingerprint** so you can break metrics down by
+agentic configuration:
+
+- `setupHash` — a stable digest of your `opencode.json` setup: model, agent/
+  prompt definitions, tools, permissions, and sampling params. Only the digest
+  is sent — prompt content never leaves the machine. `setupHashVersion` tracks
+  the scheme.
+- `model` — sent in the clear so breakdowns are readable.
+- `setupLabel` — optional human bucket; set `COUNTED_SETUP_LABEL="reviewer-v2"`.
+
+Add a breakdown insight grouped by `setupHash` (or `setupLabel`) over `tool_use`
+outcome, `command_run`, or `file_edit` to compare setups.
+
 ## Advanced
 
 The package also exports the low-level helpers (`init`, `track`, `trackToolUse`,

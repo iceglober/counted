@@ -16,6 +16,7 @@ import {
   getAnalytics,
   destroy,
 } from "./index";
+import { setupFingerprint } from "@counted/sdk";
 
 // Minimal structural types — the authoritative ones live in @opencode-ai/plugin.
 type Hooks = Record<string, (...args: any[]) => any>;
@@ -23,6 +24,34 @@ type PluginInput = { directory?: string; worktree?: string; [k: string]: unknown
 
 let initialized = false;
 let sessionStarted = false;
+let setupRegistered = false;
+
+// Hash a deliberate, versioned slice of the OpenCode config: model, agent/prompt
+// definitions, tools/permissions, and sampling params. Register it as context so
+// every event carries the setup fingerprint (only the digest leaves the machine).
+function registerSetup(config: Record<string, any> | undefined) {
+  if (setupRegistered || !config) return;
+  if (!ensureInit()) return;
+  const projection = {
+    model: config.model,
+    agents: config.agent ?? config.agents,
+    tools: config.tools,
+    permission: config.permission,
+    provider: config.provider,
+    sampling: {
+      temperature: config.temperature,
+      top_p: config.top_p,
+      reasoningEffort: config.reasoningEffort ?? config.reasoning_effort,
+    },
+  };
+  const { setupHash, setupHashVersion } = setupFingerprint(projection);
+  const ctx: Record<string, string | number> = { setupHash, setupHashVersion };
+  if (typeof config.model === "string") ctx.model = config.model;
+  const label = process.env.COUNTED_SETUP_LABEL;
+  if (label) ctx.setupLabel = label;
+  getAnalytics()?.register(ctx);
+  setupRegistered = true;
+}
 
 function ensureInit(): boolean {
   if (initialized) return getAnalytics() !== null;
@@ -61,6 +90,11 @@ export const CountedPlugin = async (input: PluginInput): Promise<Hooks> => {
   ensureInit();
 
   return {
+    // OpenCode hands the plugin the merged config — fingerprint the setup once.
+    config: async (config: Record<string, any>) => {
+      registerSetup(config);
+    },
+
     // Session lifecycle comes through the generic event stream.
     event: async ({ event }: { event: { type?: string } }) => {
       if (!ensureInit()) return;

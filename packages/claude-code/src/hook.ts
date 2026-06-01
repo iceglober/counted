@@ -16,6 +16,7 @@ import {
   trackSessionEnd,
   getAnalytics,
 } from "./index";
+import { computeAndCacheSetup, loadSetup, setupContext } from "./setup";
 
 const key = process.env.COUNTED_AGENT_KEY;
 if (!key) process.exit(0); // not configured -> do nothing
@@ -61,6 +62,16 @@ async function main() {
   // The Claude session id becomes the Counted session id (sessionTimeout: 0),
   // so every event from one Claude session groups together.
   init({ projectKey: key!, host, sessionId: input.session_id });
+
+  // Register the setup fingerprint as context so it rides on every event,
+  // letting users break metrics down by agentic setup. The model is only on
+  // SessionStart, so it's cached there and reloaded for later events.
+  const cwd: string = input.cwd || process.cwd();
+  const setup =
+    input.hook_event_name === "SessionStart"
+      ? computeAndCacheSetup(cwd, input.session_id, input.model, input.permission_mode)
+      : loadSetup(cwd, input.session_id, input.permission_mode);
+  getAnalytics()?.register(setupContext(setup));
 
   switch (input.hook_event_name) {
     case "SessionStart":

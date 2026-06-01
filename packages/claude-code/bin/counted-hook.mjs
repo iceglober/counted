@@ -1,4 +1,4 @@
-// ../sdk/dist/chunk-CF3O333Q.js
+// ../sdk/dist/chunk-VF534JQ5.js
 var i = null;
 var n = 0;
 var o = 18e5;
@@ -47,7 +47,7 @@ function h(t, e) {
   }
   return false;
 }
-async function f(t, e, s) {
+async function d(t, e, s) {
   try {
     return (await fetch(t, { method: "POST", headers: { "Content-Type": "application/json", "Project-Key": s }, body: JSON.stringify(e.length === 1 ? e[0] : e), keepalive: true })).ok;
   } catch {
@@ -57,7 +57,7 @@ async function f(t, e, s) {
 var m = "https://counted.dev";
 var v = 3e4;
 var g = 50;
-var d = class {
+var f = class {
   projectKey;
   host;
   flushInterval;
@@ -65,18 +65,22 @@ var d = class {
   buffer = [];
   timer = null;
   enabled = true;
+  context;
   constructor(e) {
-    this.projectKey = e.projectKey, this.host = e.host ?? m, this.flushInterval = e.flushInterval ?? v, this.maxBatchSize = e.maxBatchSize ?? g, a({ sessionId: e.sessionId, sessionTimeout: e.sessionTimeout }), this.startTimer(), this.registerUnloadHandler();
+    this.projectKey = e.projectKey, this.host = e.host ?? m, this.flushInterval = e.flushInterval ?? v, this.maxBatchSize = e.maxBatchSize ?? g, this.context = { ...e.context ?? {} }, a({ sessionId: e.sessionId, sessionTimeout: e.sessionTimeout }), this.startTimer(), this.registerUnloadHandler();
+  }
+  register(e) {
+    this.context = { ...this.context, ...e };
   }
   track(e, s) {
     if (!this.enabled) return;
-    let r = { timestamp: (/* @__PURE__ */ new Date()).toISOString(), sessionId: l(), eventName: e, systemProps: c(), props: s ?? {} };
+    let r = { timestamp: (/* @__PURE__ */ new Date()).toISOString(), sessionId: l(), eventName: e, systemProps: c(), props: { ...this.context, ...s ?? {} } };
     this.buffer.push(r), this.buffer.length >= this.maxBatchSize && this.flush();
   }
   async flush() {
     if (this.buffer.length === 0) return;
     let e = this.buffer.splice(0, this.maxBatchSize), s = `${this.host}/api/v0/event`;
-    await f(s, e, this.projectKey);
+    await d(s, e, this.projectKey);
   }
   disable() {
     this.enabled = false, this.buffer = [], this.stopTimer();
@@ -105,10 +109,37 @@ var d = class {
   }
 };
 
+// ../sdk/dist/index.js
+function i2(n2) {
+  if (n2 != null) {
+    if (Array.isArray(n2)) return n2.map(i2);
+    if (typeof n2 == "object") {
+      let t = n2, r = {};
+      for (let e of Object.keys(t).sort()) {
+        let o2 = i2(t[e]);
+        o2 !== void 0 && (r[e] = o2);
+      }
+      return r;
+    }
+    return n2;
+  }
+}
+function u2(n2) {
+  let t = 2166136261, r = 3266489909;
+  for (let e = 0; e < n2.length; e++) {
+    let o2 = n2.charCodeAt(e);
+    t = Math.imul(t ^ o2, 16777619) >>> 0, r = Math.imul(r ^ o2, 2246822507) >>> 0;
+  }
+  return (t >>> 0).toString(16).padStart(8, "0") + (r >>> 0).toString(16).padStart(8, "0");
+}
+function p2(n2) {
+  return { setupHash: u2(JSON.stringify(i2(n2))), setupHashVersion: 1 };
+}
+
 // src/index.ts
 var analytics = null;
 function init(options) {
-  analytics = new d({
+  analytics = new f({
     projectKey: options.projectKey,
     host: options.host,
     sessionId: options.sessionId,
@@ -134,6 +165,72 @@ function trackSessionEnd(props) {
 }
 function getAnalytics() {
   return analytics;
+}
+
+// src/setup.ts
+import { readFileSync, readdirSync, writeFileSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
+function readSafe(p3) {
+  try {
+    return readFileSync(p3, "utf8");
+  } catch {
+    return void 0;
+  }
+}
+function gatherInputs(cwd, model, permissionMode) {
+  const claudeMd = readSafe(join(cwd, "CLAUDE.md"));
+  const agents = {};
+  try {
+    for (const f2 of readdirSync(join(cwd, ".claude", "agents")).sort()) {
+      const c2 = readSafe(join(cwd, ".claude", "agents", f2));
+      if (c2) agents[f2] = c2;
+    }
+  } catch {
+  }
+  let permissions;
+  try {
+    const settings = readSafe(join(cwd, ".claude", "settings.json"));
+    if (settings) permissions = JSON.parse(settings).permissions;
+  } catch {
+  }
+  return {
+    model,
+    permissionMode,
+    prompts: { claudeMd, agents },
+    tools: { permissions }
+  };
+}
+var cachePath = (sessionId) => join(tmpdir(), `counted-setup-${sessionId.replace(/[^\w.-]/g, "_")}.json`);
+function compute(cwd, sessionId, model, permissionMode) {
+  const { setupHash, setupHashVersion } = p2(gatherInputs(cwd, model, permissionMode));
+  const setup = { model, setupHash, setupHashVersion };
+  const label = process.env.COUNTED_SETUP_LABEL;
+  if (label) setup.setupLabel = label;
+  try {
+    writeFileSync(cachePath(sessionId), JSON.stringify(setup));
+  } catch {
+  }
+  return setup;
+}
+function computeAndCacheSetup(cwd, sessionId, model, permissionMode) {
+  return compute(cwd, sessionId, model, permissionMode);
+}
+function loadSetup(cwd, sessionId, permissionMode) {
+  try {
+    return JSON.parse(readFileSync(cachePath(sessionId), "utf8"));
+  } catch {
+    return compute(cwd, sessionId, void 0, permissionMode);
+  }
+}
+function setupContext(setup) {
+  const ctx = {
+    setupHash: setup.setupHash,
+    setupHashVersion: setup.setupHashVersion
+  };
+  if (setup.model) ctx.model = setup.model;
+  if (setup.setupLabel) ctx.setupLabel = setup.setupLabel;
+  return ctx;
 }
 
 // src/hook.ts
@@ -186,6 +283,9 @@ async function main() {
   }
   const host = process.env.COUNTED_AGENT_HOST || "https://app.counted.dev";
   init({ projectKey: key, host, sessionId: input.session_id });
+  const cwd = input.cwd || process.cwd();
+  const setup = input.hook_event_name === "SessionStart" ? computeAndCacheSetup(cwd, input.session_id, input.model, input.permission_mode) : loadSetup(cwd, input.session_id, input.permission_mode);
+  getAnalytics()?.register(setupContext(setup));
   switch (input.hook_event_name) {
     case "SessionStart":
       trackSessionStart({ model: input.model, mode: input.source });
