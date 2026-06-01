@@ -6,11 +6,11 @@ import { MetricCard } from "./metric-card";
 import { AreaChart } from "./area-chart";
 import { Breakdown } from "./breakdown";
 import { InsightConfigurator } from "./configurator";
-import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star } from "lucide-react";
-import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
+import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Maximize2, Minimize2, GripVertical } from "lucide-react";
 import { useProjects } from "./dashboard-shell";
 import { EditableText } from "@/components/editable-text";
 import { ActionButton } from "@/components/action-button";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 
 function InsightRenderer({ insight }: { insight: Insight }) {
   if (!insight.data) {
@@ -36,6 +36,9 @@ function InsightRenderer({ insight }: { insight: Insight }) {
   }
 }
 
+const SPAN_CYCLE: Record<number, number> = { 1: 2, 2: 3, 3: 1 };
+const SPAN_LABELS: Record<number, string> = { 1: "Small", 2: "Medium", 3: "Full width" };
+
 const timeRanges = ["Last 24 hours", "Last 7 days", "Last 30 days", "Last 90 days"];
 
 const timeRangeMap: Record<string, TimeRange> = {
@@ -58,8 +61,8 @@ type Props = {
 
 export function DashboardView({ initialInsights, projectId, dashboardId, dashboardName = "Dashboard", isDefault, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
   const [insights, setInsights] = useState(initialInsights);
-  const [name, setName] = useState(dashboardName);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState(dashboardName);
   const [timeRange, setTimeRange] = useState("Last 30 days");
   const [timeOpen, setTimeOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -191,6 +194,33 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
     refreshInsights();
   }
 
+  function resizeInsight(insightId: string) {
+    setInsights((prev) => {
+      const updated = prev.map((ins) =>
+        ins.id === insightId
+          ? { ...ins, span: (SPAN_CYCLE[ins.span] ?? 2) as 1 | 2 | 3 | 4 }
+          : ins,
+      );
+      persistLayout(updated);
+      return updated;
+    });
+  }
+
+  function handleDragEnd(result: DropResult) {
+    if (!result.destination) return;
+    const from = result.source.index;
+    const to = result.destination.index;
+    if (from === to) return;
+
+    setInsights((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(from, 1);
+      updated.splice(to, 0, moved);
+      persistLayout(updated);
+      return updated;
+    });
+  }
+
   return (
     <div className="flex-1 min-w-0">
       {/* Header */}
@@ -282,51 +312,84 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
         </div>
       </div>
 
-      {/* Insights mosaic — client-only to avoid hydration mismatch */}
-      {!mounted ? (
-        <div className="grid grid-cols-2 gap-4">
+      {/* Insights grid with drag-and-drop */}
+      {mounted ? (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="insights" direction="horizontal">
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="grid grid-cols-3 gap-4"
+              >
+                {insights.map((insight, index) => (
+                  <Draggable key={insight.id} draggableId={insight.id} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`relative group/insight w-full ${snapshot.isDragging ? "z-50 opacity-90" : ""}`}
+                        style={{
+                          gridColumn: `span ${Math.min(insight.span, 3)}`,
+                          ...provided.draggableProps.style,
+                        }}
+                      >
+                        {editingId === insight.id ? (
+                          <InsightConfigurator
+                            initialInsight={insight}
+                            projects={projects}
+                            timeRange={timeRangeMap[timeRange]}
+                            onConfigChange={(config) => handleConfigChange(insight.id, config)}
+                            onDismiss={() => dismissConfigurator(insight.id)}
+                          />
+                        ) : (
+                          <>
+                            <InsightRenderer insight={insight} />
+                            <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover/insight:opacity-100 transition-all">
+                              <div
+                                {...provided.dragHandleProps}
+                                className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-text-primary shadow-sm transition-colors cursor-grab active:cursor-grabbing"
+                              >
+                                <GripVertical className="w-3 h-3" />
+                              </div>
+                              <ActionButton
+                                label={SPAN_LABELS[SPAN_CYCLE[insight.span] ?? 2]}
+                                onClick={() => resizeInsight(insight.id)}
+                                icon={insight.span >= 3 ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+                                className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
+                              />
+                              <ActionButton
+                                label="Configure"
+                                onClick={() => setEditingId(insight.id)}
+                                icon={<Pencil className="w-3 h-3" />}
+                                className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
+                              />
+                              <ActionButton
+                                label="Remove"
+                                onClick={() => removeInsight(insight.id)}
+                                icon={<X className="w-3 h-3" />}
+                                className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-error hover:border-error/40 shadow-sm transition-colors"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      ) : (
+        <div className="grid grid-cols-3 gap-4">
           {insights.map((insight) => (
-            <div key={insight.id} className="w-full">
+            <div key={insight.id} className="w-full" style={{ gridColumn: `span ${Math.min(insight.span, 3)}` }}>
               <InsightRenderer insight={insight} />
             </div>
           ))}
         </div>
-      ) : (
-      <ResponsiveMasonry columnsCountBreakPoints={{ 0: 1, 640: 2, 1200: 3 }}>
-        <Masonry gutter="1rem">
-          {insights.map((insight) => (
-            <div key={insight.id} className="relative group/insight w-full">
-              {editingId === insight.id ? (
-                <InsightConfigurator
-                  initialInsight={insight}
-                  projects={projects}
-                  timeRange={timeRangeMap[timeRange]}
-                  onConfigChange={(config) => handleConfigChange(insight.id, config)}
-                  onDismiss={() => dismissConfigurator(insight.id)}
-                />
-              ) : (
-                <>
-                  <InsightRenderer insight={insight} />
-                  <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover/insight:opacity-100 transition-all">
-                    <ActionButton
-                      label="Configure"
-                      onClick={() => setEditingId(insight.id)}
-                      icon={<Pencil className="w-3 h-3" />}
-                      className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
-                    />
-                    <ActionButton
-                      label="Remove"
-                      onClick={() => removeInsight(insight.id)}
-                      icon={<X className="w-3 h-3" />}
-                      className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-error hover:border-error/40 shadow-sm transition-colors"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </Masonry>
-      </ResponsiveMasonry>
       )}
 
       {insights.length === 0 && (

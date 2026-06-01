@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@counted/sdk": "workspace:*",
+    "@hello-pangea/dnd": "^18.0.1",
     "@stripe/stripe-js": "^9.7.0",
     "better-auth": "^1.6.12",
     "drizzle-orm": "^0.45.2",
