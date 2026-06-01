@@ -11,7 +11,7 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../lib/db/schema";
-import { generateApiKey } from "../lib/api-key";
+import { generateClientKey, generateServerKey } from "../lib/api-key";
 import { createDefaultLayout } from "../lib/default-dashboard";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL ?? "postgres://counted:counted@localhost:5434/counted" });
@@ -75,10 +75,12 @@ async function seed() {
 
   for (const proj of PROJECTS) {
     // Create project
-    const apiKey = generateApiKey();
+    const clientKey = generateClientKey();
     const [project] = await db.insert(schema.projects).values({
       name: proj.name,
-      apiKey,
+      apiKey: clientKey,
+      clientKey,
+      serverKey: generateServerKey(),
     }).returning();
 
     // Add membership
@@ -97,7 +99,7 @@ async function seed() {
       isDefault: true,
     });
 
-    console.log(`Project: ${proj.name} (${apiKey})`);
+    console.log(`Project: ${proj.name} (client: ${clientKey})`);
 
     // Generate events across 30 days
     const events: typeof schema.events.$inferInsert[] = [];

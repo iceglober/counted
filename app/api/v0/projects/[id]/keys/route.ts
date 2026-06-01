@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { generateApiKey } from "@/lib/api-key";
+import { generateClientKey, generateServerKey } from "@/lib/api-key";
 import { requireProjectAccess } from "@/lib/auth-guard";
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -17,12 +17,18 @@ export async function POST(
   }
 
   if (access.membership!.role !== "owner") {
-    return NextResponse.json({ error: "Only owners can rotate API keys" }, { status: 403 });
+    return NextResponse.json({ error: "Only owners can rotate keys" }, { status: 403 });
   }
+
+  const { type = "client" } = await request.json().catch(() => ({ type: "client" }));
+
+  const update = type === "server"
+    ? { serverKey: generateServerKey() }
+    : { clientKey: generateClientKey(), apiKey: generateClientKey() };
 
   const [result] = await db
     .update(projects)
-    .set({ apiKey: generateApiKey() })
+    .set(update)
     .where(eq(projects.id, id))
     .returning();
 
@@ -30,5 +36,8 @@ export async function POST(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ apiKey: result.apiKey });
+  return NextResponse.json({
+    clientKey: result.clientKey,
+    serverKey: result.serverKey,
+  });
 }

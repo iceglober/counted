@@ -106,6 +106,8 @@ export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   apiKey: text("api_key").notNull().unique(),
+  clientKey: text("client_key").unique(),
+  serverKey: text("server_key").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   settings: jsonb("settings").notNull().default({}),
 });

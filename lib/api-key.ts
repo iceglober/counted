@@ -1,6 +1,16 @@
 import { randomBytes } from "node:crypto";
 
-export function generateApiKey(): string {
+export function generateClientKey(): string {
   const key = randomBytes(10).toString("hex").toUpperCase();
-  return `A-US-${key}`;
+  return `ck_${key}`;
+}
+
+export function generateServerKey(): string {
+  const key = randomBytes(16).toString("hex").toUpperCase();
+  return `sk_${key}`;
+}
+
+/** @deprecated Use generateClientKey() or generateServerKey() */
+export function generateApiKey(): string {
+  return generateClientKey();
 }

@@ -73,9 +73,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing Project-Key header" }, { status: 401 });
   }
 
-  const project = await db.query.projects.findFirst({
-    where: eq(projects.apiKey, projectKey),
-  });
+  // Reject server keys on the ingestion endpoint
+  if (projectKey.startsWith("sk_")) {
+    return NextResponse.json({ error: "Server keys cannot be used for event ingestion. Use a client key (ck_...)." }, { status: 403 });
+  }
+
+  // Accept client keys (ck_) or legacy api keys (A-US-)
+  const project = projectKey.startsWith("ck_")
+    ? await db.query.projects.findFirst({ where: eq(projects.clientKey, projectKey) })
+    : await db.query.projects.findFirst({ where: eq(projects.apiKey, projectKey) });
 
   if (!project) {
     return NextResponse.json({ error: "Invalid API key" }, { status: 401 });

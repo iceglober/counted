@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { projects, projectMembers, dashboards } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { generateApiKey } from "@/lib/api-key";
+import { generateApiKey, generateClientKey, generateServerKey } from "@/lib/api-key";
 import { requireSession } from "@/lib/auth-guard";
 import { createDefaultLayout } from "@/lib/default-dashboard";
 
@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
       .insert(projects)
       .values({
         name,
-        apiKey: generateApiKey(),
+        apiKey: generateClientKey(),
+        clientKey: generateClientKey(),
+        serverKey: generateServerKey(),
       })
       .returning();
 

@@ -11,6 +11,8 @@ type ProjectDetail = {
   id: string;
   name: string;
   apiKey: string;
+  clientKey: string | null;
+  serverKey: string | null;
   createdAt: string;
 };
 
@@ -78,19 +80,23 @@ export default function ProjectsPage() {
 
   async function copyKey() {
     if (!detail) return;
-    await navigator.clipboard.writeText(detail.apiKey);
+    await navigator.clipboard.writeText(detail.clientKey ?? detail.apiKey);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
-  async function rotateKey() {
+  async function rotateKey(type: "client" | "server" = "client") {
     if (!detail || rotating) return;
     setRotating(true);
-    const res = await fetch(`/api/v0/projects/${detail.id}/keys`, { method: "POST" });
+    const res = await fetch(`/api/v0/projects/${detail.id}/keys`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type }),
+    });
     if (res.ok) {
-      const { apiKey } = await res.json();
-      setDetail({ ...detail, apiKey });
-      setAllProjects((prev) => prev.map((p) => p.id === detail.id ? { ...p, apiKey } : p));
+      const { clientKey, serverKey } = await res.json();
+      setDetail({ ...detail, clientKey, serverKey, apiKey: clientKey ?? detail.apiKey });
+      setAllProjects((prev) => prev.map((p) => p.id === detail.id ? { ...p, clientKey, serverKey } : p));
     }
     setRotating(false);
   }
@@ -168,21 +174,37 @@ export default function ProjectsPage() {
               </p>
             </div>
 
-            {/* API Key */}
+            {/* Client Key */}
             <div>
-              <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">API Key</h2>
+              <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Client Key</h2>
+              <p className="text-xs text-text-tertiary mb-2">Public — use in your SDK. Can only ingest events.</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-sm font-mono text-text-primary bg-surface-2 px-3 py-2 rounded-md border border-border select-all">
-                  {detail.apiKey}
+                  {detail.clientKey ?? detail.apiKey}
                 </code>
                 <button onClick={copyKey} className="p-2 text-text-tertiary hover:text-text-primary bg-surface-2 border border-border rounded-md transition-colors">
                   <Copy className="w-3.5 h-3.5" />
                 </button>
               </div>
               {copied && <p className="text-xs text-accent mt-1">Copied</p>}
-              <button onClick={rotateKey} disabled={rotating} className="text-xs text-error hover:text-error/80 mt-2 transition-colors disabled:opacity-50 flex items-center gap-1">
+              <button onClick={() => rotateKey("client")} disabled={rotating} className="text-xs text-error hover:text-error/80 mt-2 transition-colors disabled:opacity-50 flex items-center gap-1">
                 <RotateCw className="w-3 h-3" />
-                {rotating ? "Rotating..." : "Rotate key"}
+                {rotating ? "Rotating..." : "Rotate"}
+              </button>
+            </div>
+
+            {/* Server Key */}
+            <div>
+              <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Server Key</h2>
+              <p className="text-xs text-text-tertiary mb-2">Private — never expose in client code. Full API access.</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm font-mono text-text-primary bg-surface-2 px-3 py-2 rounded-md border border-border select-all">
+                  {detail.serverKey ?? "Not generated yet"}
+                </code>
+              </div>
+              <button onClick={() => rotateKey("server")} disabled={rotating} className="text-xs text-error hover:text-error/80 mt-2 transition-colors disabled:opacity-50 flex items-center gap-1">
+                <RotateCw className="w-3 h-3" />
+                {rotating ? "Rotating..." : "Rotate"}
               </button>
             </div>
 
@@ -193,7 +215,7 @@ export default function ProjectsPage() {
 {`import { Analytics } from "@counted/sdk";
 
 const analytics = new Analytics({
-  projectKey: "${detail.apiKey}",
+  projectKey: "${detail.clientKey ?? detail.apiKey}",
 });
 
 analytics.track("page_view", { path: "/" });`}
