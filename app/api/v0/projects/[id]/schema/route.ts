@@ -13,13 +13,17 @@ export async function GET(
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  const [eventNames, propKeys, osNames, locales, appVersions] = await Promise.all([
+  const [eventNames, propKeys, numericPropKeys, osNames, locales, appVersions] = await Promise.all([
     pool.query(
       `SELECT event_name, COUNT(*) as count FROM events WHERE project_id = $1 GROUP BY event_name ORDER BY count DESC LIMIT 100`,
       [id],
     ),
     pool.query(
       `SELECT DISTINCT jsonb_object_keys(props) as key FROM events WHERE project_id = $1 AND props != '{}' LIMIT 100`,
+      [id],
+    ),
+    pool.query(
+      `SELECT DISTINCT k AS key FROM events, jsonb_each_text(props) AS kv(k, v) WHERE project_id = $1 AND props != '{}' AND v ~ '^-?[0-9]+(\\.[0-9]+)?$' LIMIT 100`,
       [id],
     ),
     pool.query(
@@ -39,6 +43,7 @@ export async function GET(
   return NextResponse.json({
     eventNames: eventNames.rows.map((r) => ({ name: r.event_name, count: Number(r.count) })),
     propKeys: propKeys.rows.map((r) => r.key as string),
+    numericPropKeys: numericPropKeys.rows.map((r) => r.key as string),
     systemFields: {
       osNames: osNames.rows.map((r) => r.os_name as string),
       locales: locales.rows.map((r) => r.locale as string),

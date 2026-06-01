@@ -125,6 +125,7 @@ function autoTitle(state: ConfigState): string {
 type ProjectSchema = {
   eventNames: { name: string; count: number }[];
   propKeys: string[];
+  numericPropKeys: string[];
   systemFields: { osNames: string[]; locales: string[]; appVersions: string[] };
 };
 
@@ -295,7 +296,7 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
           <MeasurePicker
             measureType={state.measureType}
             measureProperty={state.measureProperty}
-            propKeys={schema?.propKeys ?? []}
+            propKeys={schema?.numericPropKeys ?? []}
             onMeasureTypeChange={(v) => set("measureType", v)}
             onMeasurePropertyChange={(v) => set("measureProperty", v)}
           />
