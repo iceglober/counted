@@ -46,3 +46,7 @@ __pycache__/
 /blob-report
 /.playwright
 /tests/e2e/.auth
+
+# Claude Code harness artifacts (per-machine runtime state / local plugin installs)
+.claude/scheduled_tasks.lock
+.claude/plugins/
