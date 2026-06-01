@@ -1,11 +1,12 @@
 import { test, expect } from "@playwright/test";
+import { seededDashboardId } from "./helpers";
 
 // Journey: build a funnel insight (>=2 steps), then convert it to a retention
 // insight. Funnel/retention previews are computed client-side, so the signal
 // is the layout PUT (the query is only valid once a funnel has 2+ steps).
 
 test("build a funnel, then convert it to retention", async ({ page }) => {
-  await page.goto("/dashboards");
+  await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
   await page.getByRole("button", { name: "Add insight" }).click();
 
   // Switch the insight type to Funnel — reveals the steps picker (needs schema).

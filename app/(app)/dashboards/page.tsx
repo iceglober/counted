@@ -65,7 +65,7 @@ export default async function DashboardsRoute({
       isDefault={activeDashboard?.isDefault ?? false}
       initialInsights={insights}
       projectId={activeProjectId}
-      projectKey={activeProject?.apiKey}
+      projectKey={activeProject?.clientKey ?? activeProject?.apiKey}
       shareToken={activeDashboard?.shareToken}
     />
   );

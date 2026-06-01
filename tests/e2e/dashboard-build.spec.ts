@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { seededDashboardId } from "./helpers";
 
 // Journey: build an insight on the default dashboard end to end —
 // add -> configure (breakdown group-by) -> property filter -> live preview ->
@@ -8,7 +9,7 @@ import { test, expect } from "@playwright/test";
 const TITLE = "E2E built insight";
 
 test("add, configure, preview, persist, and resize an insight", async ({ page }) => {
-  await page.goto("/dashboards");
+  await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
   await expect(page.getByRole("link", { name: "Dashboards" })).toBeVisible();
 
   // Add a fresh insight — opens the configurator (defaults to breakdown).
