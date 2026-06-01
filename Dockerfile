@@ -36,6 +36,7 @@ COPY --from=build /app/public ./public
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/lib/db ./lib/db
 
 EXPOSE 3000
