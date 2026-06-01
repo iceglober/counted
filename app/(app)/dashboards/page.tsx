@@ -66,6 +66,7 @@ export default async function DashboardsRoute({
       initialInsights={insights}
       projectId={activeProjectId}
       projectKey={activeProject?.apiKey}
+      shareToken={activeDashboard?.shareToken}
     />
   );
 }

@@ -211,6 +211,7 @@ export const dashboards = pgTable(
     layout: jsonb("layout").notNull().default([]),
     filters: jsonb("filters").notNull().default({}),
     isDefault: boolean("is_default").default(false),
+    shareToken: text("share_token").unique(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

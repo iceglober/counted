@@ -6,7 +6,7 @@ import { MetricCard } from "./metric-card";
 import { AreaChart } from "./area-chart";
 import { Breakdown } from "./breakdown";
 import { InsightConfigurator } from "./configurator";
-import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Maximize2, Minimize2, GripVertical } from "lucide-react";
+import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Maximize2, Minimize2, GripVertical, Share2, Link2, Copy } from "lucide-react";
 import { useProjects } from "./dashboard-shell";
 import { EditableText } from "@/components/editable-text";
 import { ActionButton } from "@/components/action-button";
@@ -56,12 +56,13 @@ type Props = {
   dashboardId: string | null;
   dashboardName?: string;
   isDefault?: boolean;
+  shareToken?: string | null;
   onDashboardRename?: (name: string) => void;
   onDashboardDelete?: () => void;
   onSetDefault?: () => void;
 };
 
-export function DashboardView({ initialInsights, projectId, projectKey, dashboardId, dashboardName = "Dashboard", isDefault, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
+export function DashboardView({ initialInsights, projectId, projectKey, dashboardId, dashboardName = "Dashboard", isDefault, shareToken: initialShareToken, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
   const [insights, setInsights] = useState(initialInsights);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState(dashboardName);
@@ -71,6 +72,8 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [titleEditing, setTitleEditing] = useState(false);
+  const [shareToken, setShareToken] = useState(initialShareToken);
+  const [shareCopied, setShareCopied] = useState(false);
   const projects = useProjects();
 
   useEffect(() => setMounted(true), []);
@@ -234,7 +237,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
             onEditingChange={setTitleEditing}
             className="text-xl font-semibold"
           />
-          {dashboardId && !titleEditing && !isDefault && (
+          {dashboardId && !titleEditing && (
             <div className="relative">
               <ActionButton
                 label="Dashboard settings"
@@ -246,6 +249,39 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                   <div className="absolute left-0 top-full mt-1 bg-surface-2 border border-border rounded-md shadow-lg z-50 py-1 min-w-[160px]">
+                    <button
+                      onClick={async () => {
+                        if (shareToken) {
+                          await fetch(`/api/v0/dashboards/${dashboardId}/share`, { method: "DELETE" });
+                          setShareToken(null);
+                        } else {
+                          const res = await fetch(`/api/v0/dashboards/${dashboardId}/share`, { method: "POST" });
+                          if (res.ok) {
+                            const { shareToken: token } = await res.json();
+                            setShareToken(token);
+                          }
+                        }
+                        setMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-3 transition-colors flex items-center gap-1.5"
+                    >
+                      <Share2 className="w-3 h-3" />
+                      {shareToken ? "Disable sharing" : "Share publicly"}
+                    </button>
+                    {shareToken && (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/share/${shareToken}`);
+                          setShareCopied(true);
+                          setTimeout(() => setShareCopied(false), 2000);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-3 transition-colors flex items-center gap-1.5"
+                      >
+                        <Link2 className="w-3 h-3" />
+                        {shareCopied ? "Copied!" : "Copy share link"}
+                      </button>
+                    )}
                     {!isDefault && (
                       <>
                         <button
