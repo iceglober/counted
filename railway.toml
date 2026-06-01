@@ -6,7 +6,7 @@ dockerfilePath = "Dockerfile"
 # Run migrations inside the main container at startup: it has the internal
 # DB network (the app connects to it), unlike the pre-deploy one-off container
 # which can't resolve *.railway.internal and made migrate fail (ENOTFOUND).
-startCommand = "bun run db:migrate && bun server.js"
+startCommand = "bun scripts/migrate-resilient.ts; bun server.js"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
