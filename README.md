@@ -90,9 +90,8 @@ For development setup, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 |---------|-------------|------|
 | [`@counted/sdk`](packages/sdk) | Vanilla JS event tracking | ~3KB |
 | [`@counted/react`](packages/react) | React provider + hook | ~1KB |
-| [`@counted/claude-code`](packages/claude-code) | Claude Code agent hooks | ~1KB |
-| [`@counted/cursor`](packages/cursor) | Cursor/VS Code extension | — |
-| [`@counted/opencode`](packages/opencode) | OpenCode agent hooks | ~1KB |
+| [`@counted/claude-code`](packages/claude-code) | Claude Code plugin | ~1KB |
+| [`@counted/opencode`](packages/opencode) | OpenCode plugin | ~1KB |
 | [`@counted/gemini-cli`](packages/gemini-cli) | Gemini CLI agent hooks | ~1KB |
 | [`@counted/codex-cli`](packages/codex-cli) | Codex CLI agent hooks | ~1KB |
 | [`counted`](packages/python) | Python SDK | — |
