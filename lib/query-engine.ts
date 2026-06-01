@@ -25,7 +25,8 @@ function measureToSql(measure: Measure, params: unknown[]): string {
     throw new Error(`Invalid aggregation: ${measure.aggregation}`);
   }
   params.push(measure.property);
-  return `${measure.aggregation.toUpperCase()}((jsonb_extract_path_text(props, $${params.length}))::numeric)`;
+  const extract = `jsonb_extract_path_text(props, $${params.length})`;
+  return `${measure.aggregation.toUpperCase()}(CASE WHEN ${extract} ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN ${extract}::numeric END)`;
 }
 
 function groupByToSql(g: GroupBy, params: unknown[]): string {
