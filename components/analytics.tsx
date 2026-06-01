@@ -18,7 +18,7 @@ export function CountedAnalytics() {
     }
 
     if (!analyticsRef.current) {
-      analyticsRef.current = new Analytics({ projectKey: key, host });
+      analyticsRef.current = new Analytics({ projectKey: key, host, flushInterval: 5_000 });
       console.debug("[counted] Analytics initialized", { key: key.slice(0, 10) + "...", host });
     }
 
