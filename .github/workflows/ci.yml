@@ -82,11 +82,14 @@ jobs:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
 
+      - name: Install changesets CLI
+        run: npm install -g @changesets/cli
+
       - name: Create release PR or publish
         uses: changesets/action@v1
         with:
-          version: npx changeset version
-          publish: npx changeset publish
+          version: changeset version
+          publish: changeset publish
           title: "Version Packages"
           commit: "chore: version packages"
         env:
