@@ -27,7 +27,7 @@ export async function executeRetentionQuery(
   //    were also active in subsequent periods
   const sql = `
     WITH session_first AS (
-      SELECT session_id, date_trunc($${params.length + 1}, timestamp) AS first_period
+      SELECT session_id, date_trunc($${params.length + 1}, MIN(timestamp)) AS first_period
       FROM events
       WHERE project_id = $1 AND ${timeCondition}
       GROUP BY session_id
