@@ -8,12 +8,30 @@ import { Breakdown } from "./breakdown";
 import { Funnel } from "./funnel";
 import { Retention } from "./retention";
 import { InsightConfigurator } from "./configurator";
-import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Maximize2, Minimize2, GripVertical, Share2, Link2, Copy } from "lucide-react";
+import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Maximize2, Minimize2, GripVertical, Share2, Link2 } from "lucide-react";
 import { useProjects } from "./dashboard-shell";
 import { EditableText } from "@/components/editable-text";
 import { ActionButton } from "@/components/action-button";
 import { Onboarding } from "./onboarding";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 function InsightRenderer({ insight }: { insight: Insight }) {
   if (!insight.data) {
@@ -55,6 +73,90 @@ const timeRangeMap: Record<string, TimeRange> = {
   "Last 90 days": { type: "relative", value: 90, unit: "days" },
 };
 
+// One insight as a sortable grid cell. The drag handle (not the whole card)
+// carries the listeners, so charts stay interactive.
+function SortableInsight({
+  insight,
+  isEditing,
+  projects,
+  timeRange,
+  onConfigChange,
+  onDismiss,
+  onEdit,
+  onResize,
+  onRemove,
+}: {
+  insight: Insight;
+  isEditing: boolean;
+  projects: { id: string; name: string }[];
+  timeRange: TimeRange;
+  onConfigChange: (config: Partial<Insight> & { query: InsightQuery }) => void;
+  onDismiss: () => void;
+  onEdit: () => void;
+  onResize: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: insight.id,
+    disabled: isEditing,
+  });
+
+  const style: React.CSSProperties = {
+    gridColumn: `span ${Math.min(insight.span, 3)}`,
+    transform: CSS.Transform.toString(transform),
+    transition,
+    // The held item is rendered (shrunk) in the DragOverlay; fade its origin.
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} data-insight-id={insight.id} className="relative group/insight w-full min-w-0">
+      {isEditing ? (
+        <InsightConfigurator
+          initialInsight={insight}
+          projects={projects}
+          timeRange={timeRange}
+          onConfigChange={onConfigChange}
+          onDismiss={onDismiss}
+        />
+      ) : (
+        <>
+          <InsightRenderer insight={insight} />
+          <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover/insight:opacity-100 transition-all">
+            <button
+              {...attributes}
+              {...listeners}
+              data-drag-handle
+              aria-label="Drag to reorder"
+              className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-text-primary shadow-sm transition-colors cursor-grab active:cursor-grabbing touch-none"
+            >
+              <GripVertical className="w-3 h-3" />
+            </button>
+            <ActionButton
+              label={SPAN_LABELS[SPAN_CYCLE[insight.span] ?? 2]}
+              onClick={onResize}
+              icon={insight.span >= 3 ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+              className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
+            />
+            <ActionButton
+              label="Configure"
+              onClick={onEdit}
+              icon={<Pencil className="w-3 h-3" />}
+              className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
+            />
+            <ActionButton
+              label="Remove"
+              onClick={onRemove}
+              icon={<X className="w-3 h-3" />}
+              className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-error hover:border-error/40 shadow-sm transition-colors"
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 type Props = {
   initialInsights: Insight[];
   projectId: string;
@@ -71,6 +173,7 @@ type Props = {
 export function DashboardView({ initialInsights, projectId, projectKey, dashboardId, dashboardName = "Dashboard", isDefault, shareToken: initialShareToken, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
   const [insights, setInsights] = useState(initialInsights);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [name, setName] = useState(dashboardName);
   const [timeRange, setTimeRange] = useState("Last 30 days");
   const [timeOpen, setTimeOpen] = useState(false);
@@ -81,6 +184,12 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
   const [shareToken, setShareToken] = useState(initialShareToken);
   const [shareCopied, setShareCopied] = useState(false);
   const projects = useProjects();
+
+  const sensors = useSensors(
+    // A small drag threshold so clicking the handle/buttons doesn't start a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   useEffect(() => setMounted(true), []);
   useEffect(() => setInsights(initialInsights), [initialInsights]);
@@ -221,20 +330,26 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     });
   }
 
-  function handleDragEnd(result: DropResult) {
-    if (!result.destination) return;
-    const from = result.source.index;
-    const to = result.destination.index;
-    if (from === to) return;
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
     setInsights((prev) => {
-      const updated = [...prev];
-      const [moved] = updated.splice(from, 1);
-      updated.splice(to, 0, moved);
+      const from = prev.findIndex((i) => i.id === active.id);
+      const to = prev.findIndex((i) => i.id === over.id);
+      if (from === -1 || to === -1) return prev;
+      const updated = arrayMove(prev, from, to);
       persistLayout(updated);
       return updated;
     });
   }
+
+  const activeInsight = activeId ? insights.find((i) => i.id === activeId) : null;
 
   return (
     <div className="flex-1 min-w-0">
@@ -360,80 +475,51 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         </div>
       </div>
 
-      {/* Insights grid with drag-and-drop */}
+      {/* Insights grid with drag-and-drop. min-w-0 on the cells + grid reflow
+          (rectSortingStrategy) keeps wide insights wrapping to the next row
+          instead of overflowing off the right. */}
       {mounted ? (
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="insights" direction="horizontal">
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="grid grid-cols-3 gap-4"
-              >
-                {insights.map((insight, index) => (
-                  <Draggable key={insight.id} draggableId={insight.id} index={index}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`relative group/insight w-full ${snapshot.isDragging ? "z-50 opacity-90" : ""}`}
-                        style={{
-                          gridColumn: `span ${Math.min(insight.span, 3)}`,
-                          ...provided.draggableProps.style,
-                        }}
-                      >
-                        {editingId === insight.id ? (
-                          <InsightConfigurator
-                            initialInsight={insight}
-                            projects={projects}
-                            timeRange={timeRangeMap[timeRange]}
-                            onConfigChange={(config) => handleConfigChange(insight.id, config)}
-                            onDismiss={() => dismissConfigurator(insight.id)}
-                          />
-                        ) : (
-                          <>
-                            <InsightRenderer insight={insight} />
-                            <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover/insight:opacity-100 transition-all">
-                              <div
-                                {...provided.dragHandleProps}
-                                className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-text-primary shadow-sm transition-colors cursor-grab active:cursor-grabbing"
-                              >
-                                <GripVertical className="w-3 h-3" />
-                              </div>
-                              <ActionButton
-                                label={SPAN_LABELS[SPAN_CYCLE[insight.span] ?? 2]}
-                                onClick={() => resizeInsight(insight.id)}
-                                icon={insight.span >= 3 ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-                                className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
-                              />
-                              <ActionButton
-                                label="Configure"
-                                onClick={() => setEditingId(insight.id)}
-                                icon={<Pencil className="w-3 h-3" />}
-                                className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
-                              />
-                              <ActionButton
-                                label="Remove"
-                                onClick={() => removeInsight(insight.id)}
-                                icon={<X className="w-3 h-3" />}
-                                className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-error hover:border-error/40 shadow-sm transition-colors"
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveId(null)}
+        >
+          <SortableContext items={insights.map((i) => i.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-3 gap-4">
+              {insights.map((insight) => (
+                <SortableInsight
+                  key={insight.id}
+                  insight={insight}
+                  isEditing={editingId === insight.id}
+                  projects={projects}
+                  timeRange={timeRangeMap[timeRange]}
+                  onConfigChange={(config) => handleConfigChange(insight.id, config)}
+                  onDismiss={() => dismissConfigurator(insight.id)}
+                  onEdit={() => setEditingId(insight.id)}
+                  onResize={() => resizeInsight(insight.id)}
+                  onRemove={() => removeInsight(insight.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          {/* The held insight, shrunk to a compact chip that follows the cursor. */}
+          <DragOverlay>
+            {activeInsight ? (
+              <div data-drag-overlay className="w-56 bg-surface-2 border border-accent/40 rounded-lg shadow-xl px-3 py-2.5 flex items-center gap-2 cursor-grabbing">
+                <GripVertical className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                <span className="text-xs font-medium text-text-primary truncate">
+                  {activeInsight.title || "Untitled"}
+                </span>
               </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       ) : (
         <div className="grid grid-cols-3 gap-4">
           {insights.map((insight) => (
-            <div key={insight.id} className="w-full" style={{ gridColumn: `span ${Math.min(insight.span, 3)}` }}>
+            <div key={insight.id} className="w-full min-w-0" style={{ gridColumn: `span ${Math.min(insight.span, 3)}` }}>
               <InsightRenderer insight={insight} />
             </div>
           ))}

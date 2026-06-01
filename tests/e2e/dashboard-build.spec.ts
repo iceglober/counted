@@ -65,20 +65,18 @@ test("add, configure, preview, persist, and resize an insight", async ({ page })
 test("reorder insights by keyboard drag-and-drop", async ({ page }) => {
   await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
 
-  // @hello-pangea/dnd stamps each drag handle with the draggable's id, in DOM
-  // (== layout) order. Read the order, drag the first card one slot right, re-read.
-  const handles = page.locator("[data-rfd-drag-handle-draggable-id]");
-  await expect(async () => expect(await handles.count()).toBeGreaterThan(1)).toPass();
+  // dnd-kit cells carry data-insight-id in DOM (== layout) order. Read the order,
+  // drag the first card one slot right, re-read.
+  const cells = page.locator("[data-insight-id]");
+  await expect(async () => expect(await cells.count()).toBeGreaterThan(1)).toPass();
   const order = () =>
-    handles.evaluateAll((els) =>
-      els.map((e) => e.getAttribute("data-rfd-drag-handle-draggable-id")),
-    );
+    cells.evaluateAll((els) => els.map((e) => e.getAttribute("data-insight-id")));
   const before = await order();
 
   // Keyboard DnD: focus the handle, Space lifts, ArrowRight moves, Space drops.
-  await handles.first().focus();
+  await page.locator("[data-drag-handle]").first().focus();
   await page.keyboard.press("Space");
-  await page.waitForTimeout(150); // let dnd register the lift
+  await page.waitForTimeout(150); // let dnd-kit register the lift
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(150);
   const [dragPut] = await Promise.all([
