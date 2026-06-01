@@ -70,16 +70,19 @@ function SignupButton() {
 
 ## Self-Hosting
 
+One command:
+
 ```bash
 git clone https://github.com/iceglober/counted.git
-cd counted
-cp .env.example .env.local
-# Edit .env.local with your database URL and auth secret
-bun install
-bun run dev
+cd counted/self-host
+cp .env.example .env
+# Edit .env with your auth secret
+docker compose up -d
 ```
 
-See [AGENTS.md](./AGENTS.md) for full repo documentation.
+See [self-host/README.md](./self-host/README.md) for the full guide, production checklist, and backup instructions.
+
+For development setup, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Packages
 

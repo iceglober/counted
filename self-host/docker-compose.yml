@@ -1,0 +1,39 @@
+services:
+  app:
+    image: ghcr.io/iceglober/counted:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://counted:${POSTGRES_PASSWORD:-counted}@db:5432/counted
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BASE_URL:-http://localhost:3000}
+      NEXT_PUBLIC_BETTER_AUTH_URL: ${BASE_URL:-http://localhost:3000}
+      TRUSTED_ORIGINS: ${BASE_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: timescale/timescaledb:2.27.1-pg17
+    environment:
+      POSTGRES_USER: counted
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-counted}
+      POSTGRES_DB: counted
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U counted"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
