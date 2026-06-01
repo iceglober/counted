@@ -1,16 +1,18 @@
 import { test, expect } from "@playwright/test";
 
-// A new agent project (zero events) should surface the plugin-setup card on its
-// dashboard, with install instructions for Claude Code and OpenCode + the key.
+// An agent-template dashboard (zero events) should surface the plugin-setup
+// card, with install instructions for Claude Code and OpenCode + the key.
 test("agent dashboard shows the plugin-setup card until first event", async ({ page }) => {
-  const res = await page.request.post("/api/v0/projects", {
-    data: { name: "E2E Agent", template: "agent" },
-  });
-  expect(res.ok(), `create agent project -> ${res.status()}`).toBeTruthy();
-  const project = await res.json();
+  // A fresh project (its own client key) + an agent-template dashboard in it.
+  const projRes = await page.request.post("/api/v0/projects", { data: { name: "E2E Agent" } });
+  expect(projRes.ok(), `create project -> ${projRes.status()}`).toBeTruthy();
+  const project = await projRes.json();
 
-  const dashes = await (await page.request.get(`/api/v0/dashboards?projectId=${project.id}`)).json();
-  const dash = dashes[0];
+  const dashRes = await page.request.post("/api/v0/dashboards", {
+    data: { projectId: project.id, slug: `agent-${Date.now()}`, template: "agent" },
+  });
+  expect(dashRes.ok(), `create agent dashboard -> ${dashRes.status()}`).toBeTruthy();
+  const dash = await dashRes.json();
 
   await page.goto(`/dashboards?dashboard=${dash.id}`);
 

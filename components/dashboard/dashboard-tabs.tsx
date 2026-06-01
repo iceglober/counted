@@ -55,11 +55,14 @@ export const DashboardTabs = forwardRef<DashboardTabsRef, Props>(
       },
     }));
 
-    async function createDashboard() {
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    async function createDashboard(template: "blank" | "default" | "agent") {
+      setMenuOpen(false);
       const res = await fetch("/api/v0/dashboards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, name: "Untitled", slug: `dash-${Date.now()}` }),
+        body: JSON.stringify({ projectId, slug: `dash-${Date.now()}`, template }),
       });
       if (res.ok) {
         const dashboard = await res.json();
@@ -85,12 +88,35 @@ export const DashboardTabs = forwardRef<DashboardTabsRef, Props>(
           </Link>
         ))}
 
-        <ActionButton
-          label="New dashboard"
-          onClick={createDashboard}
-          icon={<Plus className="w-3.5 h-3.5" />}
-          className="p-1 text-text-tertiary hover:text-accent transition-colors"
-        />
+        <div className="relative">
+          <ActionButton
+            label="New dashboard"
+            onClick={() => setMenuOpen((o) => !o)}
+            icon={<Plus className="w-3.5 h-3.5" />}
+            className="p-1 text-text-tertiary hover:text-accent transition-colors"
+          />
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+              <div className="absolute left-0 top-full mt-1 bg-surface-2 border border-border rounded-md shadow-lg z-50 py-1 min-w-[200px]">
+                {[
+                  { template: "blank" as const, title: "Blank", desc: "Start from scratch" },
+                  { template: "default" as const, title: "Product metrics", desc: "Traffic, events, breakdowns" },
+                  { template: "agent" as const, title: "Agent eval", desc: "Tool use, outcomes, file edits" },
+                ].map((t) => (
+                  <button
+                    key={t.template}
+                    onClick={() => createDashboard(t.template)}
+                    className="w-full text-left px-3 py-1.5 hover:bg-surface-3 transition-colors"
+                  >
+                    <div className="text-xs text-text-primary">{t.title}</div>
+                    <div className="text-[10px] text-text-tertiary">{t.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     );
   },
