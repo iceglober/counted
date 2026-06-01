@@ -70,3 +70,6 @@ export function destroy() {
 export function getAnalytics(): Analytics | null {
   return analytics;
 }
+
+// Native OpenCode plugin entry (see ./plugin).
+export { CountedPlugin } from "./plugin";

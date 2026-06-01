@@ -6,5 +6,7 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  external: ["@counted/sdk"],
+  // Bundle the SDK so the published plugin is self-contained — OpenCode
+  // auto-installs the package and shouldn't need to resolve extra deps.
+  noExternal: ["@counted/sdk"],
 });
