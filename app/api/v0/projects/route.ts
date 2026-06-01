@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { generateApiKey, generateClientKey, generateServerKey } from "@/lib/api-key";
 import { requireSession } from "@/lib/auth-guard";
 import { createDefaultLayout } from "@/lib/default-dashboard";
+import { createAgentDashboardLayout } from "@/lib/agent-dashboard";
 
 export async function GET() {
   const { session, error, status } = await requireSession();
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { name } = body;
+  const { name, template } = body;
 
   if (!name) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
@@ -50,11 +51,15 @@ export async function POST(request: NextRequest) {
       role: "owner",
     });
 
+    const layout = template === "agent"
+      ? createAgentDashboardLayout()
+      : createDefaultLayout();
+
     await tx.insert(dashboards).values({
       projectId: project.id,
-      name: "Default",
+      name: template === "agent" ? "Agent Analytics" : "Default",
       slug: "default",
-      layout: createDefaultLayout(),
+      layout,
       isDefault: true,
     });
 

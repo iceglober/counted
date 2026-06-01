@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useProjects } from "@/components/dashboard/dashboard-shell";
 import { EditableText } from "@/components/editable-text";
-import { Plus, Copy, RotateCw, Hash, Globe, Smartphone, Tag, Trash2 } from "lucide-react";
+import { Plus, Copy, RotateCw, Hash, Globe, Smartphone, Tag, Trash2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/components/action-button";
 
@@ -53,11 +53,14 @@ export default function ProjectsPage() {
       .catch(() => setSchema(null));
   }, [selectedId, allProjects]);
 
-  async function createProject() {
+  async function createProject(template?: "agent") {
     const res = await fetch("/api/v0/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Untitled" }),
+      body: JSON.stringify({
+        name: template === "agent" ? "Agent Project" : "Untitled",
+        template,
+      }),
     });
     if (res.ok) {
       const project = await res.json();
@@ -121,8 +124,14 @@ export default function ProjectsPage() {
           <h1 className="text-xl font-semibold">Projects</h1>
           <ActionButton
             label="New project"
-            onClick={createProject}
+            onClick={() => createProject()}
             icon={<Plus className="w-4 h-4" />}
+            className="p-1 text-text-tertiary hover:text-accent transition-colors"
+          />
+          <ActionButton
+            label="New agent project"
+            onClick={() => createProject("agent")}
+            icon={<Zap className="w-4 h-4" />}
             className="p-1 text-text-tertiary hover:text-accent transition-colors"
           />
         </div>
