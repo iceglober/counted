@@ -25,7 +25,26 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Counted — Privacy-focused app analytics",
   description:
-    "Privacy-first analytics with composable dashboards. No cookies, no PII, ~2KB SDK.",
+    "Privacy-first analytics with composable dashboards. No cookies, no fingerprinting, no PII. Under 3KB.",
+  metadataBase: new URL("https://counted.dev"),
+  openGraph: {
+    title: "Counted — Privacy-focused app analytics",
+    description:
+      "Composable dashboards, agent-native SDKs, and self-hosting in 60 seconds. No cookies, no fingerprinting, no PII.",
+    url: "https://counted.dev",
+    siteName: "Counted",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Counted — Privacy-focused app analytics",
+    description:
+      "Composable dashboards, agent-native SDKs, and self-hosting in 60 seconds. No cookies, no fingerprinting, no PII.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
