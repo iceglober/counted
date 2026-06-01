@@ -10,6 +10,7 @@ import { MeasurePicker } from "./measure-picker";
 import { EventFilter } from "./event-filter";
 import { PropertyFilters } from "./property-filters";
 import { TimeBucketPicker } from "./time-bucket-picker";
+import { X } from "lucide-react";
 import { LivePreview } from "./live-preview";
 
 const SYSTEM_GROUP_BY = [
@@ -27,7 +28,7 @@ const CUSTOM_AGGS = new Set(["sum", "avg", "min", "max"]);
 
 type ConfigState = {
   title: string;
-  type: "metric" | "timeseries" | "breakdown";
+  type: "metric" | "timeseries" | "breakdown" | "funnel";
   projectId: string;
   measureType: string;
   measureProperty: string;
@@ -37,13 +38,16 @@ type ConfigState = {
   timeBucket: "hour" | "day" | "week" | "month";
   limit: number;
   propFilters: PropFilter[];
+  funnelSteps: string[];
 };
 
 type Action =
   | { type: "SET"; field: keyof ConfigState; value: unknown }
   | { type: "ADD_FILTER" }
   | { type: "UPDATE_FILTER"; index: number; filter: PropFilter }
-  | { type: "REMOVE_FILTER"; index: number };
+  | { type: "REMOVE_FILTER"; index: number }
+  | { type: "ADD_FUNNEL_STEP"; step: string }
+  | { type: "REMOVE_FUNNEL_STEP"; index: number };
 
 function reducer(state: ConfigState, action: Action): ConfigState {
   switch (action.type) {
@@ -55,12 +59,21 @@ function reducer(state: ConfigState, action: Action): ConfigState {
       return { ...state, propFilters: state.propFilters.map((f, i) => i === action.index ? action.filter : f) };
     case "REMOVE_FILTER":
       return { ...state, propFilters: state.propFilters.filter((_, i) => i !== action.index) };
+    case "ADD_FUNNEL_STEP":
+      return { ...state, funnelSteps: [...state.funnelSteps, action.step] };
+    case "REMOVE_FUNNEL_STEP":
+      return { ...state, funnelSteps: state.funnelSteps.filter((_, i) => i !== action.index) };
   }
 }
 
 // ─── Query Builder ─────────────────────────────────────────────────────────────
 
 function buildQueryFromState(state: ConfigState): InsightQuery | null {
+  if (state.type === "funnel") {
+    if (state.funnelSteps.length < 2) return null;
+    return { measure: "count", funnelSteps: state.funnelSteps };
+  }
+
   const measure: InsightQuery["measure"] = CUSTOM_AGGS.has(state.measureType)
     ? { property: state.measureProperty, aggregation: state.measureType as "sum" | "avg" | "min" | "max" }
     : state.measureType as "count" | "unique_sessions" | "unique_users";
@@ -157,6 +170,7 @@ function initState(insight: Insight, defaultProjectId: string): ConfigState {
     timeBucket: (q?.timeBucket as ConfigState["timeBucket"]) ?? "day",
     limit: q?.limit ?? 10,
     propFilters: q?.eventFilter?.properties ?? [],
+    funnelSteps: q?.funnelSteps ?? [],
   };
 }
 
@@ -194,6 +208,13 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
     }
 
     const timer = setTimeout(async () => {
+      // Funnel preview: show step count summary, skip live query
+      if (state.type === "funnel") {
+        setPreviewData({ steps: state.funnelSteps.map((s, i) => ({ label: s, value: 0, rate: i === 0 ? 100 : 0 })) });
+        setPreviewLoading(false);
+        return;
+      }
+
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -212,7 +233,7 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
         if (!res.ok) throw new Error("Query failed");
 
         const { data: rows, meta } = await res.json();
-        setPreviewData(mapQueryResultToInsightData(state.type, rows));
+        setPreviewData(mapQueryResultToInsightData(state.type as "metric" | "timeseries" | "breakdown", rows));
         setPreviewMeta(meta);
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") return;
@@ -349,8 +370,36 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
           </ConfigSection>
         )}
 
+        {/* Funnel steps */}
+        {state.type === "funnel" && schema && (
+          <ConfigSection label="Steps (min 2)">
+            <div className="space-y-1.5">
+              {state.funnelSteps.map((step, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <span className="text-xs text-text-tertiary w-4 tabular-nums">{i + 1}</span>
+                  <span className="flex-1 text-xs text-text-primary bg-surface-2 px-2.5 py-1.5 rounded-md border border-border">{step}</span>
+                  <button
+                    onClick={() => dispatch({ type: "REMOVE_FUNNEL_STEP", index: i })}
+                    className="p-1 text-text-tertiary hover:text-error transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              <Dropdown
+                value=""
+                options={schema.eventNames
+                  .filter((e) => !state.funnelSteps.includes(e.name))
+                  .map((e) => ({ value: e.name, label: e.name, detail: String(e.count) }))}
+                onChange={(v) => dispatch({ type: "ADD_FUNNEL_STEP", step: v })}
+                placeholder="Add step..."
+              />
+            </div>
+          </ConfigSection>
+        )}
+
         {/* Property filters */}
-        {schema && (
+        {schema && state.type !== "funnel" && (
           <ConfigSection label="Filters">
             <PropertyFilters
               filters={state.propFilters}

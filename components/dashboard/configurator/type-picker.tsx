@@ -4,16 +4,19 @@ const TYPES = [
   { value: "metric" as const, label: "Metric" },
   { value: "timeseries" as const, label: "Time series" },
   { value: "breakdown" as const, label: "Breakdown" },
+  { value: "funnel" as const, label: "Funnel" },
 ];
 
+type InsightType = "metric" | "timeseries" | "breakdown" | "funnel";
+
 type Props = {
-  value: "metric" | "timeseries" | "breakdown";
-  onChange: (value: "metric" | "timeseries" | "breakdown") => void;
+  value: InsightType;
+  onChange: (value: InsightType) => void;
 };
 
 export function TypePicker({ value, onChange }: Props) {
   return (
-    <div className="flex gap-1.5">
+    <div className="flex gap-1.5 flex-wrap">
       {TYPES.map((t) => (
         <button
           key={t.value}

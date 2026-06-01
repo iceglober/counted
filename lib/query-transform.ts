@@ -6,7 +6,7 @@ function formatBucketLabel(bucket: string | Date): string {
 }
 
 export function mapQueryResultToInsightData(
-  type: "metric" | "timeseries" | "breakdown",
+  type: "metric" | "timeseries" | "breakdown" | "funnel",
   rows: Record<string, unknown>[],
 ): Insight["data"] {
   switch (type) {
@@ -33,5 +33,7 @@ export function mapQueryResultToInsightData(
         })),
       } satisfies { items: BreakdownItem[] };
     }
+    case "funnel":
+      return { steps: [] };
   }
 }

@@ -6,6 +6,7 @@ import type {
   Insight, MetricData, InsightLayout, TimeRange,
 } from "./types";
 import { mapQueryResultToInsightData } from "./query-transform";
+import { executeFunnelQuery } from "./funnel-query";
 
 function computePreviousTimeRange(timeRange: TimeRange): TimeRange {
   if (timeRange.type === "relative") {
@@ -77,7 +78,15 @@ export async function loadDashboardData(
 
   const results = await Promise.allSettled(
     insightLayouts.map(async (insight) => {
-      const built = buildQuery(projectId, insight.query, timeRange);
+      if (insight.type === "funnel" && insight.query.funnelSteps?.length) {
+        const funnelData = await executeFunnelQuery(
+          insight.projectId ?? projectId,
+          insight.query.funnelSteps,
+          timeRange,
+        );
+        return { _funnel: funnelData };
+      }
+      const built = buildQuery(insight.projectId ?? projectId, insight.query, timeRange);
       const result = await pool.query(built.sql, built.params);
       return result.rows;
     }),
@@ -85,7 +94,22 @@ export async function loadDashboardData(
 
   const insights: Insight[] = insightLayouts.map((layout, i) => {
     const result = results[i];
-    const rows = result.status === "fulfilled" ? result.value : [];
+    const rawResult = result.status === "fulfilled" ? result.value : [];
+
+    if (layout.type === "funnel") {
+      const funnelData = ((rawResult as Record<string, unknown>)?._funnel ?? { steps: [] }) as import("./types").FunnelData;
+      return {
+        id: layout.id,
+        type: layout.type as "funnel",
+        title: layout.title,
+        span: layout.span,
+        data: funnelData,
+        query: layout.query,
+        projectId: layout.projectId,
+      } satisfies Insight;
+    }
+
+    const rows = rawResult as Record<string, unknown>[];
     return {
       id: layout.id,
       type: layout.type,

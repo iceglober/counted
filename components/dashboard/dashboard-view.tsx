@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import type { Insight, InsightQuery, MetricData, TimeSeriesData, BreakdownItem, TimeRange } from "@/lib/types";
+import type { Insight, InsightQuery, MetricData, TimeSeriesData, BreakdownItem, FunnelData, TimeRange } from "@/lib/types";
 import { MetricCard } from "./metric-card";
 import { AreaChart } from "./area-chart";
 import { Breakdown } from "./breakdown";
+import { Funnel } from "./funnel";
 import { InsightConfigurator } from "./configurator";
 import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Maximize2, Minimize2, GripVertical, Share2, Link2, Copy } from "lucide-react";
 import { useProjects } from "./dashboard-shell";
@@ -34,6 +35,8 @@ function InsightRenderer({ insight }: { insight: Insight }) {
     }
     case "breakdown":
       return <Breakdown title={insight.title} items={(insight.data as { items?: BreakdownItem[] })?.items ?? []} />;
+    case "funnel":
+      return <Funnel title={insight.title} steps={(insight.data as FunnelData)?.steps ?? []} />;
   }
 }
 
@@ -181,7 +184,9 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           ? { value: "0", trend: 0, sparkline: [] }
           : config.type === "timeseries"
             ? { labels: [], values: [] }
-            : { items: [] };
+            : config.type === "funnel"
+              ? { steps: [] }
+              : { items: [] };
         return {
           ...ins,
           ...config,

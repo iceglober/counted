@@ -13,12 +13,16 @@ export type TimeSeriesData = {
 
 export type BreakdownItem = { label: string; value: number };
 
+export type FunnelStep = { label: string; value: number; rate: number };
+
+export type FunnelData = { steps: FunnelStep[] };
+
 export type Insight = {
   id: string;
-  type: "metric" | "timeseries" | "breakdown";
+  type: "metric" | "timeseries" | "breakdown" | "funnel";
   title: string;
   span: 1 | 2 | 3 | 4;
-  data: MetricData | TimeSeriesData | { items: BreakdownItem[] };
+  data: MetricData | TimeSeriesData | { items: BreakdownItem[] } | FunnelData;
   query?: InsightQuery;
   projectId?: string;
 };
@@ -52,6 +56,7 @@ export type InsightQuery = {
   timeBucket?: "hour" | "day" | "week" | "month";
   orderBy?: { field: string; direction: "asc" | "desc" };
   limit?: number;
+  funnelSteps?: string[];
 };
 
 export type TimeRange =
@@ -62,7 +67,7 @@ export type TimeRange =
 
 export type InsightLayout = {
   id: string;
-  type: "metric" | "timeseries" | "breakdown";
+  type: "metric" | "timeseries" | "breakdown" | "funnel";
   title: string;
   span: 1 | 2 | 3 | 4;
   query: InsightQuery;
