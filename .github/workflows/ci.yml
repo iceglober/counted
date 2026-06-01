@@ -80,8 +80,8 @@ jobs:
       - name: Create release PR or publish
         uses: changesets/action@v1
         with:
-          version: npx @changesets/cli version
-          publish: npx @changesets/cli publish
+          version: bun node_modules/@changesets/cli/bin.cjs version
+          publish: bun node_modules/@changesets/cli/bin.cjs publish
           title: "Version Packages"
           commit: "chore: version packages"
         env:
