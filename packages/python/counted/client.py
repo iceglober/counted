@@ -38,6 +38,7 @@ class Analytics:
         self._buffer: list[dict[str, Any]] = []
         self._lock = threading.Lock()
         self._enabled = True
+        self._send_threads: list[threading.Thread] = []
 
         self._session_id = session_id or self._generate_session_id()
         self._last_activity = time.time()
@@ -71,9 +72,18 @@ class Analytics:
             self._flush_locked()
 
     def destroy(self) -> None:
-        """Flush remaining events and stop the timer."""
+        """Flush remaining events and stop the timer.
+
+        Waits for in-flight sends to finish so short-lived processes (CLIs,
+        scripts) don't lose events: the send threads are daemons and would be
+        killed at interpreter exit otherwise.
+        """
         self._stop_timer()
         self.flush()
+        for t in list(self._send_threads):
+            t.join(timeout=10)
+        with self._lock:
+            self._send_threads = [t for t in self._send_threads if t.is_alive()]
 
     def disable(self) -> None:
         """Disable tracking."""
@@ -95,8 +105,12 @@ class Analytics:
         batch = self._buffer[: self.max_batch_size]
         self._buffer = self._buffer[self.max_batch_size :]
 
-        # Fire and forget in a thread to not block the caller
-        threading.Thread(target=self._send, args=(batch,), daemon=True).start()
+        # Fire and forget in a thread to not block the caller. Keep a handle so
+        # destroy() can wait for delivery before the process exits.
+        self._send_threads = [t for t in self._send_threads if t.is_alive()]
+        t = threading.Thread(target=self._send, args=(batch,), daemon=True)
+        t.start()
+        self._send_threads.append(t)
 
     def _send(self, events: list[dict[str, Any]]) -> None:
         """Send events to the Counted API."""
