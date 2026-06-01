@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins/magic-link";
+import { organization } from "better-auth/plugins/organization";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "./db";
 import * as schema from "./db/schema";
@@ -31,6 +32,10 @@ export const auth = betterAuth({
           console.error(`[auth] Failed to send magic link (${res.status})`);
         }
       },
+    }),
+    organization({
+      allowUserToCreateOrganization: true,
+      creatorRole: "owner",
     }),
     nextCookies(),
   ],
