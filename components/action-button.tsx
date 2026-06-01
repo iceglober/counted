@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   label: string;
@@ -30,20 +31,25 @@ export function ActionButton({ label, onClick, icon, className }: Props) {
       >
         {icon}
       </button>
-      {hovering && (
-        <div
-          style={{
-            position: "fixed",
-            left: pos.x + 12,
-            top: pos.y - 8,
-            pointerEvents: "none",
-            zIndex: 99999,
-          }}
-          className="px-2 py-1 text-xs font-medium text-accent bg-surface-2 border border-accent/20 rounded shadow-sm whitespace-nowrap"
-        >
-          {label}
-        </div>
-      )}
+      {hovering && typeof document !== "undefined" &&
+        // Portal to the body so the tooltip escapes the grid item's transform
+        // (a transformed ancestor makes position:fixed resolve against it, and
+        // traps the tooltip under sibling cards).
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              left: pos.x + 12,
+              top: pos.y - 8,
+              pointerEvents: "none",
+              zIndex: 99999,
+            }}
+            className="px-2 py-1 text-xs font-medium text-accent bg-surface-2 border border-accent/20 rounded shadow-sm whitespace-nowrap"
+          >
+            {label}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

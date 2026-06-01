@@ -90,6 +90,11 @@ input[type="checkbox"], input[type="radio"], input[type="submit"] {
 .insight-card > * {
   height: 100%;
 }
+/* Lift the hovered card so its corner action buttons sit above neighbours
+   (each grid item is its own stacking context due to the transform). */
+.react-grid-item:hover {
+  z-index: 20;
+}
 /* Only the dragged card shrinks onto the cursor; siblings stay full-size and
    are kept inside the grid by react-grid-layout's positioning. */
 .react-grid-item.react-draggable-dragging {

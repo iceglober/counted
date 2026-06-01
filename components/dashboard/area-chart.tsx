@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { TimeSeriesData } from "@/lib/types";
 
 function fmt(n: number): string {
@@ -12,17 +12,31 @@ export function AreaChart({ title, data }: { title: string; data: TimeSeriesData
   const [rawHoverIndex, setHoverIndex] = useState<number | null>(null);
   const hoverIndex = rawHoverIndex !== null && rawHoverIndex < data.values.length ? rawHoverIndex : null;
 
+  // Size the chart to its container so it fills the card exactly (no overflow,
+  // no distortion) regardless of the grid cell's fixed height.
+  const plotRef = useRef<HTMLDivElement>(null);
+  const [dims, setDims] = useState({ w: 480, h: 180 });
+  useEffect(() => {
+    const el = plotRef.current;
+    if (!el) return;
+    const update = () => setDims({ w: el.clientWidth || 480, h: el.clientHeight || 180 });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   if (data.values.length < 2) {
     return (
-      <div className="w-full bg-surface-1 border border-border rounded-lg p-5">
+      <div className="h-full bg-surface-1 border border-border rounded-lg p-5">
         <div className="text-xs text-text-secondary uppercase tracking-wider mb-3">{title}</div>
         <div className="h-40 flex items-center justify-center text-text-tertiary text-sm">No data yet</div>
       </div>
     );
   }
 
-  const w = 480;
-  const h = 180;
+  const w = dims.w;
+  const h = dims.h;
   const pt = 12;
   const pb = 28;
   const pl = 40;
@@ -70,15 +84,16 @@ export function AreaChart({ title, data }: { title: string; data: TimeSeriesData
   const total = data.values.reduce((a, b) => a + b, 0);
 
   return (
-    <div className="w-full bg-surface-1 border border-border rounded-lg p-5 hover:border-border-hover transition-colors">
-      <div className="flex items-baseline justify-between mb-4">
+    <div className="h-full flex flex-col bg-surface-1 border border-border rounded-lg p-5 overflow-hidden hover:border-border-hover transition-colors">
+      <div className="flex items-baseline justify-between mb-4 shrink-0">
         <div className="text-xs text-text-secondary uppercase tracking-wider">{title}</div>
         <div className="text-sm font-semibold tabular-nums">{fmt(total)}</div>
       </div>
+      <div ref={plotRef} className="flex-1 min-h-0">
       <svg
         viewBox={`0 0 ${w} ${h}`}
-        className="w-full"
-        preserveAspectRatio="xMidYMid meet"
+        className="w-full h-full block"
+        preserveAspectRatio="none"
         onMouseLeave={() => setHoverIndex(null)}
       >
         <defs>
@@ -192,6 +207,7 @@ export function AreaChart({ title, data }: { title: string; data: TimeSeriesData
           );
         })}
       </svg>
+      </div>
     </div>
   );
 }

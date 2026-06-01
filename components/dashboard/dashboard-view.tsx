@@ -411,7 +411,8 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           onDragStop={(l: Layout) => handleDragStop(l)}
         >
           {insights.map((insight) => (
-            <div key={insight.id} data-insight-id={insight.id}>
+            <div key={insight.id} data-insight-id={insight.id} className="h-full">
+
               {editingId === insight.id ? (
                 <div className="h-full overflow-auto">
                   <InsightConfigurator
