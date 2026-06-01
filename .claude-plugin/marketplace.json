@@ -1,0 +1,14 @@
+{
+  "name": "counted",
+  "owner": { "name": "Counted", "url": "https://counted.dev" },
+  "metadata": {
+    "description": "Counted's native agent integrations — privacy-safe analytics for AI coding agents."
+  },
+  "plugins": [
+    {
+      "name": "claude-code",
+      "source": "./packages/claude-code",
+      "description": "Counted analytics for Claude Code — privacy-safe agent dev-session telemetry."
+    }
+  ]
+}

@@ -38,6 +38,12 @@ jobs:
           cd packages/sdk && bun run build
           cd ../react && bun run build
           cd ../migrate && bun run build
+          cd ../claude-code && bun run build
+
+      - name: Verify plugin hook bin is committed in sync
+        run: |
+          git diff --exit-code -- packages/claude-code/bin \
+            || { echo "::error::packages/claude-code/bin is stale — run 'bun run build' in packages/claude-code and commit"; exit 1; }
 
       - name: Typecheck
         run: bun run typecheck

@@ -1,0 +1,8 @@
+{
+  "name": "claude-code",
+  "version": "0.1.0",
+  "description": "Counted analytics for Claude Code — privacy-safe agent dev-session telemetry (tool use, file edits, commands), no content ever leaves the machine.",
+  "author": { "name": "Counted", "url": "https://counted.dev" },
+  "homepage": "https://counted.dev",
+  "hooks": "./hooks/hooks.json"
+}
