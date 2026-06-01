@@ -10,6 +10,7 @@ import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Maximize2,
 import { useProjects } from "./dashboard-shell";
 import { EditableText } from "@/components/editable-text";
 import { ActionButton } from "@/components/action-button";
+import { Onboarding } from "./onboarding";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 
 function InsightRenderer({ insight }: { insight: Insight }) {
@@ -51,6 +52,7 @@ const timeRangeMap: Record<string, TimeRange> = {
 type Props = {
   initialInsights: Insight[];
   projectId: string;
+  projectKey?: string;
   dashboardId: string | null;
   dashboardName?: string;
   isDefault?: boolean;
@@ -59,7 +61,7 @@ type Props = {
   onSetDefault?: () => void;
 };
 
-export function DashboardView({ initialInsights, projectId, dashboardId, dashboardName = "Dashboard", isDefault, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
+export function DashboardView({ initialInsights, projectId, projectKey, dashboardId, dashboardName = "Dashboard", isDefault, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
   const [insights, setInsights] = useState(initialInsights);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState(dashboardName);
@@ -393,25 +395,12 @@ export function DashboardView({ initialInsights, projectId, dashboardId, dashboa
       )}
 
       {insights.length === 0 && (
-        <div className="text-center py-16 text-text-tertiary">
-          {projects.length === 0 ? (
-            <>
-              <p className="text-sm">No projects yet.</p>
-              <p className="text-xs mt-1">Create a project to start collecting events.</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm">This dashboard is empty.</p>
-              <button
-                onClick={addInsight}
-                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-accent hover:text-accent-hover transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add your first insight
-              </button>
-            </>
-          )}
-        </div>
+        <Onboarding
+          projectKey={projectKey ?? ""}
+          projectId={projectId}
+          host={typeof window !== "undefined" ? window.location.origin : ""}
+          onInsightCreated={addInsight}
+        />
       )}
     </div>
   );

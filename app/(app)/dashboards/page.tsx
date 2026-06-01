@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { dashboards, projectMembers } from "@/lib/db/schema";
+import { dashboards, projectMembers, projects } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import type { TimeRange } from "@/lib/types";
 
@@ -44,12 +44,18 @@ export default async function DashboardsRoute({
 
   let insights: Awaited<ReturnType<typeof loadDashboardById>>["insights"] = [];
   let dashboardId: string | null = null;
+  const activeProjectId = activeDashboard?.projectId ?? projectIds[0];
 
   if (activeDashboard) {
     const result = await loadDashboardById(activeDashboard.id, timeRange);
     insights = result.insights;
     dashboardId = activeDashboard.id;
   }
+
+  // Get project key for onboarding
+  const activeProject = await db.query.projects.findFirst({
+    where: eq(projects.id, activeProjectId),
+  });
 
   return (
     <DashboardPage
@@ -58,7 +64,8 @@ export default async function DashboardsRoute({
       activeDashboardName={activeDashboard?.name}
       isDefault={activeDashboard?.isDefault ?? false}
       initialInsights={insights}
-      projectId={activeDashboard?.projectId ?? projectIds[0]}
+      projectId={activeProjectId}
+      projectKey={activeProject?.apiKey}
     />
   );
 }

@@ -15,9 +15,10 @@ type Props = {
   isDefault?: boolean;
   initialInsights: Insight[];
   projectId: string;
+  projectKey?: string;
 };
 
-export function DashboardPage({ dashboards, activeDashboardId, activeDashboardName, isDefault: initialIsDefault, initialInsights, projectId }: Props) {
+export function DashboardPage({ dashboards, activeDashboardId, activeDashboardName, isDefault: initialIsDefault, initialInsights, projectId, projectKey }: Props) {
   const tabsRef = useRef<DashboardTabsRef>(null);
   const router = useRouter();
   const [currentIsDefault, setCurrentIsDefault] = useState(initialIsDefault ?? false);
@@ -46,6 +47,7 @@ export function DashboardPage({ dashboards, activeDashboardId, activeDashboardNa
       <DashboardView
         initialInsights={initialInsights}
         projectId={projectId}
+        projectKey={projectKey}
         dashboardId={activeDashboardId}
         dashboardName={activeDashboardName}
         isDefault={currentIsDefault}
