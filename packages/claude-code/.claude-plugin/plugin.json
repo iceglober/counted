@@ -4,5 +4,20 @@
   "description": "Counted analytics for Claude Code — privacy-safe agent dev-session telemetry (tool use, file edits, commands), no content ever leaves the machine.",
   "author": { "name": "Counted", "url": "https://counted.dev" },
   "homepage": "https://counted.dev",
-  "hooks": "./hooks/hooks.json"
+  "hooks": "./hooks/hooks.json",
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "title": "Project key",
+      "description": "Your Counted project client key (ck_...). Find it in your project settings.",
+      "sensitive": true,
+      "required": true
+    },
+    "host": {
+      "type": "string",
+      "title": "Host",
+      "description": "Counted ingest host.",
+      "default": "https://app.counted.dev"
+    }
+  }
 }

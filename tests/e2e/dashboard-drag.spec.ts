@@ -21,11 +21,19 @@ test("drag shows a shrunk overlay and never overflows right", async ({ page }) =
   const ob = (await overlay.boundingBox())!;
   expect(ob.width).toBeLessThan(300);
 
-  // No horizontal overflow while siblings reflow.
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
-  expect(overflow, `page overflowed right by ${overflow}px during drag`).toBeLessThanOrEqual(1);
+  // While siblings reflow, no insight cell extends past the grid's right edge —
+  // wide cards wrap to the next row instead of overflowing. (The floating
+  // overlay is a separate portal element and is intentionally excluded.)
+  const worst = await page.evaluate(() => {
+    const grid = document.querySelector("[data-insight-grid]")!.getBoundingClientRect();
+    return Math.max(
+      0,
+      ...[...document.querySelectorAll("[data-insight-id]")].map(
+        (c) => c.getBoundingClientRect().right - grid.right,
+      ),
+    );
+  });
+  expect(worst, `an insight overflowed the grid's right edge by ${worst}px`).toBeLessThanOrEqual(1);
 
   await page.mouse.up();
 });

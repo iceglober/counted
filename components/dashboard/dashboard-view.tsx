@@ -13,6 +13,7 @@ import { useProjects } from "./dashboard-shell";
 import { EditableText } from "@/components/editable-text";
 import { ActionButton } from "@/components/action-button";
 import { Onboarding } from "./onboarding";
+import { AgentSetup } from "./agent-setup";
 import {
   DndContext,
   DragOverlay,
@@ -351,6 +352,14 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
 
   const activeInsight = activeId ? insights.find((i) => i.id === activeId) : null;
 
+  // An agent-eval dashboard is recognisable by its insights filtering on agent
+  // events — show the plugin-setup card on it until the first event arrives.
+  const isAgentDashboard = insights.some((i) =>
+    i.query?.eventFilter?.names?.some((n) =>
+      n === "tool_use" || n === "file_edit" || n === "command_run" || n === "session_start" || n === "session_end",
+    ),
+  );
+
   return (
     <div className="flex-1 min-w-0">
       {/* Header */}
@@ -475,6 +484,10 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         </div>
       </div>
 
+      {isAgentDashboard && projectKey && dashboardId && (
+        <AgentSetup projectKey={projectKey} projectId={projectId} />
+      )}
+
       {/* Insights grid with drag-and-drop. min-w-0 on the cells + grid reflow
           (rectSortingStrategy) keeps wide insights wrapping to the next row
           instead of overflowing off the right. */}
@@ -487,7 +500,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           onDragCancel={() => setActiveId(null)}
         >
           <SortableContext items={insights.map((i) => i.id)} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-3 gap-4">
+            <div data-insight-grid className="grid grid-cols-3 gap-4">
               {insights.map((insight) => (
                 <SortableInsight
                   key={insight.id}
