@@ -7,6 +7,8 @@ import { join } from "node:path";
 // scenario against an ephemeral capture server; we assert the captured payloads.
 
 const KEY = "ck_conformance_test_key";
+// Generous: a compiled driver (Rust/Go) may build on first invocation.
+const TEST_TIMEOUT = 180_000;
 const ROOT = join(import.meta.dir, "..", "..");
 const driver = (f: string) => join(import.meta.dir, "drivers", f);
 
@@ -35,6 +37,21 @@ const DRIVERS: Driver[] = [
     sdkVersion: "counted-python/0.1.0",
     available: has("python3"),
     cmd: (s) => ["python3", driver("py-driver.py"), s],
+  },
+  {
+    name: "rust",
+    sdkVersion: "counted-rust/0.1.0",
+    available: has("cargo"),
+    cwd: join(ROOT, "packages", "rust"),
+    cmd: (s) => ["cargo", "run", "-q", "--example", "conformance", "--", s],
+  },
+  {
+    name: "go",
+    sdkVersion: "counted-go/0.1.0",
+    available: has("go"), // skipped where the Go toolchain is absent (e.g. local dev)
+    cwd: join(import.meta.dir, "drivers", "go-driver"),
+    cmd: (s) => ["go", "run", ".", s],
+    exitFlushesAutomatically: false, // Go uses Destroy() to flush on shutdown
   },
 ];
 
@@ -95,7 +112,7 @@ for (const d of DRIVERS) {
       // Two events went out as a single JSON array (a batch), not two requests.
       const batched = server.requests().find((r) => r.count === 2);
       expect(batched?.wasArray).toBe(true);
-    });
+    }, TEST_TIMEOUT);
 
     test.skipIf(!d.available)("size-based batching auto-flushes at maxBatchSize", async () => {
       await runDriver(d, "batch");
@@ -113,7 +130,7 @@ for (const d of DRIVERS) {
       // Hitting the cap sent a 3-event array without a manual flush.
       const batch = server.requests().find((r) => r.count === 3);
       expect(batch?.wasArray).toBe(true);
-    });
+    }, TEST_TIMEOUT);
 
     test.skipIf(!d.available)("exit handler flushes pending events", async () => {
       await runDriver(d, "exit");
@@ -123,6 +140,6 @@ for (const d of DRIVERS) {
       expect(events).toHaveLength(1);
       expect(events[0].eventName).toBe("onexit");
       expect(events[0].systemProps?.sdkVersion).toBe(d.sdkVersion);
-    });
+    }, TEST_TIMEOUT);
   });
 }

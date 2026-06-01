@@ -35,7 +35,11 @@ yarn-error.log*
 drizzle/meta/
 .playwright-cli/
 __pycache__/
-__pycache__/
+*.pyc
+
+# rust build output (packages/rust)
+packages/rust/target/
+packages/rust/Cargo.lock
 
 # npm auth (never commit tokens)
 .npmrc
