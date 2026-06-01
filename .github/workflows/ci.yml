@@ -77,13 +77,19 @@ jobs:
           cd ../react && bun run build
           cd ../migrate && bun run build
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
       - name: Create release PR or publish
         uses: changesets/action@v1
         with:
-          version: bun node_modules/@changesets/cli/bin.cjs version
-          publish: bun node_modules/@changesets/cli/bin.cjs publish
+          version: npx changeset version
+          publish: npx changeset publish
           title: "Version Packages"
           commit: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
