@@ -1,13 +1,14 @@
 "use client";
 
-import type { Insight, MetricData, TimeSeriesData, BreakdownItem, FunnelData } from "@/lib/types";
+import type { Insight, InsightType, MetricData, TimeSeriesData, BreakdownItem, FunnelData, RetentionData } from "@/lib/types";
 import { MetricCard } from "../metric-card";
 import { AreaChart } from "../area-chart";
 import { Breakdown } from "../breakdown";
 import { Funnel } from "../funnel";
+import { Retention } from "../retention";
 
 type Props = {
-  type: "metric" | "timeseries" | "breakdown" | "funnel";
+  type: InsightType;
   data: Insight["data"] | null;
   loading: boolean;
   error: string | null;
@@ -52,7 +53,9 @@ export function LivePreview({ type, data, loading, error, incomplete, meta }: Pr
       ? ((data as TimeSeriesData)?.values?.length ?? 0) === 0
       : type === "funnel"
         ? ((data as FunnelData)?.steps?.length ?? 0) === 0
-        : ((data as { items: BreakdownItem[] })?.items?.length ?? 0) === 0;
+        : type === "retention"
+          ? ((data as RetentionData)?.cohorts?.length ?? 0) === 0
+          : ((data as { items: BreakdownItem[] })?.items?.length ?? 0) === 0;
 
   if (isEmpty) {
     return (
@@ -68,6 +71,7 @@ export function LivePreview({ type, data, loading, error, incomplete, meta }: Pr
       {type === "timeseries" && <AreaChart title="" data={data as TimeSeriesData} />}
       {type === "breakdown" && <Breakdown title="" items={(data as { items: BreakdownItem[] }).items ?? []} />}
       {type === "funnel" && <Funnel title="" steps={(data as FunnelData).steps ?? []} />}
+      {type === "retention" && <Retention title="" data={(data as RetentionData) ?? { cohorts: [], periods: [] }} />}
       {meta && (
         <div className="mt-2 text-xs text-text-tertiary text-right tabular-nums">
           {meta.totalEvents} row{meta.totalEvents !== 1 ? "s" : ""} · {meta.executionMs}ms

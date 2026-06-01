@@ -1,7 +1,7 @@
 "use client";
 
 import { useReducer, useEffect, useRef, useCallback } from "react";
-import type { InsightQuery, Insight, PropFilter, TimeRange } from "@/lib/types";
+import type { InsightQuery, Insight, InsightType, PropFilter, TimeRange } from "@/lib/types";
 import { mapQueryResultToInsightData } from "@/lib/query-transform";
 import { Dropdown } from "@/components/dropdown";
 import { ConfigSection } from "./config-section";
@@ -28,7 +28,7 @@ const CUSTOM_AGGS = new Set(["sum", "avg", "min", "max"]);
 
 type ConfigState = {
   title: string;
-  type: "metric" | "timeseries" | "breakdown" | "funnel";
+  type: InsightType;
   projectId: string;
   measureType: string;
   measureProperty: string;
@@ -39,6 +39,8 @@ type ConfigState = {
   limit: number;
   propFilters: PropFilter[];
   funnelSteps: string[];
+  retentionPeriod: "day" | "week" | "month";
+  retentionPeriods: number;
 };
 
 type Action =
@@ -72,6 +74,14 @@ function buildQueryFromState(state: ConfigState): InsightQuery | null {
   if (state.type === "funnel") {
     if (state.funnelSteps.length < 2) return null;
     return { measure: "count", funnelSteps: state.funnelSteps };
+  }
+
+  if (state.type === "retention") {
+    return {
+      measure: "count",
+      retentionPeriod: state.retentionPeriod,
+      retentionPeriods: state.retentionPeriods,
+    };
   }
 
   const measure: InsightQuery["measure"] = CUSTOM_AGGS.has(state.measureType)
@@ -171,6 +181,8 @@ function initState(insight: Insight, defaultProjectId: string): ConfigState {
     limit: q?.limit ?? 10,
     propFilters: q?.eventFilter?.properties ?? [],
     funnelSteps: q?.funnelSteps ?? [],
+    retentionPeriod: q?.retentionPeriod ?? "week",
+    retentionPeriods: q?.retentionPeriods ?? 8,
   };
 }
 
@@ -211,6 +223,13 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
       // Funnel preview: show step count summary, skip live query
       if (state.type === "funnel") {
         setPreviewData({ steps: state.funnelSteps.map((s, i) => ({ label: s, value: 0, rate: i === 0 ? 100 : 0 })) });
+        setPreviewLoading(false);
+        return;
+      }
+
+      // Retention preview: placeholder, skip live query
+      if (state.type === "retention") {
+        setPreviewData({ cohorts: [], periods: [] });
         setPreviewLoading(false);
         return;
       }
@@ -312,19 +331,21 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
           <TypePicker value={state.type} onChange={(v) => set("type", v)} />
         </ConfigSection>
 
-        {/* Measure */}
-        <ConfigSection label="Measure">
-          <MeasurePicker
-            measureType={state.measureType}
-            measureProperty={state.measureProperty}
-            propKeys={schema?.numericPropKeys ?? []}
-            onMeasureTypeChange={(v) => set("measureType", v)}
-            onMeasurePropertyChange={(v) => set("measureProperty", v)}
-          />
-        </ConfigSection>
+        {/* Measure (not for funnel/retention) */}
+        {state.type !== "funnel" && state.type !== "retention" && (
+          <ConfigSection label="Measure">
+            <MeasurePicker
+              measureType={state.measureType}
+              measureProperty={state.measureProperty}
+              propKeys={schema?.numericPropKeys ?? []}
+              onMeasureTypeChange={(v) => set("measureType", v)}
+              onMeasurePropertyChange={(v) => set("measureProperty", v)}
+            />
+          </ConfigSection>
+        )}
 
-        {/* Event filter */}
-        {schema && schema.eventNames.length > 0 && (
+        {/* Event filter (not for retention) */}
+        {schema && schema.eventNames.length > 0 && state.type !== "retention" && (
           <ConfigSection label="Event">
             <EventFilter
               value={state.eventFilter}
@@ -398,8 +419,41 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
           </ConfigSection>
         )}
 
+        {/* Retention config */}
+        {state.type === "retention" && (
+          <>
+            <ConfigSection label="Period">
+              <div className="flex gap-1.5">
+                {(["day", "week", "month"] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => set("retentionPeriod", p)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      state.retentionPeriod === p
+                        ? "bg-accent/15 text-accent border border-accent/30"
+                        : "bg-surface-2 text-text-secondary border border-transparent hover:text-text-primary"
+                    }`}
+                  >
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </ConfigSection>
+            <ConfigSection label="Cohorts">
+              <input
+                type="number"
+                value={state.retentionPeriods}
+                onChange={(e) => set("retentionPeriods", Math.max(2, Math.min(12, parseInt(e.target.value) || 8)))}
+                min={2}
+                max={12}
+                className="w-20 px-2.5 py-1.5 text-xs bg-surface-2 border border-border rounded-md text-text-primary focus:outline-none focus:border-accent/60"
+              />
+            </ConfigSection>
+          </>
+        )}
+
         {/* Property filters */}
-        {schema && state.type !== "funnel" && (
+        {schema && state.type !== "funnel" && state.type !== "retention" && (
           <ConfigSection label="Filters">
             <PropertyFilters
               filters={state.propFilters}

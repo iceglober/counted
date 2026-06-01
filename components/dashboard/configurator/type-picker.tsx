@@ -1,13 +1,14 @@
 "use client";
 
-const TYPES = [
-  { value: "metric" as const, label: "Metric" },
-  { value: "timeseries" as const, label: "Time series" },
-  { value: "breakdown" as const, label: "Breakdown" },
-  { value: "funnel" as const, label: "Funnel" },
-];
+import type { InsightType } from "@/lib/types";
 
-type InsightType = "metric" | "timeseries" | "breakdown" | "funnel";
+const TYPES: { value: InsightType; label: string }[] = [
+  { value: "metric", label: "Metric" },
+  { value: "timeseries", label: "Time series" },
+  { value: "breakdown", label: "Breakdown" },
+  { value: "funnel", label: "Funnel" },
+  { value: "retention", label: "Retention" },
+];
 
 type Props = {
   value: InsightType;

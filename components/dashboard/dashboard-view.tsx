@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import type { Insight, InsightQuery, MetricData, TimeSeriesData, BreakdownItem, FunnelData, TimeRange } from "@/lib/types";
+import type { Insight, InsightQuery, MetricData, TimeSeriesData, BreakdownItem, FunnelData, RetentionData, TimeRange } from "@/lib/types";
 import { MetricCard } from "./metric-card";
 import { AreaChart } from "./area-chart";
 import { Breakdown } from "./breakdown";
 import { Funnel } from "./funnel";
+import { Retention } from "./retention";
 import { InsightConfigurator } from "./configurator";
 import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Maximize2, Minimize2, GripVertical, Share2, Link2, Copy } from "lucide-react";
 import { useProjects } from "./dashboard-shell";
@@ -37,6 +38,8 @@ function InsightRenderer({ insight }: { insight: Insight }) {
       return <Breakdown title={insight.title} items={(insight.data as { items?: BreakdownItem[] })?.items ?? []} />;
     case "funnel":
       return <Funnel title={insight.title} steps={(insight.data as FunnelData)?.steps ?? []} />;
+    case "retention":
+      return <Retention title={insight.title} data={(insight.data as RetentionData) ?? { cohorts: [], periods: [] }} />;
   }
 }
 
@@ -186,7 +189,9 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
             ? { labels: [], values: [] }
             : config.type === "funnel"
               ? { steps: [] }
-              : { items: [] };
+              : config.type === "retention"
+                ? { cohorts: [], periods: [] }
+                : { items: [] };
         return {
           ...ins,
           ...config,

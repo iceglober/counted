@@ -17,12 +17,25 @@ export type FunnelStep = { label: string; value: number; rate: number };
 
 export type FunnelData = { steps: FunnelStep[] };
 
+export type RetentionCohort = {
+  label: string;
+  size: number;
+  retention: number[];
+};
+
+export type RetentionData = {
+  cohorts: RetentionCohort[];
+  periods: string[];
+};
+
+export type InsightType = "metric" | "timeseries" | "breakdown" | "funnel" | "retention";
+
 export type Insight = {
   id: string;
-  type: "metric" | "timeseries" | "breakdown" | "funnel";
+  type: InsightType;
   title: string;
   span: 1 | 2 | 3 | 4;
-  data: MetricData | TimeSeriesData | { items: BreakdownItem[] } | FunnelData;
+  data: MetricData | TimeSeriesData | { items: BreakdownItem[] } | FunnelData | RetentionData;
   query?: InsightQuery;
   projectId?: string;
 };
@@ -57,6 +70,8 @@ export type InsightQuery = {
   orderBy?: { field: string; direction: "asc" | "desc" };
   limit?: number;
   funnelSteps?: string[];
+  retentionPeriod?: "day" | "week" | "month";
+  retentionPeriods?: number;
 };
 
 export type TimeRange =
@@ -67,7 +82,7 @@ export type TimeRange =
 
 export type InsightLayout = {
   id: string;
-  type: "metric" | "timeseries" | "breakdown" | "funnel";
+  type: InsightType;
   title: string;
   span: 1 | 2 | 3 | 4;
   query: InsightQuery;

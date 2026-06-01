@@ -7,6 +7,7 @@ import type {
 } from "./types";
 import { mapQueryResultToInsightData } from "./query-transform";
 import { executeFunnelQuery } from "./funnel-query";
+import { executeRetentionQuery } from "./retention-query";
 
 function computePreviousTimeRange(timeRange: TimeRange): TimeRange {
   if (timeRange.type === "relative") {
@@ -86,6 +87,15 @@ export async function loadDashboardData(
         );
         return { _funnel: funnelData };
       }
+      if (insight.type === "retention") {
+        const retentionData = await executeRetentionQuery(
+          insight.projectId ?? projectId,
+          timeRange,
+          insight.query.retentionPeriod ?? "week",
+          insight.query.retentionPeriods ?? 8,
+        );
+        return { _retention: retentionData };
+      }
       const built = buildQuery(insight.projectId ?? projectId, insight.query, timeRange);
       const result = await pool.query(built.sql, built.params);
       return result.rows;
@@ -104,6 +114,19 @@ export async function loadDashboardData(
         title: layout.title,
         span: layout.span,
         data: funnelData,
+        query: layout.query,
+        projectId: layout.projectId,
+      } satisfies Insight;
+    }
+
+    if (layout.type === "retention") {
+      const retentionData = ((rawResult as Record<string, unknown>)?._retention ?? { cohorts: [], periods: [] }) as import("./types").RetentionData;
+      return {
+        id: layout.id,
+        type: layout.type as "retention",
+        title: layout.title,
+        span: layout.span,
+        data: retentionData,
         query: layout.query,
         projectId: layout.projectId,
       } satisfies Insight;

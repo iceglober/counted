@@ -1,4 +1,4 @@
-import type { Insight, MetricData, TimeSeriesData, BreakdownItem } from "./types";
+import type { InsightType, Insight, MetricData, TimeSeriesData, BreakdownItem } from "./types";
 
 function formatBucketLabel(bucket: string | Date): string {
   const d = bucket instanceof Date ? bucket : new Date(bucket);
@@ -6,7 +6,7 @@ function formatBucketLabel(bucket: string | Date): string {
 }
 
 export function mapQueryResultToInsightData(
-  type: "metric" | "timeseries" | "breakdown" | "funnel",
+  type: InsightType,
   rows: Record<string, unknown>[],
 ): Insight["data"] {
   switch (type) {
@@ -35,5 +35,7 @@ export function mapQueryResultToInsightData(
     }
     case "funnel":
       return { steps: [] };
+    case "retention":
+      return { cohorts: [], periods: [] };
   }
 }
