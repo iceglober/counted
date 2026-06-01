@@ -299,6 +299,26 @@ analytics.track("page_view", { path: "/" });`}
               </>
             )}
 
+            {/* Data Export */}
+            <div>
+              <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Export Data</h2>
+              <p className="text-xs text-text-tertiary mb-3">Download your event data. You own it.</p>
+              <div className="flex gap-2">
+                <a
+                  href={`/api/v0/projects/${detail.id}/export?format=csv`}
+                  className="px-3 py-1.5 text-xs text-text-secondary bg-surface-2 border border-border rounded-md hover:border-border-hover hover:text-text-primary transition-colors"
+                >
+                  Export CSV
+                </a>
+                <a
+                  href={`/api/v0/projects/${detail.id}/export?format=json`}
+                  className="px-3 py-1.5 text-xs text-text-secondary bg-surface-2 border border-border rounded-md hover:border-border-hover hover:text-text-primary transition-colors"
+                >
+                  Export JSON
+                </a>
+              </div>
+            </div>
+
             {/* Danger zone */}
             <div className="pt-4 border-t border-border">
               <button
