@@ -220,6 +220,37 @@ export const dashboards = pgTable(
   ],
 );
 
+// ─── Alerts ───────────────────────────────────────────────────────────────────
+
+export const alerts = pgTable(
+  "alerts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    metric: text("metric").notNull(), // "count", "unique_sessions", or a custom property sum
+    eventFilter: text("event_filter"), // event name to filter on (null = all events)
+    condition: text("condition").notNull(), // "above" | "below"
+    threshold: text("threshold").notNull(), // stored as text for precision
+    window: text("window").notNull().default("1h"), // "1h", "24h", "7d", "30d"
+    channels: jsonb("channels").notNull().default([]), // ["email"] or ["email", "slack"]
+    slackWebhookUrl: text("slack_webhook_url"),
+    enabled: boolean("enabled").notNull().default(true),
+    lastTriggeredAt: timestamp("last_triggered_at", { withTimezone: true }),
+    lastValue: text("last_value"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_alerts_project").on(table.projectId),
+    index("idx_alerts_enabled").on(table.enabled),
+  ],
+);
+
 export const projectMembers = pgTable(
   "project_members",
   {
@@ -292,10 +323,22 @@ export const accountRelations = relations(account, ({ one }) => ({
   }),
 }));
 
+export const alertsRelations = relations(alerts, ({ one }) => ({
+  project: one(projects, {
+    fields: [alerts.projectId],
+    references: [projects.id],
+  }),
+  creator: one(user, {
+    fields: [alerts.createdBy],
+    references: [user.id],
+  }),
+}));
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   events: many(events),
   dashboards: many(dashboards),
   members: many(projectMembers),
+  alerts: many(alerts),
 }));
 
 export const eventsRelations = relations(events, ({ one }) => ({

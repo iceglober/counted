@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Sun, Moon, Monitor, Check } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Sun, Moon, Monitor, Check, Plus, Trash2, Bell, BellOff } from "lucide-react";
 import { applyTheme } from "@/components/theme-toggle";
 import { authClient } from "@/lib/auth-client";
+import { useProjects } from "@/components/dashboard/dashboard-shell";
 
 type ThemeMode = "dark" | "light" | "auto";
 
@@ -20,9 +21,25 @@ const ACCENT_PRESETS = [
 
 const TABS = [
   { id: "general", label: "General" },
+  { id: "alerts", label: "Alerts" },
   { id: "billing", label: "Billing" },
   { id: "theme", label: "Theme" },
 ];
+
+type Alert = {
+  id: string;
+  name: string;
+  metric: string;
+  eventFilter: string | null;
+  condition: string;
+  threshold: string;
+  window: string;
+  channels: string[];
+  slackWebhookUrl: string | null;
+  enabled: boolean;
+  lastTriggeredAt: string | null;
+  lastValue: string | null;
+};
 
 export default function SettingsPage() {
   const [tab, setTab] = useState("general");
@@ -32,6 +49,20 @@ export default function SettingsPage() {
   const [userEmail, setUserEmail] = useState("—");
   const [plan, setPlan] = useState("free");
   const [billingLoading, setBillingLoading] = useState(false);
+  const projects = useProjects();
+  const [alertsList, setAlertsList] = useState<Alert[]>([]);
+  const [alertProjectId, setAlertProjectId] = useState("");
+  const [showNewAlert, setShowNewAlert] = useState(false);
+  const [newAlert, setNewAlert] = useState({
+    name: "",
+    metric: "count",
+    eventFilter: "",
+    condition: "above",
+    threshold: "100",
+    window: "1h",
+    channels: ["email"] as string[],
+    slackWebhookUrl: "",
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -55,6 +86,55 @@ export default function SettingsPage() {
       if (data.plan) setPlan(data.plan);
     });
   }, []);
+
+  useEffect(() => {
+    if (projects.length > 0 && !alertProjectId) {
+      setAlertProjectId(projects[0].id);
+    }
+  }, [projects, alertProjectId]);
+
+  const loadAlerts = useCallback(async (pid: string) => {
+    if (!pid) return;
+    const res = await fetch(`/api/v0/alerts?projectId=${pid}`);
+    if (res.ok) setAlertsList(await res.json());
+  }, []);
+
+  useEffect(() => {
+    if (alertProjectId) loadAlerts(alertProjectId);
+  }, [alertProjectId, loadAlerts]);
+
+  async function createAlert() {
+    if (!alertProjectId || !newAlert.name || !newAlert.threshold) return;
+    const res = await fetch("/api/v0/alerts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectId: alertProjectId,
+        ...newAlert,
+        eventFilter: newAlert.eventFilter || undefined,
+        slackWebhookUrl: newAlert.slackWebhookUrl || undefined,
+      }),
+    });
+    if (res.ok) {
+      setShowNewAlert(false);
+      setNewAlert({ name: "", metric: "count", eventFilter: "", condition: "above", threshold: "100", window: "1h", channels: ["email"], slackWebhookUrl: "" });
+      loadAlerts(alertProjectId);
+    }
+  }
+
+  async function toggleAlert(id: string, enabled: boolean) {
+    await fetch("/api/v0/alerts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, enabled }),
+    });
+    loadAlerts(alertProjectId);
+  }
+
+  async function deleteAlert(id: string) {
+    await fetch(`/api/v0/alerts?id=${id}`, { method: "DELETE" });
+    loadAlerts(alertProjectId);
+  }
 
   function changeThemeMode(mode: ThemeMode) {
     setThemeMode(mode);
@@ -202,6 +282,208 @@ export default function SettingsPage() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {tab === "alerts" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-semibold">Alerts</h1>
+                  <p className="text-sm text-text-tertiary mt-1">Get notified when metrics cross thresholds.</p>
+                </div>
+                <button
+                  onClick={() => setShowNewAlert(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-accent bg-accent/10 rounded-md hover:bg-accent/20 transition-colors"
+                >
+                  <Plus className="w-3 h-3" />
+                  New alert
+                </button>
+              </div>
+
+              {projects.length > 1 && (
+                <div>
+                  <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Project</h2>
+                  <select
+                    value={alertProjectId}
+                    onChange={(e) => setAlertProjectId(e.target.value)}
+                    className="px-3 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {showNewAlert && (
+                <div className="bg-surface-1 border border-accent/30 rounded-lg p-4 space-y-3">
+                  <h2 className="text-sm font-medium">New Alert</h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-text-tertiary mb-1 block">Name</label>
+                      <input
+                        value={newAlert.name}
+                        onChange={(e) => setNewAlert({ ...newAlert, name: e.target.value })}
+                        placeholder="High error rate"
+                        className="w-full px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-text-tertiary mb-1 block">Metric</label>
+                      <select
+                        value={newAlert.metric}
+                        onChange={(e) => setNewAlert({ ...newAlert, metric: e.target.value })}
+                        className="w-full px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                      >
+                        <option value="count">Event count</option>
+                        <option value="unique_sessions">Unique sessions</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-text-tertiary mb-1 block">Condition</label>
+                      <div className="flex gap-2">
+                        <select
+                          value={newAlert.condition}
+                          onChange={(e) => setNewAlert({ ...newAlert, condition: e.target.value })}
+                          className="px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                        >
+                          <option value="above">Above</option>
+                          <option value="below">Below</option>
+                        </select>
+                        <input
+                          type="number"
+                          value={newAlert.threshold}
+                          onChange={(e) => setNewAlert({ ...newAlert, threshold: e.target.value })}
+                          className="w-24 px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-text-tertiary mb-1 block">Window</label>
+                      <select
+                        value={newAlert.window}
+                        onChange={(e) => setNewAlert({ ...newAlert, window: e.target.value })}
+                        className="w-full px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                      >
+                        <option value="1h">1 hour</option>
+                        <option value="24h">24 hours</option>
+                        <option value="7d">7 days</option>
+                        <option value="30d">30 days</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-text-tertiary mb-1 block">Event (optional)</label>
+                      <input
+                        value={newAlert.eventFilter}
+                        onChange={(e) => setNewAlert({ ...newAlert, eventFilter: e.target.value })}
+                        placeholder="error, page_view, ..."
+                        className="w-full px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-text-tertiary mb-1 block">Notify via</label>
+                      <div className="flex gap-2">
+                        {["email", "slack"].map((ch) => (
+                          <button
+                            key={ch}
+                            onClick={() => {
+                              const channels = newAlert.channels.includes(ch)
+                                ? newAlert.channels.filter((c) => c !== ch)
+                                : [...newAlert.channels, ch];
+                              setNewAlert({ ...newAlert, channels });
+                            }}
+                            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                              newAlert.channels.includes(ch)
+                                ? "bg-accent/15 text-accent border border-accent/30"
+                                : "bg-surface-2 text-text-secondary border border-transparent hover:text-text-primary"
+                            }`}
+                          >
+                            {ch.charAt(0).toUpperCase() + ch.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {newAlert.channels.includes("slack") && (
+                    <div>
+                      <label className="text-xs text-text-tertiary mb-1 block">Slack webhook URL</label>
+                      <input
+                        value={newAlert.slackWebhookUrl}
+                        onChange={(e) => setNewAlert({ ...newAlert, slackWebhookUrl: e.target.value })}
+                        placeholder="https://hooks.slack.com/services/..."
+                        className="w-full px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={createAlert}
+                      disabled={!newAlert.name || !newAlert.threshold}
+                      className="px-3 py-1.5 text-xs text-surface-0 bg-accent rounded-md hover:bg-accent-hover transition-colors font-medium disabled:opacity-50"
+                    >
+                      Create
+                    </button>
+                    <button
+                      onClick={() => setShowNewAlert(false)}
+                      className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {alertsList.length === 0 && !showNewAlert && (
+                <div className="bg-surface-1 border border-border rounded-lg p-8 text-center">
+                  <Bell className="w-8 h-8 text-text-tertiary mx-auto mb-3" />
+                  <p className="text-sm text-text-secondary">No alerts configured yet.</p>
+                  <p className="text-xs text-text-tertiary mt-1">Create an alert to get notified when metrics change.</p>
+                </div>
+              )}
+
+              {alertsList.length > 0 && (
+                <div className="bg-surface-1 border border-border rounded-lg divide-y divide-border">
+                  {alertsList.map((alert) => (
+                    <div key={alert.id} className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <button
+                          onClick={() => toggleAlert(alert.id, !alert.enabled)}
+                          className={`shrink-0 ${alert.enabled ? "text-accent" : "text-text-tertiary"}`}
+                        >
+                          {alert.enabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                        </button>
+                        <div className="min-w-0">
+                          <div className={`text-sm font-medium truncate ${alert.enabled ? "text-text-primary" : "text-text-tertiary"}`}>
+                            {alert.name}
+                          </div>
+                          <div className="text-xs text-text-tertiary">
+                            {alert.metric === "count" ? "Events" : alert.metric === "unique_sessions" ? "Sessions" : alert.metric}{" "}
+                            {alert.condition} {alert.threshold} · {alert.window} window
+                            {alert.eventFilter && ` · ${alert.eventFilter}`}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {alert.lastValue && (
+                          <span className="text-xs text-text-tertiary tabular-nums">
+                            Last: {alert.lastValue}
+                          </span>
+                        )}
+                        <span className="text-xs text-text-tertiary">
+                          {(alert.channels as string[]).join(", ")}
+                        </span>
+                        <button
+                          onClick={() => deleteAlert(alert.id)}
+                          className="p-1 text-text-tertiary hover:text-error transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
