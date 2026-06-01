@@ -34,3 +34,5 @@ yarn-error.log*
 # drizzle
 drizzle/meta/
 .playwright-cli/
+__pycache__/
+__pycache__/
