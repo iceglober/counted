@@ -1,6 +1,6 @@
 {
   "name": "@counted/react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React hooks for @counted/sdk",
   "type": "module",
   "main": "dist/index.cjs",
@@ -18,7 +18,9 @@
       "require": "./dist/aptabase.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit"
