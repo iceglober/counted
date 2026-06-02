@@ -5,10 +5,14 @@ import { Sun, Moon, Monitor, Check, Plus, Trash2, Bell, BellOff } from "lucide-r
 import { applyTheme } from "@/components/theme-toggle";
 import { authClient } from "@/lib/auth-client";
 import { useProjects } from "@/components/dashboard/dashboard-shell";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 
 type ThemeMode = "dark" | "light" | "auto";
 
 const ACCENT_PRESETS = [
+  { name: "Iris", color: "#7C6CF7", hover: "#8E80F9", lightColor: "#5B4BD6", lightHover: "#4F40C4" },
   { name: "Amber", color: "#D4A853", hover: "#E0BA6A", lightColor: "#B8912E", lightHover: "#A37F22" },
   { name: "Blue", color: "#5B8DEF", hover: "#7AA3F5", lightColor: "#3B6FD9", lightHover: "#2B5FC9" },
   { name: "Green", color: "#3FCF8E", hover: "#5DDAA3", lightColor: "#1D8A52", lightHover: "#157A45" },
@@ -44,7 +48,7 @@ type Alert = {
 export default function SettingsPage() {
   const [tab, setTab] = useState("general");
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
-  const [accentName, setAccentName] = useState("Amber");
+  const [accentName, setAccentName] = useState("Iris");
   const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState("—");
   const [plan, setPlan] = useState("free");
@@ -155,7 +159,7 @@ export default function SettingsPage() {
   }
 
   function resetAccent() {
-    setAccentName("Amber");
+    setAccentName("Iris");
     document.documentElement.style.removeProperty("--color-accent");
     document.documentElement.style.removeProperty("--color-accent-hover");
     localStorage.removeItem("accent");
@@ -242,7 +246,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
                   {plan === "free" ? (
-                    <button
+                    <Button
                       disabled={billingLoading}
                       onClick={async () => {
                         setBillingLoading(true);
@@ -258,12 +262,12 @@ export default function SettingsPage() {
                           setBillingLoading(false);
                         }
                       }}
-                      className="px-4 py-2 text-sm text-surface-0 bg-accent rounded-md hover:bg-accent-hover transition-colors font-medium disabled:opacity-50"
                     >
                       {billingLoading ? "Loading..." : "Upgrade to Pro — $12/mo"}
-                    </button>
+                    </Button>
                   ) : (
-                    <button
+                    <Button
+                      variant="secondary"
                       disabled={billingLoading}
                       onClick={async () => {
                         setBillingLoading(true);
@@ -275,10 +279,9 @@ export default function SettingsPage() {
                           setBillingLoading(false);
                         }
                       }}
-                      className="px-4 py-2 text-sm text-text-secondary border border-border rounded-md hover:border-border-hover hover:text-text-primary transition-colors disabled:opacity-50"
                     >
                       {billingLoading ? "Loading..." : "Manage subscription"}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -322,11 +325,11 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-text-tertiary mb-1 block">Name</label>
-                      <input
+                      <Input
                         value={newAlert.name}
                         onChange={(e) => setNewAlert({ ...newAlert, name: e.target.value })}
                         placeholder="High error rate"
-                        className="w-full px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                        className="h-8 bg-surface-2"
                       />
                     </div>
                     <div>
@@ -351,11 +354,11 @@ export default function SettingsPage() {
                           <option value="above">Above</option>
                           <option value="below">Below</option>
                         </select>
-                        <input
+                        <Input
                           type="number"
                           value={newAlert.threshold}
                           onChange={(e) => setNewAlert({ ...newAlert, threshold: e.target.value })}
-                          className="w-24 px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                          className="h-8 w-24 bg-surface-2"
                         />
                       </div>
                     </div>
@@ -374,11 +377,11 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <label className="text-xs text-text-tertiary mb-1 block">Event (optional)</label>
-                      <input
+                      <Input
                         value={newAlert.eventFilter}
                         onChange={(e) => setNewAlert({ ...newAlert, eventFilter: e.target.value })}
                         placeholder="error, page_view, ..."
-                        className="w-full px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                        className="h-8 bg-surface-2"
                       />
                     </div>
                     <div>
@@ -408,28 +411,21 @@ export default function SettingsPage() {
                   {newAlert.channels.includes("slack") && (
                     <div>
                       <label className="text-xs text-text-tertiary mb-1 block">Slack webhook URL</label>
-                      <input
+                      <Input
                         value={newAlert.slackWebhookUrl}
                         onChange={(e) => setNewAlert({ ...newAlert, slackWebhookUrl: e.target.value })}
                         placeholder="https://hooks.slack.com/services/..."
-                        className="w-full px-2.5 py-1.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary"
+                        className="h-8 bg-surface-2"
                       />
                     </div>
                   )}
                   <div className="flex gap-2 pt-1">
-                    <button
-                      onClick={createAlert}
-                      disabled={!newAlert.name || !newAlert.threshold}
-                      className="px-3 py-1.5 text-xs text-surface-0 bg-accent rounded-md hover:bg-accent-hover transition-colors font-medium disabled:opacity-50"
-                    >
+                    <Button size="sm" onClick={createAlert} disabled={!newAlert.name || !newAlert.threshold}>
                       Create
-                    </button>
-                    <button
-                      onClick={() => setShowNewAlert(false)}
-                      className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
-                    >
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setShowNewAlert(false)}>
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -473,12 +469,13 @@ export default function SettingsPage() {
                         <span className="text-xs text-text-tertiary">
                           {(alert.channels as string[]).join(", ")}
                         </span>
-                        <button
+                        <IconButton
+                          icon={<Trash2 />}
+                          label="Delete alert"
+                          tone="danger"
                           onClick={() => deleteAlert(alert.id)}
-                          className="p-1 text-text-tertiary hover:text-error transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          className="size-7"
+                        />
                       </div>
                     </div>
                   ))}
@@ -528,7 +525,7 @@ export default function SettingsPage() {
                     return (
                       <button
                         key={preset.name}
-                        onClick={() => preset.name === "Amber" ? resetAccent() : changeAccent(preset)}
+                        onClick={() => preset.name === "Iris" ? resetAccent() : changeAccent(preset)}
                         className={`relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-sm transition-colors ${
                           active
                             ? "border-current bg-current/10"

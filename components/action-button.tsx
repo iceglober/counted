@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { type ReactNode } from "react";
+import { IconButton } from "@/components/ui/icon-button";
 
+// Re-based on the library IconButton (cursor-following accent tooltip + gold
+// hover). Kept as a thin alias so existing call sites — which pass their own
+// chip styling via className — don't need to change. New code should import
+// IconButton directly.
 type Props = {
   label: string;
   onClick: () => void;
@@ -11,45 +15,5 @@ type Props = {
 };
 
 export function ActionButton({ label, onClick, icon, className }: Props) {
-  const [hovering, setHovering] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-
-  function handleMouseMove(e: React.MouseEvent) {
-    setPos({ x: e.clientX, y: e.clientY });
-  }
-
-  return (
-    <>
-      <button
-        onClick={onClick}
-        onMouseEnter={() => setHovering(true)}
-        onMouseLeave={() => setHovering(false)}
-        onMouseMove={handleMouseMove}
-        className={className}
-        aria-label={label}
-        title={label}
-      >
-        {icon}
-      </button>
-      {hovering && typeof document !== "undefined" &&
-        // Portal to the body so the tooltip escapes the grid item's transform
-        // (a transformed ancestor makes position:fixed resolve against it, and
-        // traps the tooltip under sibling cards).
-        createPortal(
-          <div
-            style={{
-              position: "fixed",
-              left: pos.x + 12,
-              top: pos.y - 8,
-              pointerEvents: "none",
-              zIndex: 99999,
-            }}
-            className="px-2 py-1 text-xs font-medium text-accent bg-surface-2 border border-accent/20 rounded shadow-sm whitespace-nowrap"
-          >
-            {label}
-          </div>,
-          document.body,
-        )}
-    </>
-  );
+  return <IconButton icon={icon} label={label} onClick={onClick} className={className} />;
 }

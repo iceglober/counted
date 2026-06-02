@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const TEMPLATES = [
   { template: "default" as const, title: "Product metrics", desc: "Traffic, events, breakdowns" },
@@ -70,20 +72,13 @@ export function WelcomeFlow({
             What should we call the app you just instrumented?
           </p>
           <form onSubmit={saveName} className="flex flex-col gap-2">
-            <input
+            <Input
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My App"
-              className="w-full px-3 py-2.5 text-sm bg-surface-2 border border-border rounded-md text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent/60"
             />
-            <button
-              type="submit"
-              disabled={busy}
-              className="inline-flex items-center justify-center px-3 py-2.5 text-sm font-medium text-surface-0 bg-accent rounded-md hover:bg-accent-hover transition-colors disabled:opacity-50"
-            >
-              Continue
-            </button>
+            <Button type="submit" disabled={busy}>Continue</Button>
           </form>
         </>
       ) : (

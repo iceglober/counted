@@ -15,17 +15,20 @@ type Props = {
   onChange: (value: InsightType) => void;
 };
 
+// Segmented control. Plain buttons (role=button) rather than a Radix ToggleGroup
+// (which exposes radio semantics) — the active style already matches the
+// library's ToggleGroupItem token language.
 export function TypePicker({ value, onChange }: Props) {
   return (
-    <div className="flex gap-1.5 flex-wrap">
+    <div className="flex flex-wrap items-center gap-1.5">
       {TYPES.map((t) => (
         <button
           key={t.value}
           onClick={() => onChange(t.value)}
-          className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+          className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
             value === t.value
-              ? "bg-accent/15 text-accent border border-accent/30"
-              : "bg-surface-2 text-text-secondary border border-transparent hover:text-text-primary"
+              ? "border-accent/30 bg-accent/15 text-accent"
+              : "border-transparent bg-surface-2 text-text-secondary hover:text-text-primary"
           }`}
         >
           {t.label}

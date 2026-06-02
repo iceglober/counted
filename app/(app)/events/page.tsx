@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useProjects } from "@/components/dashboard/dashboard-shell";
-import { Dropdown } from "@/components/dropdown";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type EventRow = {
   event_name: string;
@@ -48,61 +50,62 @@ export default function EventsPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-text-tertiary">Project</span>
-          <Dropdown
-            value={selectedProjectId}
-            options={[
-              { value: "all", label: "All projects" },
-              ...projects.map((p) => ({ value: p.id, label: p.name })),
-            ]}
-            onChange={setSelectedProjectId}
-            className="w-48"
-          />
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All projects</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-text-tertiary text-sm">Loading...</div>
+        <div className="space-y-2 rounded-lg border border-border p-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-7 w-full" />
+          ))}
+        </div>
       ) : events.length === 0 ? (
         <div className="text-center py-16 text-text-tertiary">
           <p className="text-sm">No events yet for this project.</p>
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-1 border-b border-border text-text-secondary text-xs uppercase tracking-wider">
-                <th className="text-left px-4 py-3 font-medium">Project</th>
-                <th className="text-left px-4 py-3 font-medium">Event</th>
-                <th className="text-left px-4 py-3 font-medium">Session</th>
-                <th className="text-left px-4 py-3 font-medium">OS</th>
-                <th className="text-left px-4 py-3 font-medium">Locale</th>
-                <th className="text-left px-4 py-3 font-medium">Time</th>
-                <th className="text-left px-4 py-3 font-medium">Props</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="rounded-lg border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project</TableHead>
+                <TableHead>Event</TableHead>
+                <TableHead>Session</TableHead>
+                <TableHead>OS</TableHead>
+                <TableHead>Locale</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>Props</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {events.map((event, i) => (
-                <tr
-                  key={i}
-                  className="border-b border-border last:border-0 hover:bg-surface-1/50 transition-colors"
-                >
-                  <td className="px-4 py-3">
+                <TableRow key={i}>
+                  <TableCell>
                     <Link href="/projects" className="text-xs text-accent hover:text-accent-hover transition-colors">
                       {event.project_name ?? "—"}
                     </Link>
-                  </td>
-                  <td className="px-4 py-3 font-medium text-text-primary">{event.event_name}</td>
-                  <td className="px-4 py-3 text-text-secondary font-mono text-xs">{event.session_id}</td>
-                  <td className="px-4 py-3 text-text-secondary">{event.os_name ?? "—"}</td>
-                  <td className="px-4 py-3 text-text-secondary">{event.locale ?? "—"}</td>
-                  <td className="px-4 py-3 text-text-tertiary text-xs">{new Date(event.timestamp).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-text-tertiary font-mono text-xs max-w-48 truncate">
+                  </TableCell>
+                  <TableCell className="font-medium text-text-primary">{event.event_name}</TableCell>
+                  <TableCell className="font-mono text-xs">{event.session_id}</TableCell>
+                  <TableCell>{event.os_name ?? "—"}</TableCell>
+                  <TableCell>{event.locale ?? "—"}</TableCell>
+                  <TableCell className="text-text-tertiary text-xs">{new Date(event.timestamp).toLocaleString()}</TableCell>
+                  <TableCell className="max-w-48 truncate font-mono text-xs text-text-tertiary">
                     {Object.keys(event.props).length > 0 ? JSON.stringify(event.props) : "—"}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

@@ -5,7 +5,10 @@ import { useProjects } from "@/components/dashboard/dashboard-shell";
 import { EditableText } from "@/components/editable-text";
 import { Plus, Copy, RotateCw, Hash, Globe, Smartphone, Tag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ActionButton } from "@/components/action-button";
+import { IconButton } from "@/components/ui/icon-button";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/sonner";
 
 type ProjectDetail = {
   id: string;
@@ -32,7 +35,6 @@ export default function ProjectsPage() {
   const [selectedId, setSelectedId] = useState(projects[0]?.id ?? "");
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [schema, setSchema] = useState<ProjectSchema | null>(null);
-  const [copied, setCopied] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [allProjects, setAllProjects] = useState<ProjectDetail[]>([]);
 
@@ -81,8 +83,7 @@ export default function ProjectsPage() {
   async function copyKey() {
     if (!detail) return;
     await navigator.clipboard.writeText(detail.clientKey ?? detail.apiKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    toast.success("Client key copied");
   }
 
   async function rotateKey(type: "client" | "server" = "client") {
@@ -119,12 +120,7 @@ export default function ProjectsPage() {
       <div className="mb-8">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-semibold">Projects</h1>
-          <ActionButton
-            label="New project"
-            onClick={() => createProject()}
-            icon={<Plus className="w-4 h-4" />}
-            className="p-1 text-text-tertiary hover:text-accent transition-colors"
-          />
+          <IconButton icon={<Plus />} label="New project" onClick={() => createProject()} />
         </div>
         <p className="text-sm text-text-secondary mt-0.5">
           {allProjects.length} project{allProjects.length !== 1 ? "s" : ""}
@@ -182,11 +178,8 @@ export default function ProjectsPage() {
                 <code className="flex-1 text-sm font-mono text-text-primary bg-surface-2 px-3 py-2 rounded-md border border-border select-all">
                   {detail.clientKey ?? detail.apiKey}
                 </code>
-                <button onClick={copyKey} className="p-2 text-text-tertiary hover:text-text-primary bg-surface-2 border border-border rounded-md transition-colors">
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
+                <IconButton icon={<Copy />} label="Copy client key" onClick={copyKey} />
               </div>
-              {copied && <p className="text-xs text-accent mt-1">Copied</p>}
               <button onClick={() => rotateKey("client")} disabled={rotating} className="text-xs text-error hover:text-error/80 mt-2 transition-colors disabled:opacity-50 flex items-center gap-1">
                 <RotateCw className="w-3 h-3" />
                 {rotating ? "Rotating..." : "Rotate"}
@@ -250,9 +243,7 @@ analytics.track("page_view", { path: "/" });`}
                     </h2>
                     <div className="flex flex-wrap gap-1.5">
                       {schema.propKeys.map((k) => (
-                        <span key={k} className="px-2 py-0.5 text-xs font-mono bg-surface-2 border border-border rounded text-text-secondary">
-                          {k}
-                        </span>
+                        <Badge key={k} variant="outline" className="font-mono">{k}</Badge>
                       ))}
                     </div>
                   </div>
@@ -304,18 +295,12 @@ analytics.track("page_view", { path: "/" });`}
               <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Export Data</h2>
               <p className="text-xs text-text-tertiary mb-3">Download your event data. You own it.</p>
               <div className="flex gap-2">
-                <a
-                  href={`/api/v0/projects/${detail.id}/export?format=csv`}
-                  className="px-3 py-1.5 text-xs text-text-secondary bg-surface-2 border border-border rounded-md hover:border-border-hover hover:text-text-primary transition-colors"
-                >
-                  Export CSV
-                </a>
-                <a
-                  href={`/api/v0/projects/${detail.id}/export?format=json`}
-                  className="px-3 py-1.5 text-xs text-text-secondary bg-surface-2 border border-border rounded-md hover:border-border-hover hover:text-text-primary transition-colors"
-                >
-                  Export JSON
-                </a>
+                <Button asChild variant="secondary" size="sm">
+                  <a href={`/api/v0/projects/${detail.id}/export?format=csv`}>Export CSV</a>
+                </Button>
+                <Button asChild variant="secondary" size="sm">
+                  <a href={`/api/v0/projects/${detail.id}/export?format=json`}>Export JSON</a>
+                </Button>
               </div>
             </div>
 

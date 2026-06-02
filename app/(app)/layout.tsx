@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { projectMembers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { Toaster } from "@/components/ui/sonner";
 
 export default async function DashboardLayout({
   children,
@@ -29,5 +30,10 @@ export default async function DashboardLayout({
     name: m.project.name,
   }));
 
-  return <DashboardShell projects={projects}>{children}</DashboardShell>;
+  return (
+    <>
+      <DashboardShell projects={projects}>{children}</DashboardShell>
+      <Toaster />
+    </>
+  );
 }

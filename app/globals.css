@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @theme {
   --font-display: var(--font-brand), "Azeret Mono", monospace;
@@ -14,8 +15,9 @@
   --color-text-primary: #ECEEF4;
   --color-text-secondary: #8B8D9E;
   --color-text-tertiary: #4A4D62;
-  --color-accent: #D4A853;
-  --color-accent-hover: #E0BA6A;
+  --color-accent: #7C6CF7;
+  --color-accent-hover: #8E80F9;
+  --color-accent-foreground: #FFFFFF;
   --color-success: #3FCF8E;
   --color-error: #EF6461;
 
@@ -38,8 +40,9 @@
   --color-text-primary: #1C1B18;
   --color-text-secondary: #6B695F;
   --color-text-tertiary: #A09E94;
-  --color-accent: #B8912E;
-  --color-accent-hover: #A37F22;
+  --color-accent: #5B4BD6;
+  --color-accent-hover: #4F40C4;
+  --color-accent-foreground: #FFFFFF;
   --color-success: #1D8A52;
   --color-error: #C93C3C;
   color-scheme: light;
