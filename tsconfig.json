@@ -28,6 +28,9 @@
       ],
       "@counted/sdk": [
         "./packages/sdk/src/index.ts"
+      ],
+      "@counted/api": [
+        "./packages/api/src/index.ts"
       ]
     }
   },

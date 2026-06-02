@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Reveal } from "../../reveal";
-import { SiteNav, SiteFooter, Eyebrow, CodeBlock, PrimaryCTA, SecondaryCTA } from "../../site-chrome";
+import { SiteNav, SiteFooter, Eyebrow, CodeBlock, SecondaryCTA } from "../../site-chrome";
+import { PageView, TrackedCTA } from "../../track";
 
 export const metadata: Metadata = {
   title: "AI-native product analytics & agent eval — Counted for agents",
@@ -27,6 +28,7 @@ export default function ForAgentsPage() {
   return (
     <div className="min-h-screen">
       <SiteNav />
+      <PageView name="for_agents" />
 
       <section className="px-6 pt-20 pb-12 max-w-3xl mx-auto text-center">
         <Eyebrow>Analytics for AI agents</Eyebrow>
@@ -41,7 +43,7 @@ export default function ForAgentsPage() {
           dashboard — privacy-safe, no PII, no code contents.
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
-          <PrimaryCTA href="/login">Start free</PrimaryCTA>
+          <TrackedCTA href="/login" location="for_agents" label="start_free">Start free</TrackedCTA>
           <SecondaryCTA href="/blog/agent-harness-eval-in-5-minutes">Track an eval in 5 min</SecondaryCTA>
         </div>
       </section>
@@ -116,7 +118,7 @@ counted.track("session_end", { duration_ms: elapsed });`}</CodeBlock>
               file edits, and commands, ready to read. Compose your own insights on top.
             </p>
             <div className="mt-8">
-              <PrimaryCTA href="/login">Get your eval dashboard</PrimaryCTA>
+              <TrackedCTA href="/login" location="for_agents" label="get_eval_dashboard">Get your eval dashboard</TrackedCTA>
             </div>
           </div>
         </section>

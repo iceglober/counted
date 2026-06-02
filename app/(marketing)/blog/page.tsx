@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav, SiteFooter, Eyebrow } from "../site-chrome";
+import { PageView } from "../track";
 import { sortedPosts } from "./posts";
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function BlogIndex() {
   return (
     <div className="min-h-screen">
       <SiteNav />
+      <PageView name="blog_index" />
 
       <section className="px-6 pt-20 pb-10 max-w-2xl mx-auto text-center">
         <Eyebrow>Blog</Eyebrow>

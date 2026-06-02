@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Check, Minus } from "lucide-react";
 import { Reveal } from "../../reveal";
-import { SiteNav, SiteFooter, Eyebrow, CodeBlock, PrimaryCTA, SecondaryCTA } from "../../site-chrome";
+import { SiteNav, SiteFooter, Eyebrow, CodeBlock, SecondaryCTA } from "../../site-chrome";
+import { PageView, TrackedCTA } from "../../track";
 
 export const metadata: Metadata = {
   title: "Counted vs Aptabase — privacy analytics with composable dashboards",
@@ -42,6 +43,7 @@ export default function VsAptabasePage() {
   return (
     <div className="min-h-screen">
       <SiteNav />
+      <PageView name="vs_aptabase" />
 
       <section className="px-6 pt-20 pb-10 max-w-3xl mx-auto text-center">
         <Eyebrow>Counted vs Aptabase</Eyebrow>
@@ -56,7 +58,7 @@ export default function VsAptabasePage() {
           way to bring your history over.
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
-          <PrimaryCTA href="/login">Start free</PrimaryCTA>
+          <TrackedCTA href="/login" location="vs_aptabase" label="start_free">Start free</TrackedCTA>
           <SecondaryCTA href="#migrate">How to migrate</SecondaryCTA>
         </div>
       </section>
@@ -133,7 +135,7 @@ counted.track("plan_selected", { plan: "premium" });`}</CodeBlock>
             </div>
 
             <div className="mt-8">
-              <PrimaryCTA href="/login">Create a project &amp; migrate</PrimaryCTA>
+              <TrackedCTA href="/login" location="vs_aptabase" label="create_migrate">Create a project &amp; migrate</TrackedCTA>
             </div>
           </div>
         </section>
