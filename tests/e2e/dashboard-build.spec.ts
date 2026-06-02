@@ -98,7 +98,7 @@ test("reorder insights by drag-and-drop", async ({ page }) => {
   }).toPass();
 });
 
-test("dropping a card at the left column widens it (auto-size by drop column)", async ({ page }) => {
+test("dragging a card toward the right widens it (auto-size by cursor column)", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1600 });
   await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
 
@@ -106,19 +106,23 @@ test("dropping a card at the left column widens it (auto-size by drop column)", 
   await expect(async () => expect(await cells.count()).toBeGreaterThan(2)).toPass();
   await page.waitForTimeout(400);
 
-  // A narrow (1-col) card — pick the 3rd, which the seed lays out as a metric.
-  const id = await cells.nth(2).getAttribute("data-insight-id");
+  // Pick the narrowest card (a 1-col one) — robust to prior tests reordering.
+  const widths = await cells.evaluateAll((els) =>
+    els.map((e) => e.getBoundingClientRect().width),
+  );
+  const idx = widths.indexOf(Math.min(...widths));
+  const id = await cells.nth(idx).getAttribute("data-insight-id");
   const card = page.locator(`[data-insight-id="${id}"]`);
-  const beforeW = (await card.boundingBox())!.width;
+  const beforeW = widths[idx];
 
-  // Drag it to the far-left column → drop column 0 → span fills to full width.
-  const handle = page.locator("[data-drag-handle]").nth(2);
+  // Drop with the cursor in the right third → full width (left-aligned, grows right).
+  const handle = page.locator("[data-drag-handle]").nth(idx);
   const hb = (await handle.boundingBox())!;
   const grid = (await page.locator(".react-grid-layout").boundingBox())!;
   await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
   await page.mouse.down();
   await page.mouse.move(hb.x + 30, hb.y + 30, { steps: 5 });
-  await page.mouse.move(grid.x + 30, grid.y + 480, { steps: 14 });
+  await page.mouse.move(grid.x + grid.width - 30, grid.y + 480, { steps: 14 });
   const [put] = await Promise.all([
     page.waitForResponse(
       (r) => r.url().includes("/api/v0/dashboards/") && r.request().method() === "PUT",

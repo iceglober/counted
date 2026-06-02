@@ -251,22 +251,36 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
   }
 
   // After a drag: re-derive order from the new grid positions, and auto-size the
-  // dragged card by the column it was dropped in — span fills from there to the
-  // right edge (drop at col 0 -> full width, col 2 -> 1 column).
-  function handleDragStop(newLayout: Layout, dropped: LayoutItem | null) {
+  // dragged card by how far right the cursor went — left third -> 1 column,
+  // middle -> 2, right third -> full width (left-aligned, grows rightward).
+  function handleDragStop(newLayout: Layout, dropped: LayoutItem | null, event?: Event) {
     const order = [...newLayout].sort((a, b) => a.y - b.y || a.x - b.x).map((l) => l.i);
+
+    // Cursor column from the drop x relative to the grid (independent of the
+    // card's current width, so even a full-width card can be narrowed).
+    let span: 1 | 2 | 3 | 4 | null = null;
+    if (dropped) {
+      const rect = containerRef.current?.getBoundingClientRect();
+      const clientX = (event as MouseEvent | undefined)?.clientX;
+      if (rect && typeof clientX === "number" && rect.width > 0) {
+        const col = Math.floor(((clientX - rect.left) / rect.width) * COLS);
+        span = (Math.min(Math.max(col, 0), COLS - 1) + 1) as 1 | 2 | 3;
+      } else {
+        span = (Math.min(dropped.x, COLS - 1) + 1) as 1 | 2 | 3;
+      }
+    }
+
     setInsights((prev) => {
       const byId = new Map(prev.map((i) => [i.id, i]));
       let reordered = order.map((id) => byId.get(id)).filter(Boolean) as Insight[];
       if (reordered.length !== prev.length) return prev;
 
       let sizeChanged = false;
-      if (dropped) {
-        const span = Math.min(Math.max(COLS - dropped.x, 1), COLS) as 1 | 2 | 3 | 4;
+      if (dropped && span !== null) {
         reordered = reordered.map((ins) => {
           if (ins.id !== dropped.i || ins.span === span) return ins;
           sizeChanged = true;
-          return { ...ins, span };
+          return { ...ins, span: span! };
         });
       }
 
@@ -424,7 +438,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           gridConfig={{ cols: COLS, rowHeight: ROW_HEIGHT, margin: [16, 16], containerPadding: [0, 0] }}
           dragConfig={{ enabled: !editingId, handle: ".drag-handle" }}
           resizeConfig={{ enabled: false }}
-          onDragStop={(l: Layout, _old: LayoutItem | null, dropped: LayoutItem | null) => handleDragStop(l, dropped)}
+          onDragStop={(l: Layout, _old: LayoutItem | null, dropped: LayoutItem | null, _ph: LayoutItem | null, event: Event) => handleDragStop(l, dropped, event)}
         >
           {insights.map((insight) => (
             <div key={insight.id} data-insight-id={insight.id} className="h-full">
