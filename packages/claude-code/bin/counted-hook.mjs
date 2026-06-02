@@ -1,4 +1,4 @@
-// ../sdk/dist/chunk-VF534JQ5.js
+// ../sdk/dist/chunk-J5N32OJR.js
 var i = null;
 var n = 0;
 var o = 18e5;
@@ -54,7 +54,7 @@ async function d(t, e, s) {
     return false;
   }
 }
-var m = "https://counted.dev";
+var m = "https://app.counted.dev";
 var v = 3e4;
 var g = 50;
 var f = class {
