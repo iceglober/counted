@@ -1,5 +1,24 @@
 # Working in this repo
 
+## Philosophy — privacy-first, no cookies
+
+This is the core principle the whole product is built on, and it constrains how we build:
+
+- **No cookies. No fingerprinting. No PII.** This holds for the product *and* for our own
+  analytics — Counted dogfooding Counted must obey the same rules we sell.
+- **No cross-site tracking identifiers, ever.** Don't introduce a cookie or a shared
+  cross-domain identifier to stitch a user across `counted.dev` and `app.counted.dev`. If a
+  flow seems to need one (e.g. attribution), solve it another way (first-party `localStorage`
+  for a *first-party* value, URL params explicitly forwarded on a click, server-side joins) —
+  or leave the gap and flag it. The privacy stance wins over the metric.
+- **`localStorage` only for first-party, non-identifying values** — preferences, a first-touch
+  channel, an A/B bucket. Never a stable user/device identifier.
+- **Sessions are ephemeral and in-memory.** No IP storage. GDPR/CCPA-clean without a consent
+  banner — that's the whole pitch, so don't quietly undermine it.
+
+When a change touches tracking, attribution, auth, or storage, check it against this list
+first. "It would improve the funnel" is not a reason to add a cookie.
+
 ## Stack
 
 - **Framework**: Next.js 16 (App Router, Turbopack)

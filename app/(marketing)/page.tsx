@@ -25,7 +25,7 @@ export default function Home() {
         <h1 className="animate-rise font-display text-[clamp(2.25rem,5.5vw,3.25rem)] tracking-tight leading-tight">
           Privacy-first analytics
           <br />
-          <span className="text-accent">for apps that respect users</span>
+          <span className="text-accent">for products that respect users</span>
         </h1>
         <p className="animate-rise mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed" style={{ animationDelay: "90ms" }}>
           Lightweight, no-cookie event tracking with composable dashboards.
