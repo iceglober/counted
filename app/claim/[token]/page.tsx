@@ -1,10 +1,9 @@
 import { db } from "@/lib/db";
-import { projects, projectMembers, dashboards } from "@/lib/db/schema";
+import { projects, projectMembers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createDefaultLayout } from "@/lib/default-dashboard";
 import { CountedLogo } from "@/components/icons";
 import Link from "next/link";
 import { ClaimLogin } from "./claim-login";
@@ -26,21 +25,11 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
         await tx.insert(projectMembers).values({ projectId: project.id, userId: session.user.id, role: "owner" });
       }
       await tx.update(projects).set({ claimToken: null }).where(eq(projects.id, project.id));
-      const hasDefault = await tx.query.dashboards.findFirst({
-        where: and(eq(dashboards.userId, session.user.id), eq(dashboards.isDefault, true)),
-      });
-      await tx.insert(dashboards).values({
-        userId: session.user.id,
-        projectId: project.id,
-        name: project.name,
-        slug: `claim-${Date.now()}`,
-        layout: createDefaultLayout(),
-        isDefault: !hasDefault,
-      });
     });
     claimed = true;
   }
-  if (claimed) redirect("/dashboards");
+  // Land on a guided setup for the live project (name it, then add a dashboard).
+  if (claimed && project) redirect(`/welcome/${project.id}`);
 
   const valid = !!project;
 

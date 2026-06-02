@@ -20,10 +20,10 @@ test("provision an anonymous project, ingest, then claim it", async ({ page }) =
   });
   expect(ev.status(), "ingest into unclaimed project").toBe(202);
 
-  // The seeded user (logged in) claims it → redirected to their dashboards.
+  // The seeded user (logged in) claims it → lands on the guided setup.
   const token = prov.claimUrl.split("/claim/")[1];
   await page.goto(`/claim/${token}`);
-  await expect(page).toHaveURL(/\/dashboards/);
+  await expect(page).toHaveURL(/\/welcome\//);
 
   // The project is now owned by the user.
   const projects = await (await page.request.get("/api/v0/projects")).json();
@@ -31,6 +31,14 @@ test("provision an anonymous project, ingest, then claim it", async ({ page }) =
     projects.some((p: { clientKey?: string }) => p.clientKey === prov.clientKey),
     "claimed project is owned by the user",
   ).toBeTruthy();
+
+  // Walk the welcome flow: name the project, then pick a dashboard template.
+  await expect(page.getByRole("heading", { name: "Name your project" })).toBeVisible();
+  await page.getByPlaceholder("My App").fill("Acme Inc");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Add your first dashboard" })).toBeVisible();
+  await page.getByRole("button", { name: /Product metrics/ }).click();
+  await expect(page).toHaveURL(/\/dashboards\?dashboard=/);
 
   // Re-visiting the claim link is now invalid (token cleared, single-use).
   await page.goto(`/claim/${token}`);
