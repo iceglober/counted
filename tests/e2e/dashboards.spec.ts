@@ -37,3 +37,22 @@ test("a new dashboard is never default; the seeded default stays single", async 
   const defaults = all.filter((d: { isDefault?: boolean }) => d.isDefault);
   expect(defaults.length, "exactly one default per user").toBe(1);
 });
+
+test("creating a dashboard as default (API) demotes the previous default", async ({ page }) => {
+  const before = await (await page.request.get("/api/v0/dashboards")).json();
+  const priorDefault = before.find((d: { isDefault?: boolean }) => d.isDefault);
+  expect(priorDefault, "a default exists to begin with").toBeTruthy();
+
+  // Management-API path: explicitly create-as-default.
+  const created = await (
+    await page.request.post("/api/v0/dashboards", {
+      data: { slug: `def-${Date.now()}`, template: "blank", isDefault: true },
+    })
+  ).json();
+  expect(created.isDefault).toBe(true);
+
+  const after = await (await page.request.get("/api/v0/dashboards")).json();
+  const defaults = after.filter((d: { isDefault?: boolean }) => d.isDefault);
+  expect(defaults.length, "still exactly one default after create-as-default").toBe(1);
+  expect(defaults[0].id, "the new dashboard is now the sole default").toBe(created.id);
+});

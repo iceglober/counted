@@ -9,7 +9,7 @@ import {
   index,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // ─── better-auth managed tables ────────────────────────────────────────────────
 
@@ -224,6 +224,10 @@ export const dashboards = pgTable(
   },
   (table) => [
     index("dashboards_user_idx").on(table.userId),
+    // At most one default dashboard per user, enforced at the storage layer.
+    uniqueIndex("dashboards_one_default_per_user")
+      .on(table.userId)
+      .where(sql`${table.isDefault}`),
   ],
 );
 

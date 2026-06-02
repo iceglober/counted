@@ -52,19 +52,30 @@ export async function POST(request: NextRequest) {
     ? DASHBOARD_TEMPLATES[template as keyof typeof DASHBOARD_TEMPLATES]
     : null;
 
-  const [result] = await db
-    .insert(dashboards)
-    .values({
-      userId: session!.user.id,
-      projectId: projectId || null,
-      name: name ?? tpl?.name ?? "Untitled",
-      slug,
-      layout: layout ?? tpl?.layout ?? { insights: [] },
-      filters: filters ?? {},
-      // New dashboards are never default — the first one stays default.
-      isDefault: isDefault ?? false,
-    })
-    .returning();
+  // At most one default per user. A caller may explicitly create-as-default
+  // (Management API); if so, demote any existing default first, atomically.
+  const result = await db.transaction(async (tx) => {
+    if (isDefault) {
+      await tx
+        .update(dashboards)
+        .set({ isDefault: false })
+        .where(eq(dashboards.userId, session!.user.id));
+    }
+    const [row] = await tx
+      .insert(dashboards)
+      .values({
+        userId: session!.user.id,
+        projectId: projectId || null,
+        name: name ?? tpl?.name ?? "Untitled",
+        slug,
+        layout: layout ?? tpl?.layout ?? { insights: [] },
+        filters: filters ?? {},
+        // New dashboards are never default unless explicitly asked for.
+        isDefault: isDefault ?? false,
+      })
+      .returning();
+    return row;
+  });
 
   return NextResponse.json(result, { status: 201 });
 }
