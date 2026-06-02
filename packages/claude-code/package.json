@@ -1,6 +1,6 @@
 {
   "name": "@counted/claude-code",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Counted analytics hooks for Claude Code — track AI agent actions privately",
   "type": "module",
   "main": "dist/index.cjs",
@@ -13,7 +13,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit"
