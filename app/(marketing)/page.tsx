@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CountedLogo } from "@/components/icons";
 import { Check } from "lucide-react";
+import { AgentPrompt } from "./agent-prompt";
 
 export default function Home() {
   return (
@@ -61,6 +62,9 @@ export default function Home() {
           {"analytics.track(\"page_view\", { path: \"/\" });"}
         </pre>
       </section>
+
+      {/* Give this to your agent */}
+      <AgentPrompt />
 
       {/* Value props */}
       <section className="px-6 py-16 border-t border-border">
