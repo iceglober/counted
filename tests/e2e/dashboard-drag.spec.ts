@@ -9,9 +9,6 @@ test("dragged card shrinks; siblings never leave the grid", async ({ page }) => 
   await expect(async () => expect(await cells.count()).toBeGreaterThan(2)).toPass();
   await page.waitForTimeout(400); // let react-grid-layout finish measuring/wiring drag
 
-  // A normal card's width, for the shrink comparison.
-  const siblingW = (await cells.nth(1).locator(".insight-card").boundingBox())!.width;
-
   // Pick up the first card and drag it across/down.
   const handle = page.locator("[data-drag-handle]").first();
   const hb = (await handle.boundingBox())!;
@@ -20,11 +17,14 @@ test("dragged card shrinks; siblings never leave the grid", async ({ page }) => 
   await page.mouse.move(hb.x + 40, hb.y + 60, { steps: 6 });
   await page.mouse.move(hb.x + 160, hb.y + 220, { steps: 12 });
 
-  // The held card is scaled down to a chip (well under a normal card's width).
-  const dragging = page.locator(".react-grid-item.react-draggable-dragging .insight-card");
-  await expect(dragging).toBeVisible();
-  const dw = (await dragging.boundingBox())!.width;
-  expect(dw, `held card should shrink (got ${dw}px vs sibling ${siblingW}px)`).toBeLessThan(siblingW * 0.6);
+  // The held card is scaled down to a chip — well under its own grid cell width
+  // (robust to even-width rows, where cells vary in width).
+  const draggingItem = page.locator(".react-grid-item.react-draggable-dragging");
+  const draggingCard = draggingItem.locator(".insight-card");
+  await expect(draggingCard).toBeVisible();
+  const cellW = (await draggingItem.boundingBox())!.width;
+  const dw = (await draggingCard.boundingBox())!.width;
+  expect(dw, `held card should scale down within its cell (cell ${cellW}px)`).toBeLessThan(cellW * 0.6);
 
   // No NON-dragged card extends past the grid's right edge — siblings reflow
   // within the grid (wrap downward) rather than warping off-screen.

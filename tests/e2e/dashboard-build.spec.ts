@@ -50,7 +50,7 @@ test("add, configure, preview, persist, and resize an insight", async ({ page })
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(page.getByText(TITLE)).toBeVisible();
 
-  // Resize the new insight: open the size popover, then pick "Full width".
+  // Resize the new insight: open the size popover, then pick "Full".
   const card = page.locator("div.group\\/insight").filter({ hasText: TITLE });
   await card.hover();
   await card.getByRole("button", { name: "Resize" }).click();
@@ -58,7 +58,7 @@ test("add, configure, preview, persist, and resize an insight", async ({ page })
     page.waitForResponse(
       (r) => r.url().includes("/api/v0/dashboards/") && r.request().method() === "PUT",
     ),
-    page.getByRole("button", { name: "Full width" }).click(),
+    page.getByRole("button", { name: "Full", exact: true }).click(),
   ]);
   expect(resizePut.ok(), `resize PUT should succeed, got ${resizePut.status()}`).toBeTruthy();
 });
@@ -99,7 +99,7 @@ test("reorder insights by drag-and-drop", async ({ page }) => {
   }).toPass();
 });
 
-test("dragging a card toward the right widens it (auto-size by cursor column)", async ({ page }) => {
+test("resize popover pins a card's width (Full is much wider than a third)", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1600 });
   await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
 
@@ -107,33 +107,25 @@ test("dragging a card toward the right widens it (auto-size by cursor column)", 
   await expect(async () => expect(await cells.count()).toBeGreaterThan(2)).toPass();
   await page.waitForTimeout(400);
 
-  // Pick the narrowest card (a 1-col one) — robust to prior tests reordering.
-  const widths = await cells.evaluateAll((els) =>
-    els.map((e) => e.getBoundingClientRect().width),
-  );
-  const idx = widths.indexOf(Math.min(...widths));
-  const id = await cells.nth(idx).getAttribute("data-insight-id");
+  const id = await cells.first().getAttribute("data-insight-id");
   const card = page.locator(`[data-insight-id="${id}"]`);
-  const beforeW = widths[idx];
 
-  // Drop with the cursor in the right third → full width (left-aligned, grows right).
-  const handle = page.locator("[data-drag-handle]").nth(idx);
-  const hb = (await handle.boundingBox())!;
-  const grid = (await page.locator(".react-grid-layout").boundingBox())!;
-  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(hb.x + 30, hb.y + 30, { steps: 5 });
-  await page.mouse.move(grid.x + grid.width - 30, grid.y + 480, { steps: 14 });
-  const [put] = await Promise.all([
-    page.waitForResponse(
-      (r) => r.url().includes("/api/v0/dashboards/") && r.request().method() === "PUT",
-    ),
-    page.mouse.up(),
-  ]);
-  expect(put.ok(), `auto-size PUT should succeed, got ${put.status()}`).toBeTruthy();
+  async function resize(label: string) {
+    await card.hover();
+    await card.getByRole("button", { name: "Resize" }).click();
+    await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes("/api/v0/dashboards/") && r.request().method() === "PUT",
+      ),
+      page.getByRole("button", { name: label, exact: true }).click(),
+    ]);
+  }
 
+  await resize("⅓");
+  const thirdW = (await card.boundingBox())!.width;
+  await resize("Full");
   await expect(async () => {
-    const afterW = (await card.boundingBox())!.width;
-    expect(afterW, `card should widen (was ${beforeW})`).toBeGreaterThan(beforeW * 1.6);
+    const fullW = (await card.boundingBox())!.width;
+    expect(fullW, `Full should be much wider than ⅓ (was ${thirdW})`).toBeGreaterThan(thirdW * 1.6);
   }).toPass();
 });

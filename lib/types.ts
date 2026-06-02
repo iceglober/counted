@@ -34,7 +34,8 @@ export type Insight = {
   id: string;
   type: InsightType;
   title: string;
-  span: 1 | 2 | 3 | 4;
+  /** Manual width in 12-col units (4=⅓, 6=½, 8=⅔, 12=full). 0/undefined = auto (row splits evenly). */
+  span: number;
   /** Height in grid rows. Undefined falls back to a per-type default. */
   height?: number;
   data: MetricData | TimeSeriesData | { items: BreakdownItem[] } | FunnelData | RetentionData;
@@ -86,7 +87,7 @@ export type InsightLayout = {
   id: string;
   type: InsightType;
   title: string;
-  span: 1 | 2 | 3 | 4;
+  span: number;
   /** Height in grid rows. Undefined falls back to a per-type default. */
   height?: number;
   query: InsightQuery;

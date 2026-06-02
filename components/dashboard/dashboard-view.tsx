@@ -24,8 +24,14 @@ const TYPE_HEIGHT: Record<string, number> = { metric: 2, timeseries: 4, breakdow
 const COMPACT_TYPE_HEIGHT: Record<string, number> = { metric: 2, timeseries: 3, breakdown: 3, funnel: 3, retention: 3 };
 const ROW_HEIGHT = 72;
 const COMPACT_ROW_HEIGHT = 56;
-const COLS = 3;
+const COLS = 12; // 12-col grid so rows can split into even halves/thirds.
 const MIN_H = 2;
+
+// Max cards per row, responsive to the canvas width. Each auto card is at least
+// COLS / maxPerRow wide, so rows hold up to N evenly-sized cards.
+function maxPerRow(width: number): number {
+  return width >= 1024 ? 3 : width >= 600 ? 2 : 1;
+}
 
 function InsightRenderer({ insight }: { insight: Insight }) {
   if (!insight.data) {
@@ -55,10 +61,14 @@ function InsightRenderer({ insight }: { insight: Insight }) {
   }
 }
 
-const SIZE_OPTIONS: { span: 1 | 2 | 3; label: string }[] = [
-  { span: 1, label: "Small" },
-  { span: 2, label: "Medium" },
-  { span: 3, label: "Full width" },
+// Manual width overrides (out of 12 cols). 0 = auto: the card shares its row
+// evenly with the other auto cards. A pin keeps its width; the row re-evens the rest.
+const SIZE_OPTIONS: { span: number; label: string }[] = [
+  { span: 0, label: "Auto" },
+  { span: 4, label: "⅓" },
+  { span: 6, label: "½" },
+  { span: 8, label: "⅔" },
+  { span: 12, label: "Full" },
 ];
 
 const timeRanges = ["Last 24 hours", "Last 7 days", "Last 30 days", "Last 90 days"];
@@ -70,26 +80,58 @@ const timeRangeMap: Record<string, TimeRange> = {
   "Last 90 days": { type: "relative", value: 90, unit: "days" },
 };
 
-// Skyline pack: drop each card (in order) into the lowest left-aligned slot wide
-// enough for its span — so cards float left and fill vertical gaps a short card
-// would otherwise leave under a tall neighbour. Ties go to the leftmost column,
-// which keeps reading order and the left-aligned feel.
-function computeLayout(insights: Insight[], compact: boolean): LayoutItem[] {
+// Even-width rows. Cards flow into rows of up to N (N by viewport); within a
+// row, pinned cards keep their width and the remaining width splits evenly among
+// the auto cards. So a row of 2 autos is 50/50, a row of 3 is thirds, and pinning
+// one card to ½ leaves the rest of its row to share the other half.
+function pinWidth(ins: Insight, minUnit: number): number {
+  const s = ins.span ?? 0;
+  return s >= 4 ? Math.min(Math.max(s, minUnit), COLS) : 0; // <4 (incl. legacy 1-3) = auto
+}
+
+function computeLayout(insights: Insight[], compact: boolean, n: number, draggingId?: string | null): LayoutItem[] {
   const heights = compact ? COMPACT_TYPE_HEIGHT : TYPE_HEIGHT;
-  const colBottom = new Array(COLS).fill(0); // next free y per column
-  const layout: LayoutItem[] = [];
+  const minUnit = Math.max(1, Math.floor(COLS / n));
+  // The in-flight card shrinks to one unit so its placeholder can slot into a
+  // row; the row re-evens on drop.
+  const widthOf = (ins: Insight) => (ins.id === draggingId ? minUnit : pinWidth(ins, minUnit));
+
+  // 1. Group cards (in order) into rows of up to N, respecting pinned widths.
+  const rows: Insight[][] = [];
+  let row: Insight[] = [];
+  let fixed = 0;
   for (const ins of insights) {
-    const w = Math.min(ins.span ?? 2, COLS);
-    const h = ins.height ?? heights[ins.type] ?? 3;
-    let bestX = 0;
-    let bestY = Infinity;
-    for (let x = 0; x + w <= COLS; x++) {
-      let y = 0;
-      for (let c = x; c < x + w; c++) y = Math.max(y, colBottom[c]);
-      if (y < bestY) { bestY = y; bestX = x; }
+    const p = widthOf(ins);
+    if (row.length > 0 && (row.length >= n || fixed + (p || minUnit) > COLS)) {
+      rows.push(row);
+      row = [];
+      fixed = 0;
     }
-    layout.push({ i: ins.id, x: bestX, y: bestY, w, h, minH: MIN_H });
-    for (let c = bestX; c < bestX + w; c++) colBottom[c] = bestY + h;
+    row.push(ins);
+    fixed += p;
+  }
+  if (row.length) rows.push(row);
+
+  // 2. Lay out each row: pins keep their width, autos share the remainder evenly.
+  const layout: LayoutItem[] = [];
+  let y = 0;
+  for (const r of rows) {
+    const pins = r.map(widthOf);
+    const fixedSum = pins.reduce((a, b) => a + b, 0);
+    const autos = pins.filter((p) => p === 0).length;
+    const autoW = autos > 0 ? Math.floor((COLS - fixedSum) / autos) : 0;
+    let rem = COLS - fixedSum - autoW * autos; // spread the leftover columns
+    let x = 0;
+    let rowH = 0;
+    r.forEach((ins, i) => {
+      let w = pins[i] || autoW + (rem-- > 0 ? 1 : 0);
+      if (w < 1) w = 1;
+      const h = ins.height ?? heights[ins.type] ?? 3;
+      layout.push({ i: ins.id, x, y, w, h, minH: MIN_H });
+      x += w;
+      rowH = Math.max(rowH, h);
+    });
+    y += rowH;
   }
   return layout;
 }
@@ -123,6 +165,8 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
   const [sizeMenuFor, setSizeMenuFor] = useState<string | null>(null);
   const projects = useProjects();
   const { width, containerRef, mounted } = useContainerWidth();
+  const n = maxPerRow(width);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   useEffect(() => setInsights(initialInsights), [initialInsights]);
   useEffect(() => setName(dashboardName), [dashboardName]);
@@ -222,7 +266,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
       id,
       type: "breakdown",
       title: "",
-      span: 2,
+      span: 0,
       data: { items: [] },
       query: { measure: "count" },
       projectId,
@@ -251,7 +295,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           data: typeChanged ? defaultData : ins.data,
           // Preserve the user's width/height — the configurator always reports a
           // default span, which would otherwise reset a resized card.
-          span: config.type === "metric" ? 1 as const : ins.span,
+          span: config.type === "metric" ? 4 : ins.span,
           height: ins.height,
         };
       });
@@ -265,7 +309,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     refreshInsights();
   }
 
-  function setInsightSpan(insightId: string, span: 1 | 2 | 3) {
+  function setInsightSpan(insightId: string, span: number) {
     setSizeMenuFor(null);
     setInsights((prev) => {
       if (prev.find((i) => i.id === insightId)?.span === span) return prev;
@@ -275,42 +319,16 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     });
   }
 
-  // After a drag: re-derive order from the new grid positions, and auto-size the
-  // dragged card by how far right the cursor went — left third -> 1 column,
-  // middle -> 2, right third -> full width (left-aligned, grows rightward).
-  function handleDragStop(newLayout: Layout, dropped: LayoutItem | null, event?: Event) {
+  // After a drag, the only thing that changes is order — widths are derived by
+  // computeLayout, so dropping a card into a row re-evens that row automatically.
+  function handleDragStop(newLayout: Layout) {
     const order = [...newLayout].sort((a, b) => a.y - b.y || a.x - b.x).map((l) => l.i);
-
-    // Cursor column from the drop x relative to the grid (independent of the
-    // card's current width, so even a full-width card can be narrowed).
-    let span: 1 | 2 | 3 | 4 | null = null;
-    if (dropped) {
-      const rect = containerRef.current?.getBoundingClientRect();
-      const clientX = (event as MouseEvent | undefined)?.clientX;
-      if (rect && typeof clientX === "number" && rect.width > 0) {
-        const col = Math.floor(((clientX - rect.left) / rect.width) * COLS);
-        span = (Math.min(Math.max(col, 0), COLS - 1) + 1) as 1 | 2 | 3;
-      } else {
-        span = (Math.min(dropped.x, COLS - 1) + 1) as 1 | 2 | 3;
-      }
-    }
-
     setInsights((prev) => {
       const byId = new Map(prev.map((i) => [i.id, i]));
-      let reordered = order.map((id) => byId.get(id)).filter(Boolean) as Insight[];
+      const reordered = order.map((id) => byId.get(id)).filter(Boolean) as Insight[];
       if (reordered.length !== prev.length) return prev;
-
-      let sizeChanged = false;
-      if (dropped && span !== null) {
-        reordered = reordered.map((ins) => {
-          if (ins.id !== dropped.i || ins.span === span) return ins;
-          sizeChanged = true;
-          return { ...ins, span: span! };
-        });
-      }
-
       const orderChanged = reordered.some((ins, i) => ins.id !== prev[i].id);
-      if (!orderChanged && !sizeChanged) return prev;
+      if (!orderChanged) return prev;
       persistLayout(reordered);
       return reordered;
     });
@@ -468,11 +486,12 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         <GridLayout
           className="layout"
           width={width}
-          layout={computeLayout(insights, compact)}
+          layout={computeLayout(insights, compact, n, draggingId)}
           gridConfig={{ cols: COLS, rowHeight: compact ? COMPACT_ROW_HEIGHT : ROW_HEIGHT, margin: compact ? [8, 8] : [16, 16], containerPadding: [0, 0] }}
           dragConfig={{ enabled: !editingId, handle: ".drag-handle" }}
           resizeConfig={{ enabled: false }}
-          onDragStop={(l: Layout, _old: LayoutItem | null, dropped: LayoutItem | null, _ph: LayoutItem | null, event: Event) => handleDragStop(l, dropped, event)}
+          onDragStart={(_l: Layout, oldItem: LayoutItem | null) => setDraggingId(oldItem?.i ?? null)}
+          onDragStop={(l: Layout) => { setDraggingId(null); handleDragStop(l); }}
         >
           {insights.map((insight) => (
             <div key={insight.id} data-insight-id={insight.id} className="h-full">
@@ -504,13 +523,13 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                                 key={opt.span}
                                 onClick={() => setInsightSpan(insight.id, opt.span)}
                                 className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center gap-1.5 ${
-                                  insight.span === opt.span
+                                  ((insight.span ?? 0) >= 4 ? insight.span : 0) === opt.span
                                     ? "text-accent bg-accent/8"
                                     : "text-text-secondary hover:text-text-primary hover:bg-surface-3"
                                 }`}
                               >
                                 <span className="flex-1">{opt.label}</span>
-                                {insight.span === opt.span && <Check className="w-3 h-3" />}
+                                {((insight.span ?? 0) >= 4 ? insight.span : 0) === opt.span && <Check className="w-3 h-3" />}
                               </button>
                             ))}
                           </div>
