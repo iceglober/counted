@@ -50,6 +50,8 @@
     "stripe": "^22.2.0"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.7.0",
+    "@changesets/cli": "^2.31.0",
     "@eslint/eslintrc": "^3.3.5",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.3.0",
