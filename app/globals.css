@@ -111,3 +111,14 @@ input[type="checkbox"], input[type="radio"], input[type="submit"] {
   opacity: 0.12 !important;
   border-radius: 0.5rem !important;
 }
+/* Resize handles: hidden until the card is hovered. */
+.react-grid-item .react-resizable-handle {
+  opacity: 0;
+  transition: opacity 130ms ease;
+}
+.react-grid-item:hover .react-resizable-handle {
+  opacity: 0.5;
+}
+.react-grid-item .react-resizable-handle::after {
+  border-color: var(--color-text-tertiary) !important;
+}

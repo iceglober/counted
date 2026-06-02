@@ -62,6 +62,36 @@ test("add, configure, preview, persist, and resize an insight", async ({ page })
   expect(resizePut.ok(), `resize PUT should succeed, got ${resizePut.status()}`).toBeTruthy();
 });
 
+test("resize an insight by dragging its handle", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1600 });
+  await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
+
+  const item = page.locator(".react-grid-item").first();
+  await expect(item).toBeVisible();
+  await page.waitForTimeout(400);
+  const before = (await item.boundingBox())!;
+
+  await item.hover();
+  const handle = item.locator(".react-resizable-handle-se");
+  const hb = (await handle.boundingBox())!;
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + 220, hb.y + 160, { steps: 12 }); // enlarge
+  const [resizePut] = await Promise.all([
+    page.waitForResponse(
+      (r) => r.url().includes("/api/v0/dashboards/") && r.request().method() === "PUT",
+    ),
+    page.mouse.up(),
+  ]);
+  expect(resizePut.ok(), `resize PUT should succeed, got ${resizePut.status()}`).toBeTruthy();
+
+  // The card actually grew.
+  await expect(async () => {
+    const after = (await item.boundingBox())!;
+    expect(after.width + after.height).toBeGreaterThan(before.width + before.height + 20);
+  }).toPass();
+});
+
 test("reorder insights by drag-and-drop", async ({ page }) => {
   // Tall viewport so every cell (and the drop target) is on-screen.
   await page.setViewportSize({ width: 1280, height: 1600 });

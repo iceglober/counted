@@ -20,9 +20,9 @@ import "react-grid-layout/css/styles.css";
 // Grid cells are fixed-height (react-grid-layout requires explicit h). Heights
 // are per insight type; the one being configured gets extra room.
 const TYPE_HEIGHT: Record<string, number> = { metric: 2, timeseries: 4, breakdown: 4, funnel: 4, retention: 4 };
-const EDIT_HEIGHT = 8;
 const ROW_HEIGHT = 72;
 const COLS = 3;
+const MIN_H = 2;
 
 function InsightRenderer({ insight }: { insight: Insight }) {
   if (!insight.data) {
@@ -67,14 +67,14 @@ const timeRangeMap: Record<string, TimeRange> = {
 // Pack insights left-to-right into COLS columns (wrapping), using each card's
 // span as width. react-grid-layout then keeps everything inside the grid and
 // compacts vertically — cards can't warp or escape the right edge.
-function computeLayout(insights: Insight[], editingId: string | null): LayoutItem[] {
+function computeLayout(insights: Insight[]): LayoutItem[] {
   const layout: LayoutItem[] = [];
   let x = 0, y = 0, rowMax = 0;
   for (const ins of insights) {
     const w = Math.min(ins.span ?? 2, COLS);
-    const h = ins.id === editingId ? EDIT_HEIGHT : (TYPE_HEIGHT[ins.type] ?? 3);
+    const h = ins.height ?? TYPE_HEIGHT[ins.type] ?? 3;
     if (x + w > COLS) { x = 0; y += rowMax; rowMax = 0; }
-    layout.push({ i: ins.id, x, y, w, h });
+    layout.push({ i: ins.id, x, y, w, h, minH: MIN_H });
     x += w;
     rowMax = Math.max(rowMax, h);
   }
@@ -138,6 +138,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         type: ins.type,
         title: ins.title,
         span: ins.span,
+        height: ins.height,
         query: ins.query ?? { measure: "count" as const },
         projectId: ins.projectId ?? projectId,
       })),
@@ -241,6 +242,23 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           ? { ...ins, span: (SPAN_CYCLE[ins.span] ?? 2) as 1 | 2 | 3 | 4 }
           : ins,
       );
+      persistLayout(updated);
+      return updated;
+    });
+  }
+
+  // After a resize, store the new width (span) + height per insight.
+  function handleResizeStop(newLayout: Layout) {
+    setInsights((prev) => {
+      let changed = false;
+      const updated = prev.map((ins) => {
+        const item = newLayout.find((l) => l.i === ins.id);
+        if (!item) return ins;
+        const span = Math.min(Math.max(item.w, 1), COLS) as 1 | 2 | 3 | 4;
+        if (ins.span !== span || ins.height !== item.h) changed = true;
+        return { ...ins, span, height: item.h };
+      });
+      if (!changed) return prev;
       persistLayout(updated);
       return updated;
     });
@@ -404,27 +422,16 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         <GridLayout
           className="layout"
           width={width}
-          layout={computeLayout(insights, editingId)}
+          layout={computeLayout(insights)}
           gridConfig={{ cols: COLS, rowHeight: ROW_HEIGHT, margin: [16, 16], containerPadding: [0, 0] }}
           dragConfig={{ enabled: !editingId, handle: ".drag-handle" }}
-          resizeConfig={{ enabled: false }}
+          resizeConfig={{ enabled: !editingId, handles: ["se", "e", "s"] }}
           onDragStop={(l: Layout) => handleDragStop(l)}
+          onResizeStop={(l: Layout) => handleResizeStop(l)}
         >
           {insights.map((insight) => (
             <div key={insight.id} data-insight-id={insight.id} className="h-full">
-
-              {editingId === insight.id ? (
-                <div className="h-full overflow-auto">
-                  <InsightConfigurator
-                    initialInsight={insight}
-                    projects={projects}
-                    timeRange={timeRangeMap[timeRange]}
-                    onConfigChange={(config) => handleConfigChange(insight.id, config)}
-                    onDismiss={() => dismissConfigurator(insight.id)}
-                  />
-                </div>
-              ) : (
-                <div className="relative group/insight h-full">
+              <div className="relative group/insight h-full">
                   <div className="insight-card h-full overflow-hidden">
                     <InsightRenderer insight={insight} />
                   </div>
@@ -456,12 +463,34 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                     />
                   </div>
                 </div>
-              )}
             </div>
           ))}
         </GridLayout>
       ) : null}
       </div>
+
+      {/* Configure as a modal overlay — blurs the grid and floats an expanded
+          editor on top, so editing never reflows the dashboard underneath. */}
+      {editingId && (() => {
+        const ins = insights.find((i) => i.id === editingId);
+        if (!ins) return null;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-6"
+            onClick={() => dismissConfigurator(editingId)}
+          >
+            <div className="w-full max-w-2xl my-6" onClick={(e) => e.stopPropagation()}>
+              <InsightConfigurator
+                initialInsight={ins}
+                projects={projects}
+                timeRange={timeRangeMap[timeRange]}
+                onConfigChange={(config) => handleConfigChange(editingId, config)}
+                onDismiss={() => dismissConfigurator(editingId)}
+              />
+            </div>
+          </div>
+        );
+      })()}
 
       {insights.length === 0 && (
         <Onboarding

@@ -113,6 +113,7 @@ export async function loadDashboardData(
         type: layout.type as "funnel",
         title: layout.title,
         span: layout.span,
+      height: layout.height,
         data: funnelData,
         query: layout.query,
         projectId: layout.projectId,
@@ -126,6 +127,7 @@ export async function loadDashboardData(
         type: layout.type as "retention",
         title: layout.title,
         span: layout.span,
+      height: layout.height,
         data: retentionData,
         query: layout.query,
         projectId: layout.projectId,
@@ -138,6 +140,7 @@ export async function loadDashboardData(
       type: layout.type,
       title: layout.title,
       span: layout.span,
+      height: layout.height,
       data: mapQueryResultToInsightData(layout.type, rows),
       query: layout.query,
     };

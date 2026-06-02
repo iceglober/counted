@@ -35,6 +35,8 @@ export type Insight = {
   type: InsightType;
   title: string;
   span: 1 | 2 | 3 | 4;
+  /** Height in grid rows. Undefined falls back to a per-type default. */
+  height?: number;
   data: MetricData | TimeSeriesData | { items: BreakdownItem[] } | FunnelData | RetentionData;
   query?: InsightQuery;
   projectId?: string;
@@ -85,6 +87,8 @@ export type InsightLayout = {
   type: InsightType;
   title: string;
   span: 1 | 2 | 3 | 4;
+  /** Height in grid rows. Undefined falls back to a per-type default. */
+  height?: number;
   query: InsightQuery;
   projectId?: string;
 };
