@@ -34,7 +34,7 @@ export function Retention({ title, data }: { title: string; data: RetentionData 
             </tr>
           </thead>
           <tbody>
-            {data.cohorts.map((cohort) => (
+            {data.cohorts.map((cohort, ri) => (
               <tr key={cohort.label}>
                 <td className="text-text-primary pr-3 py-1 whitespace-nowrap">{cohort.label}</td>
                 <td className="text-text-secondary tabular-nums text-right pr-3 py-1">{cohort.size}</td>
@@ -45,7 +45,10 @@ export function Retention({ title, data }: { title: string; data: RetentionData 
                   }
                   return (
                     <td key={i} className="px-1 py-1">
-                      <div className={`rounded px-2 py-1 text-center tabular-nums ${cellColor(pct)} ${pct > 0 ? "text-text-primary" : "text-text-tertiary"}`}>
+                      <div
+                        className={`rounded px-2 py-1 text-center tabular-nums animate-grow-cell ${cellColor(pct)} ${pct > 0 ? "text-text-primary" : "text-text-tertiary"}`}
+                        style={{ animationDelay: `${(ri + i) * 35}ms` }}
+                      >
                         {pct}%
                       </div>
                     </td>

@@ -41,10 +41,10 @@ export function Funnel({ title, steps }: { title: string; steps: FunnelStep[] })
                   <span className="text-text-secondary tabular-nums text-xs font-medium">{fmt(step.value)}</span>
                 </div>
               </div>
-              <div className="h-6 bg-surface-2 rounded overflow-hidden">
+              <div className="h-7 bg-surface-2 rounded-md overflow-hidden">
                 <div
-                  className="h-full bg-accent/40 rounded transition-all duration-500"
-                  style={{ width: `${widthPct}%` }}
+                  className="h-full origin-left rounded-md bg-gradient-to-r from-accent/35 to-accent/75 animate-grow-x"
+                  style={{ width: `${widthPct}%`, animationDelay: `${i * 70}ms` }}
                 />
               </div>
             </div>

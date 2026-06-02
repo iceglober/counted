@@ -98,7 +98,8 @@ export function AreaChart({ title, data }: { title: string; data: TimeSeriesData
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.32" />
+            <stop offset="55%" stopColor="var(--color-accent)" stopOpacity="0.08" />
             <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
           </linearGradient>
         </defs>
@@ -127,8 +128,18 @@ export function AreaChart({ title, data }: { title: string; data: TimeSeriesData
           </g>
         ))}
 
-        <path d={fillPath} fill={`url(#${gradientId})`} />
-        <path d={linePath} fill="none" stroke="var(--color-accent)" strokeWidth="2" />
+        <path d={fillPath} fill={`url(#${gradientId})`} className="animate-fade" />
+        <path
+          d={linePath}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          pathLength={1}
+          className="animate-draw"
+          style={{ strokeDasharray: 1 }}
+        />
 
         {/* Hover targets */}
         {points.map((p, i) => (
@@ -157,9 +168,12 @@ export function AreaChart({ title, data }: { title: string; data: TimeSeriesData
               opacity="0.4"
             />
 
-            {/* Dot on the line */}
-            <circle cx={points[hoverIndex].x} cy={points[hoverIndex].y} r="3.5" fill="var(--color-accent)" />
-            <circle cx={points[hoverIndex].x} cy={points[hoverIndex].y} r="1.5" fill="var(--color-surface-1)" />
+            {/* Dot on the line — soft halo + pop on appear */}
+            <g style={{ transformBox: "fill-box", transformOrigin: "center" }} className="animate-grow-cell">
+              <circle cx={points[hoverIndex].x} cy={points[hoverIndex].y} r="8" fill="var(--color-accent)" opacity="0.16" />
+              <circle cx={points[hoverIndex].x} cy={points[hoverIndex].y} r="3.5" fill="var(--color-accent)" />
+              <circle cx={points[hoverIndex].x} cy={points[hoverIndex].y} r="1.5" fill="var(--color-surface-1)" />
+            </g>
 
             {/* Value — flip sides near the right edge */}
             {(() => {

@@ -25,7 +25,7 @@ export function Breakdown({ title, items = [] }: { title: string; items: Breakdo
         <div className="text-sm font-semibold tabular-nums">{fmt(total)}</div>
       </div>
       <div className="space-y-2.5">
-        {items.map((item) => {
+        {items.map((item, i) => {
           const pct = total > 0 ? (item.value / total) * 100 : 0;
           const barPct = max > 0 ? (item.value / max) * 100 : 0;
           return (
@@ -37,10 +37,10 @@ export function Breakdown({ title, items = [] }: { title: string; items: Breakdo
                   <span className="text-text-secondary tabular-nums text-xs font-medium">{fmt(item.value)}</span>
                 </div>
               </div>
-              <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
+              <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-accent/60 rounded-full group-hover:bg-accent/80 transition-colors"
-                  style={{ width: `${barPct}%` }}
+                  className="h-full origin-left rounded-full bg-gradient-to-r from-accent/45 to-accent transition-[filter] duration-200 animate-grow-x group-hover:brightness-110"
+                  style={{ width: `${barPct}%`, animationDelay: `${i * 55}ms` }}
                 />
               </div>
             </div>

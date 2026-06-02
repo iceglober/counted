@@ -23,6 +23,33 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster, toast } from "@/components/ui/sonner";
+import { MetricCard } from "@/components/dashboard/metric-card";
+import { AreaChart } from "@/components/dashboard/area-chart";
+import { Breakdown } from "@/components/dashboard/breakdown";
+import { Funnel } from "@/components/dashboard/funnel";
+import { Retention } from "@/components/dashboard/retention";
+
+const TS = { labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], values: [120, 180, 150, 240, 310, 270, 360] };
+const METRIC = { value: "12,481", trend: 12, sparkline: [10, 14, 12, 18, 16, 22, 28] };
+const BARS = [
+  { label: "chrome", value: 820 },
+  { label: "safari", value: 410 },
+  { label: "firefox", value: 180 },
+  { label: "edge", value: 90 },
+];
+const FUNNEL = [
+  { label: "page_view", value: 1000, rate: 100 },
+  { label: "signup", value: 420, rate: 42 },
+  { label: "activate", value: 184, rate: 44 },
+];
+const RET = {
+  periods: ["W0", "W1", "W2", "W3"],
+  cohorts: [
+    { label: "Jan 1", size: 320, retention: [100, 62, 48, 40] },
+    { label: "Jan 8", size: 280, retention: [100, 55, 41] },
+    { label: "Jan 15", size: 410, retention: [100, 68] },
+  ],
+};
 import { Plus, ArrowRight, Trash2, Pencil, Scaling, Share2, GripVertical, Star, Settings, Check } from "lucide-react";
 
 const ACCENTS = [
@@ -356,6 +383,20 @@ export function Gallery() {
             <Button size="sm" variant="secondary" onClick={() => toast.error("Couldn't save — try again")}>Error</Button>
           </Row>
         </Section>
+      </div>
+
+      <div className="px-12 pb-20 max-w-5xl">
+        <h2 className="font-display text-lg tracking-tight">Charts</h2>
+        <p className="text-xs text-text-tertiary mt-0.5 mb-5">
+          Joyful by default — lines draw in, bars grow from the left, the metric counts up, retention cells pop as a wave. Reload to replay.
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <MetricCard title="Total events" data={METRIC} />
+          <div className="h-52"><AreaChart title="Events over time" data={TS} /></div>
+          <Breakdown title="Top browsers" items={BARS} />
+          <Funnel title="Activation funnel" steps={FUNNEL} />
+          <div className="md:col-span-2"><Retention title="Weekly retention" data={RET} /></div>
+        </div>
       </div>
       <Toaster />
     </div>
