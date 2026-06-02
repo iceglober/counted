@@ -222,7 +222,10 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           ...ins,
           ...config,
           data: typeChanged ? defaultData : ins.data,
-          span: config.type === "metric" ? 1 as const : (config.span ?? ins.span),
+          // Preserve the user's width/height — the configurator always reports a
+          // default span, which would otherwise reset a resized card.
+          span: config.type === "metric" ? 1 as const : ins.span,
+          height: ins.height,
         };
       });
       persistLayout(updated);
@@ -247,33 +250,28 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     });
   }
 
-  // After a resize, store the new width (span) + height per insight.
-  function handleResizeStop(newLayout: Layout) {
-    setInsights((prev) => {
-      let changed = false;
-      const updated = prev.map((ins) => {
-        const item = newLayout.find((l) => l.i === ins.id);
-        if (!item) return ins;
-        const span = Math.min(Math.max(item.w, 1), COLS) as 1 | 2 | 3 | 4;
-        if (ins.span !== span || ins.height !== item.h) changed = true;
-        return { ...ins, span, height: item.h };
-      });
-      if (!changed) return prev;
-      persistLayout(updated);
-      return updated;
-    });
-  }
-
-  // After a drag, re-derive the insight order from the new grid positions
-  // (top-to-bottom, left-to-right) and persist.
-  function handleDragStop(newLayout: Layout) {
+  // After a drag: re-derive order from the new grid positions, and auto-size the
+  // dragged card by the column it was dropped in — span fills from there to the
+  // right edge (drop at col 0 -> full width, col 2 -> 1 column).
+  function handleDragStop(newLayout: Layout, dropped: LayoutItem | null) {
     const order = [...newLayout].sort((a, b) => a.y - b.y || a.x - b.x).map((l) => l.i);
     setInsights((prev) => {
       const byId = new Map(prev.map((i) => [i.id, i]));
-      const reordered = order.map((id) => byId.get(id)).filter(Boolean) as Insight[];
+      let reordered = order.map((id) => byId.get(id)).filter(Boolean) as Insight[];
       if (reordered.length !== prev.length) return prev;
-      const changed = reordered.some((ins, i) => ins.id !== prev[i].id);
-      if (!changed) return prev;
+
+      let sizeChanged = false;
+      if (dropped) {
+        const span = Math.min(Math.max(COLS - dropped.x, 1), COLS) as 1 | 2 | 3 | 4;
+        reordered = reordered.map((ins) => {
+          if (ins.id !== dropped.i || ins.span === span) return ins;
+          sizeChanged = true;
+          return { ...ins, span };
+        });
+      }
+
+      const orderChanged = reordered.some((ins, i) => ins.id !== prev[i].id);
+      if (!orderChanged && !sizeChanged) return prev;
       persistLayout(reordered);
       return reordered;
     });
@@ -425,9 +423,8 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           layout={computeLayout(insights)}
           gridConfig={{ cols: COLS, rowHeight: ROW_HEIGHT, margin: [16, 16], containerPadding: [0, 0] }}
           dragConfig={{ enabled: !editingId, handle: ".drag-handle" }}
-          resizeConfig={{ enabled: !editingId, handles: ["se", "e", "s"] }}
-          onDragStop={(l: Layout) => handleDragStop(l)}
-          onResizeStop={(l: Layout) => handleResizeStop(l)}
+          resizeConfig={{ enabled: false }}
+          onDragStop={(l: Layout, _old: LayoutItem | null, dropped: LayoutItem | null) => handleDragStop(l, dropped)}
         >
           {insights.map((insight) => (
             <div key={insight.id} data-insight-id={insight.id} className="h-full">
