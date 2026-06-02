@@ -1,5 +1,8 @@
 [package]
-name = "counted"
+# crates.io has no scopes and "counted" is taken by an unrelated crate, so the
+# package publishes as "counted-sdk". The library keeps the name "counted" (see
+# [lib] below) so consumers still write `use counted::Analytics`.
+name = "counted-sdk"
 version = "0.1.1"
 edition = "2021"
 description = "Privacy-first analytics SDK for Rust. No cookies, no fingerprinting, no PII."
@@ -7,6 +10,9 @@ license = "MIT"
 repository = "https://github.com/iceglober/counted"
 keywords = ["analytics", "privacy", "tracking", "events"]
 categories = ["development-tools", "web-programming"]
+
+[lib]
+name = "counted"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

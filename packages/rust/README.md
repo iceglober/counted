@@ -4,9 +4,11 @@ Privacy-first analytics SDK for Rust. No cookies, no fingerprinting, no PII.
 
 ## Install
 
+The crate is published as `counted-sdk`; the library is imported as `counted`.
+
 ```toml
 [dependencies]
-counted = "0.1"
+counted-sdk = "0.1"
 ```
 
 ## Quick start
