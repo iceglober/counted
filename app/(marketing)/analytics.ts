@@ -9,9 +9,10 @@ let tried = false;
 function client(): Analytics | null {
   if (tried) return instance;
   tried = true;
-  const key = process.env.NEXT_PUBLIC_COUNTED_KEY;
+  const key = process.env.NEXT_PUBLIC_COUNTED_PROJECT_KEY;
+  const host = process.env.NEXT_PUBLIC_COUNTED_HOST ?? "https://app.counted.dev";
   if (key) {
-    instance = new Analytics({ projectKey: key, host: "https://app.counted.dev" });
+    instance = new Analytics({ projectKey: key, host });
   }
   return instance;
 }
