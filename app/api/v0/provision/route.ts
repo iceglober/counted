@@ -39,7 +39,15 @@ export async function POST(request: NextRequest) {
     })
     .returning();
 
-  const origin = request.nextUrl.origin;
+  // Behind a proxy (Railway), request.nextUrl.origin is the internal bind
+  // address (0.0.0.0:8080). Build the public origin from the forwarded headers.
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  const host =
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    request.nextUrl.host;
+  const origin = `${proto}://${host}`;
+
   return NextResponse.json({
     clientKey: project.clientKey,
     claimUrl: `${origin}/claim/${claimToken}`,
