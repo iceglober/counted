@@ -5,7 +5,7 @@
 import { AGENT_PROMPT } from "@/lib/agent-prompt";
 
 const API = "https://app.counted.dev";
-const SITE = "https://counted.dev";
+const SITE = "https://app.counted.dev";
 
 const CONTENT = `# Counted — privacy-first product analytics for AI agents
 
