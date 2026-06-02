@@ -16,38 +16,46 @@ import { Pool } from "pg";
 import { readFileSync, readdirSync } from "node:fs";
 
 const dir = "drizzle";
-const file = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort().pop();
-if (!file) {
-  console.log("[migrate] no migration file found, skipping");
+// Apply EVERY migration in order (0000, 0001, …), not just the newest. The
+// runner is resilient: it runs each statement on its own and continues past
+// failures (e.g. an already-applied ADD COLUMN on re-run), so it heals a fresh
+// DB from scratch and a partially-migrated one forward.
+const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+if (files.length === 0) {
+  console.log("[migrate] no migration files found, skipping");
   process.exit(0);
 }
-
-const sql = readFileSync(`${dir}/${file}`, "utf8");
-const stmts = sql
-  .split("--> statement-breakpoint")
-  .map((s) => s.replace(/^\s*--.*$/gm, "").trim())
-  .filter(Boolean);
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 15_000 });
 
 let ok = 0;
-const failures: { i: number; head: string; error: string }[] = [];
+let total = 0;
+const failures: { file: string; i: number; head: string; error: string }[] = [];
 
-console.log(`[migrate] applying ${stmts.length} statements from ${file}`);
-for (let i = 0; i < stmts.length; i++) {
-  const s = stmts[i];
-  try {
-    await pool.query(s);
-    ok++;
-  } catch (err) {
-    const e = err as { code?: string; message?: string; detail?: string };
-    failures.push({ i, head: s.split("\n")[0].slice(0, 120), error: `${e.code ?? ""} ${e.message ?? err}`.trim() });
+for (const file of files) {
+  const sql = readFileSync(`${dir}/${file}`, "utf8");
+  const stmts = sql
+    .split("--> statement-breakpoint")
+    .map((s) => s.replace(/^\s*--.*$/gm, "").trim())
+    .filter(Boolean);
+
+  console.log(`[migrate] applying ${stmts.length} statements from ${file}`);
+  for (let i = 0; i < stmts.length; i++) {
+    const s = stmts[i];
+    total++;
+    try {
+      await pool.query(s);
+      ok++;
+    } catch (err) {
+      const e = err as { code?: string; message?: string; detail?: string };
+      failures.push({ file, i, head: s.split("\n")[0].slice(0, 120), error: `${e.code ?? ""} ${e.message ?? err}`.trim() });
+    }
   }
 }
 
-console.log(`[migrate] done: ${ok}/${stmts.length} ok, ${failures.length} failed`);
+console.log(`[migrate] done: ${ok}/${total} ok, ${failures.length} failed`);
 for (const f of failures) {
-  console.log(`[migrate] ✗ stmt ${f.i}: ${f.head}`);
+  console.log(`[migrate] ✗ ${f.file} stmt ${f.i}: ${f.head}`);
   console.log(`[migrate]   ${f.error}`);
 }
 
