@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AGENT_PROMPT } from "@/lib/agent-prompt";
+import { track } from "./analytics";
 
 export function AgentPrompt() {
   const [copied, setCopied] = useState(false);
@@ -28,6 +29,7 @@ export function AgentPrompt() {
           <button
             onClick={() => {
               navigator.clipboard.writeText(AGENT_PROMPT);
+              track("cta_activate", { variant: "agent", action: "copy_prompt" });
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
