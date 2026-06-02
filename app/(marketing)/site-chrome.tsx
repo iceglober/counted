@@ -27,16 +27,22 @@ export function SiteNav() {
 export function SiteFooter() {
   return (
     <footer className="px-6 py-8 border-t border-border mt-8">
-      <div className="max-w-4xl mx-auto flex items-center justify-between text-xs text-text-tertiary">
-        <div className="flex items-center gap-2">
-          <CountedLogo className="w-3.5 h-3.5" />
-          <span>Counted</span>
+      <div className="max-w-4xl mx-auto flex flex-col gap-4 text-xs text-text-tertiary">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CountedLogo className="w-3.5 h-3.5" />
+            <span>Counted</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/blog" className="hover:text-text-secondary transition-colors">Blog</Link>
+            <Link href="/pricing" className="hover:text-text-secondary transition-colors">Pricing</Link>
+            <Link href="/vs/aptabase" className="hover:text-text-secondary transition-colors">vs Aptabase</Link>
+            <a href={GITHUB} className="hover:text-text-secondary transition-colors">GitHub</a>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/blog" className="hover:text-text-secondary transition-colors">Blog</Link>
-          <Link href="/pricing" className="hover:text-text-secondary transition-colors">Pricing</Link>
-          <Link href="/vs/aptabase" className="hover:text-text-secondary transition-colors">vs Aptabase</Link>
-          <a href={GITHUB} className="hover:text-text-secondary transition-colors">GitHub</a>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-text-tertiary/80">
+          <span>No cookies. No fingerprinting. No PII.</span>
+          <span>© {new Date().getFullYear()} Iceglobe Enterprises LLC</span>
         </div>
       </div>
     </footer>

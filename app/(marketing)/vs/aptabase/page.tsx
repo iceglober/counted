@@ -26,9 +26,10 @@ const ROWS: Row[] = [
   { label: "Composable dashboards (custom insights)", counted: true, aptabase: false },
   { label: "Funnels & retention", counted: true, aptabase: false },
   { label: "Agent-native SDKs (Claude Code, OpenCode, Cursor)", counted: true, aptabase: false },
-  { label: "Polyglot SDKs", counted: "JS, React, Python, Go, Rust", aptabase: "Swift, Kotlin, JS, others" },
+  { label: "Web & backend SDKs", counted: "JS, React, Python, Go, Rust", aptabase: "JS, others" },
+  { label: "Mobile SDKs (Swift, Kotlin)", counted: "Coming Q3 2026", aptabase: true },
   { label: "SDK size (web)", counted: "Under 3KB", aptabase: "~5KB" },
-  { label: "Self-host", counted: "Docker one-liner", aptabase: "Self-host (manual)" },
+  { label: "Self-host (Docker)", counted: "One-liner", aptabase: true },
   { label: "Free tier events / month", counted: "100K", aptabase: "20K" },
   { label: "Migration CLI", counted: "@counted/migrate", aptabase: false },
 ];

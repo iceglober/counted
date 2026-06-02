@@ -21,11 +21,18 @@ export default function Post() {
         live dashboard, in about five minutes.
       </Lead>
 
-      <Step n={1} title="Create a project and copy your key">
+      <Step n={1} title="Get a project key">
         <P>
-          Sign in, create a project, and copy its <strong>client key</strong> — it starts with{" "}
-          <code className="font-mono text-text-primary">ck_</code>. Client keys are write-only and
-          safe to ship in browser or app code; they can send events but can&apos;t read your data.
+          Fastest path — no signup needed. Mint a write-only key straight from your terminal:
+        </P>
+        <div className="mt-3">
+          <CodeBlock>{`curl -X POST https://app.counted.dev/api/v0/provision`}</CodeBlock>
+        </div>
+        <P>
+          It returns a client key (<code className="font-mono text-text-primary">ck_…</code>) and a
+          claim link to keep the project. Already have an account? Create a project in the dashboard
+          and copy its key instead. Either way, client keys are write-only — safe to ship in browser
+          or app code; they send events but can&apos;t read your data.
         </P>
       </Step>
 

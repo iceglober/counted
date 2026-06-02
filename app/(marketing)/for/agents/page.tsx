@@ -38,8 +38,8 @@ export default function ForAgentsPage() {
           <span className="text-accent">actually do</span>
         </h1>
         <p className="mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed">
-          Counted is the first analytics platform with native SDKs for AI coding tools.
-          Capture tool calls, file edits, commands, and outcomes in a pre-built eval
+          Counted is built for AI coding tools, with native SDKs no other analytics platform
+          ships. Capture tool calls, file edits, commands, and outcomes in a pre-built eval
           dashboard — privacy-safe, no PII, no code contents.
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
