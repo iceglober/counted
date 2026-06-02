@@ -74,6 +74,24 @@ export function getAttribution(): Attribution {
   }
 }
 
+// Append first-touch attribution to an outbound link as explicit URL params.
+// Used on the login CTA so attribution survives the cross-origin hop to the app
+// (counted.dev → app.counted.dev), where localStorage isn't shared. URL params,
+// never a cross-site cookie — per the privacy-first philosophy (AGENTS.md).
+export function appendAttribution(href: string): string {
+  if (typeof window === "undefined") return href;
+  try {
+    const attr = getAttribution();
+    if (Object.keys(attr).length === 0) return href;
+    const [path, existing] = href.split("?");
+    const qs = new URLSearchParams(existing ?? "");
+    for (const [k, v] of Object.entries(attr)) qs.set(k, String(v));
+    return `${path}?${qs.toString()}`;
+  } catch {
+    return href;
+  }
+}
+
 function client(): Analytics | null {
   if (tried) return instance;
   tried = true;

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { track } from "./analytics";
+import { track, appendAttribution } from "./analytics";
 
 // Client-side tracking primitives for the marketing pages. Attribution (UTM +
 // referrer) is attached to every event automatically by analytics.ts, so these
@@ -33,13 +33,21 @@ export function TrackedCTA({
   className?: string;
   children: React.ReactNode;
 }) {
+  // For app-bound links (e.g. /login), forward first-touch attribution as URL
+  // params after mount so it survives the cross-origin hop. SSR renders the bare
+  // href (no hydration mismatch); the effect enhances it client-side.
+  const [resolved, setResolved] = useState(href);
+  useEffect(() => {
+    if (href.startsWith("/login")) setResolved(appendAttribution(href));
+  }, [href]);
+
   const base =
     variant === "primary"
       ? "bg-accent text-surface-0 hover:bg-accent-hover"
       : "border border-border text-text-secondary hover:border-border-hover hover:text-text-primary";
   return (
     <Link
-      href={href}
+      href={resolved}
       onClick={() => track("cta_click", { location, label, variant })}
       className={
         className ??
