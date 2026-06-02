@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultHost          = "https://counted.dev"
+	defaultHost          = "https://app.counted.dev"
 	defaultFlushInterval = 30 * time.Second
 	defaultMaxBatchSize  = 50
 	defaultSessionTimeout = 30 * time.Minute

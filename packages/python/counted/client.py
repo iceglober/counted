@@ -10,7 +10,7 @@ import uuid
 from typing import Any
 
 SDK_VERSION = "counted-python/0.1.0"
-DEFAULT_HOST = "https://counted.dev"
+DEFAULT_HOST = "https://app.counted.dev"
 DEFAULT_FLUSH_INTERVAL = 30.0
 DEFAULT_MAX_BATCH_SIZE = 50
 

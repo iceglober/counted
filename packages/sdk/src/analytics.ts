@@ -3,7 +3,7 @@ import { getSessionId, configureSession } from "./session";
 import { detectSystemProps } from "./system-props";
 import { sendBeacon, sendFetch } from "./transport";
 
-const DEFAULT_HOST = "https://counted.dev";
+const DEFAULT_HOST = "https://app.counted.dev";
 const DEFAULT_FLUSH_INTERVAL = 30_000;
 const DEFAULT_MAX_BATCH_SIZE = 50;
 

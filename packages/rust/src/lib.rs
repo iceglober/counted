@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-const DEFAULT_HOST: &str = "https://counted.dev";
+const DEFAULT_HOST: &str = "https://app.counted.dev";
 const DEFAULT_FLUSH_INTERVAL: Duration = Duration::from_secs(30);
 const DEFAULT_MAX_BATCH_SIZE: usize = 50;
 const DEFAULT_SESSION_TIMEOUT: Duration = Duration::from_secs(1800);
