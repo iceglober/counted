@@ -2,6 +2,8 @@
 // convention). Tells a coding agent how to instrument a codebase with Counted
 // end to end. Kept terse and copy-pasteable on purpose.
 
+import { AGENT_PROMPT } from "@/lib/agent-prompt";
+
 const API = "https://app.counted.dev";
 const SITE = "https://counted.dev";
 
@@ -72,14 +74,7 @@ POST ${API}/api/v0/event
 OpenAPI: ${API}/api/v0/openapi.json
 
 ## Copy-paste prompt (give this to your agent)
-Add privacy-first product analytics to this project using Counted (${SITE}).
-1. Explore the codebase and understand what the product does and who its users are.
-   Identify the 5-15 highest-signal actions worth measuring.
-2. Get a client key: POST ${API}/api/v0/provision (no signup). Store it in COUNTED_KEY.
-3. Install the Counted SDK for this stack and call track("<event>", { ...safeProps })
-   at each action. Keep props non-PII. Never block or break a user flow.
-4. Give me the claimUrl from step 2 so I can open my live dashboard.
-5. Summarize exactly which events you added and where, so I can verify them.
+${AGENT_PROMPT}
 
 ## Verify
 Run the app. Events appear on the dashboard within ~10 seconds.
