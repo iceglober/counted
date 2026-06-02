@@ -44,6 +44,6 @@
   "exclude": [
     "node_modules",
     "packages/**",
-    "tests/conformance/**"
+    "tests/**"
   ]
 }

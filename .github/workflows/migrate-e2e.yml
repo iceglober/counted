@@ -1,0 +1,32 @@
+name: Migrate E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: migrate-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrate-e2e:
+    name: Aptabase migration (Docker Postgres + CSV)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The test manages its own Aptabase-shaped Postgres container; Docker is
+      # preinstalled on ubuntu-latest runners.
+      - name: Run migration E2E
+        run: bun test tests/migrate/migrate.e2e.test.ts
