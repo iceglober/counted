@@ -27,8 +27,8 @@ export default function Home() {
           <span className="text-accent">for apps that respect users</span>
         </h1>
         <p className="mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed">
-          Lightweight event tracking with composable dashboards.
-          No cookies. No fingerprinting. No PII. Under 3KB.
+          Lightweight, no-cookie event tracking with composable dashboards — under 3KB,
+          no PII. Or skip setup entirely and hand the prompt below to your coding agent.
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
           <Link
@@ -47,24 +47,23 @@ export default function Home() {
         <p className="mt-4 text-xs text-text-tertiary">100K events/month free. No credit card required.</p>
       </section>
 
-      {/* Code snippet */}
+      {/* Give this to your agent — the differentiated, agent-native path (dominant) */}
+      <AgentPrompt />
+
+      {/* Or wire it up yourself — secondary, deliberately muted */}
       <section className="px-6 max-w-2xl mx-auto pb-20">
+        <p className="text-center text-xs text-text-tertiary mb-3">Or wire it up yourself in 3 lines</p>
         <pre className="bg-surface-1 border border-border rounded-lg px-6 py-5 text-sm font-mono text-text-secondary overflow-x-auto">
-          <span className="text-text-tertiary">{"// 3 lines to start tracking"}</span>
-          {"\n"}
           <span className="text-accent">import</span>{" { Analytics } "}
           <span className="text-accent">from</span>
           {" \"@counted/sdk\";\n"}
           <span className="text-accent">const</span>
           {" analytics = "}
           <span className="text-accent">new</span>
-          {" Analytics({ projectKey: \"A-US-...\" });\n"}
+          {" Analytics({ projectKey: \"ck_...\" });\n"}
           {"analytics.track(\"page_view\", { path: \"/\" });"}
         </pre>
       </section>
-
-      {/* Give this to your agent */}
-      <AgentPrompt />
 
       {/* Value props */}
       <section className="px-6 py-16 border-t border-border">
