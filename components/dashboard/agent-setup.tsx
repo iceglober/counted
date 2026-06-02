@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Copy, X } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 type Props = {
   projectKey: string;
@@ -41,7 +41,6 @@ function Snippet({ text }: { text: string }) {
 export function AgentSetup({ projectKey, projectId }: Props) {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("claude");
   const [eventCount, setEventCount] = useState(0);
-  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     if (eventCount > 0) return;
@@ -67,21 +66,9 @@ export function AgentSetup({ projectKey, projectId }: Props) {
     return () => clearInterval(id);
   }, [projectId, eventCount]);
 
-  if (dismissed) return null;
-
-  if (eventCount > 0) {
-    return (
-      <div className="mb-6 flex items-center justify-between gap-3 px-4 py-2.5 bg-accent/10 border border-accent/20 rounded-lg">
-        <div className="flex items-center gap-2 text-sm text-accent">
-          <Check className="w-4 h-4" />
-          Agent connected — {eventCount} event{eventCount !== 1 ? "s" : ""} in the last 24h.
-        </div>
-        <button onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-text-tertiary hover:text-text-primary transition-colors">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-    );
-  }
+  // Once events arrive the setup card just disappears — the live "N events · 24h"
+  // count next to the dashboard title is the ongoing connected indicator.
+  if (eventCount > 0) return null;
 
   return (
     <div className="mb-6 bg-surface-1 border border-border rounded-lg p-5">

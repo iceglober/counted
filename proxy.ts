@@ -13,12 +13,21 @@ const APP_HOST = "app.counted.dev";
 
 const MARKETING_PATHS = new Set(["/", "/pricing", "/sitemap.xml", "/robots.txt"]);
 
+// Public, browser-callable API paths. They must be served same-origin with CORS
+// from the marketing host too — otherwise the marketing site's fetch gets
+// redirected to the app host and the cross-origin POST is blocked (no ACAO).
+const PUBLIC_API_PATHS = new Set([
+  "/api/v0/event",
+  "/api/v0/events",
+  "/api/v0/provision",
+]);
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
 
-  // CORS for event ingestion
-  if (pathname === "/api/v0/event" || pathname === "/api/v0/events") {
+  // CORS for public ingestion / provisioning endpoints.
+  if (PUBLIC_API_PATHS.has(pathname)) {
     if (request.method === "OPTIONS") {
       return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
     }

@@ -10,7 +10,7 @@ import { MeasurePicker } from "./measure-picker";
 import { EventFilter } from "./event-filter";
 import { PropertyFilters } from "./property-filters";
 import { TimeBucketPicker } from "./time-bucket-picker";
-import { X } from "lucide-react";
+import { X, Pencil } from "lucide-react";
 import { LivePreview } from "./live-preview";
 
 const SYSTEM_GROUP_BY = [
@@ -220,13 +220,6 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
     }
 
     const timer = setTimeout(async () => {
-      // Funnel preview: show step count summary, skip live query
-      if (state.type === "funnel") {
-        setPreviewData({ steps: state.funnelSteps.map((s, i) => ({ label: s, value: 0, rate: i === 0 ? 100 : 0 })) });
-        setPreviewLoading(false);
-        return;
-      }
-
       // Retention preview: placeholder, skip live query
       if (state.type === "retention") {
         setPreviewData({ cohorts: [], periods: [] });
@@ -251,8 +244,13 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
 
         if (!res.ok) throw new Error("Query failed");
 
-        const { data: rows, meta } = await res.json();
-        setPreviewData(mapQueryResultToInsightData(state.type as "metric" | "timeseries" | "breakdown", rows));
+        const { data, meta } = await res.json();
+        // Funnels come back already shaped ({ steps }); everything else is rows.
+        setPreviewData(
+          state.type === "funnel"
+            ? data
+            : mapQueryResultToInsightData(state.type as "metric" | "timeseries" | "breakdown", data),
+        );
         setPreviewMeta(meta);
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") return;
@@ -264,7 +262,7 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [state.type, state.projectId, state.measureType, state.measureProperty, state.eventFilter, state.groupByKey, state.timeBucket, state.limit, state.propFilters, isIncomplete, timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.type, state.projectId, state.measureType, state.measureProperty, state.eventFilter, state.groupByKey, state.timeBucket, state.limit, state.propFilters, state.funnelSteps, isIncomplete, timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-persist (800ms debounce)
   useEffect(() => {
@@ -306,14 +304,17 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
     <div className="w-full bg-surface-1 border border-accent/30 rounded-lg overflow-hidden">
       {/* Config controls */}
       <div className="p-5 space-y-3">
-        {/* Title */}
-        <input
-          type="text"
-          value={state.title}
-          onChange={(e) => set("title", e.target.value)}
-          placeholder={autoTitle(state)}
-          className="w-full text-sm font-medium bg-transparent border-b border-border pb-1 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent/60"
-        />
+        {/* Title — labelled + pencil so it reads as an editable field. */}
+        <label className="group flex items-center gap-2 rounded-md border border-border bg-surface-2/60 px-2.5 py-1.5 focus-within:border-accent/60 focus-within:bg-surface-2 transition-colors cursor-text">
+          <Pencil className="w-3.5 h-3.5 text-text-tertiary group-focus-within:text-accent shrink-0" />
+          <input
+            type="text"
+            value={state.title}
+            onChange={(e) => set("title", e.target.value)}
+            placeholder={`${autoTitle(state)}  —  click to rename`}
+            className="w-full text-sm font-medium bg-transparent text-text-primary placeholder:text-text-tertiary placeholder:font-normal focus:outline-none"
+          />
+        </label>
 
         {/* Project */}
         {projects.length > 1 && (

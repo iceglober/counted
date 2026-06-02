@@ -8,19 +8,22 @@ import { Breakdown } from "./breakdown";
 import { Funnel } from "./funnel";
 import { Retention } from "./retention";
 import { InsightConfigurator } from "./configurator";
-import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Maximize2, Minimize2, GripVertical, Share2, Link2 } from "lucide-react";
+import { ChevronDown, Clock, Plus, X, Pencil, Settings, Trash2, Star, Scaling, GripVertical, Share2, Link2, Check, Rows3 } from "lucide-react";
 import { useProjects } from "./dashboard-shell";
 import { EditableText } from "@/components/editable-text";
 import { ActionButton } from "@/components/action-button";
 import { Onboarding } from "./onboarding";
 import { AgentSetup } from "./agent-setup";
+import { EventPulse } from "./event-pulse";
 import GridLayout, { useContainerWidth, type Layout, type LayoutItem } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 
 // Grid cells are fixed-height (react-grid-layout requires explicit h). Heights
 // are per insight type; the one being configured gets extra room.
 const TYPE_HEIGHT: Record<string, number> = { metric: 2, timeseries: 4, breakdown: 4, funnel: 4, retention: 4 };
+const COMPACT_TYPE_HEIGHT: Record<string, number> = { metric: 2, timeseries: 3, breakdown: 3, funnel: 3, retention: 3 };
 const ROW_HEIGHT = 72;
+const COMPACT_ROW_HEIGHT = 56;
 const COLS = 3;
 const MIN_H = 2;
 
@@ -52,8 +55,11 @@ function InsightRenderer({ insight }: { insight: Insight }) {
   }
 }
 
-const SPAN_CYCLE: Record<number, number> = { 1: 2, 2: 3, 3: 1 };
-const SPAN_LABELS: Record<number, string> = { 1: "Small", 2: "Medium", 3: "Full width" };
+const SIZE_OPTIONS: { span: 1 | 2 | 3; label: string }[] = [
+  { span: 1, label: "Small" },
+  { span: 2, label: "Medium" },
+  { span: 3, label: "Full width" },
+];
 
 const timeRanges = ["Last 24 hours", "Last 7 days", "Last 30 days", "Last 90 days"];
 
@@ -64,19 +70,26 @@ const timeRangeMap: Record<string, TimeRange> = {
   "Last 90 days": { type: "relative", value: 90, unit: "days" },
 };
 
-// Pack insights left-to-right into COLS columns (wrapping), using each card's
-// span as width. react-grid-layout then keeps everything inside the grid and
-// compacts vertically — cards can't warp or escape the right edge.
-function computeLayout(insights: Insight[]): LayoutItem[] {
+// Skyline pack: drop each card (in order) into the lowest left-aligned slot wide
+// enough for its span — so cards float left and fill vertical gaps a short card
+// would otherwise leave under a tall neighbour. Ties go to the leftmost column,
+// which keeps reading order and the left-aligned feel.
+function computeLayout(insights: Insight[], compact: boolean): LayoutItem[] {
+  const heights = compact ? COMPACT_TYPE_HEIGHT : TYPE_HEIGHT;
+  const colBottom = new Array(COLS).fill(0); // next free y per column
   const layout: LayoutItem[] = [];
-  let x = 0, y = 0, rowMax = 0;
   for (const ins of insights) {
     const w = Math.min(ins.span ?? 2, COLS);
-    const h = ins.height ?? TYPE_HEIGHT[ins.type] ?? 3;
-    if (x + w > COLS) { x = 0; y += rowMax; rowMax = 0; }
-    layout.push({ i: ins.id, x, y, w, h, minH: MIN_H });
-    x += w;
-    rowMax = Math.max(rowMax, h);
+    const h = ins.height ?? heights[ins.type] ?? 3;
+    let bestX = 0;
+    let bestY = Infinity;
+    for (let x = 0; x + w <= COLS; x++) {
+      let y = 0;
+      for (let c = x; c < x + w; c++) y = Math.max(y, colBottom[c]);
+      if (y < bestY) { bestY = y; bestX = x; }
+    }
+    layout.push({ i: ins.id, x: bestX, y: bestY, w, h, minH: MIN_H });
+    for (let c = bestX; c < bestX + w; c++) colBottom[c] = bestY + h;
   }
   return layout;
 }
@@ -89,12 +102,13 @@ type Props = {
   dashboardName?: string;
   isDefault?: boolean;
   shareToken?: string | null;
+  compact?: boolean;
   onDashboardRename?: (name: string) => void;
   onDashboardDelete?: () => void;
   onSetDefault?: () => void;
 };
 
-export function DashboardView({ initialInsights, projectId, projectKey, dashboardId, dashboardName = "Dashboard", isDefault, shareToken: initialShareToken, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
+export function DashboardView({ initialInsights, projectId, projectKey, dashboardId, dashboardName = "Dashboard", isDefault, shareToken: initialShareToken, compact: initialCompact, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
   const [insights, setInsights] = useState(initialInsights);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState(dashboardName);
@@ -105,11 +119,14 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
   const [titleEditing, setTitleEditing] = useState(false);
   const [shareToken, setShareToken] = useState(initialShareToken);
   const [shareCopied, setShareCopied] = useState(false);
+  const [compact, setCompact] = useState(initialCompact ?? false);
+  const [sizeMenuFor, setSizeMenuFor] = useState<string | null>(null);
   const projects = useProjects();
   const { width, containerRef, mounted } = useContainerWidth();
 
   useEffect(() => setInsights(initialInsights), [initialInsights]);
   useEffect(() => setName(dashboardName), [dashboardName]);
+  useEffect(() => setCompact(initialCompact ?? false), [initialCompact]);
 
   async function renameDashboard(newName: string) {
     setName(newName);
@@ -130,9 +147,10 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     }
   }
 
-  const persistLayout = useCallback(async (updated: Insight[]) => {
+  const persistLayout = useCallback(async (updated: Insight[], compactFlag = compact) => {
     if (!dashboardId) return;
     const layout = {
+      compact: compactFlag,
       insights: updated.map((ins) => ({
         id: ins.id,
         type: ins.type,
@@ -148,7 +166,16 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ layout }),
     });
-  }, [dashboardId, projectId]);
+  }, [dashboardId, projectId, compact]);
+
+  function toggleCompact() {
+    setCompact((prev) => {
+      const next = !prev;
+      persistLayout(insights, next);
+      return next;
+    });
+    setMenuOpen(false);
+  }
 
   const refreshInsights = useCallback(async () => {
     const res = await fetch("/api/v0/dashboard-data", {
@@ -238,13 +265,11 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     refreshInsights();
   }
 
-  function resizeInsight(insightId: string) {
+  function setInsightSpan(insightId: string, span: 1 | 2 | 3) {
+    setSizeMenuFor(null);
     setInsights((prev) => {
-      const updated = prev.map((ins) =>
-        ins.id === insightId
-          ? { ...ins, span: (SPAN_CYCLE[ins.span] ?? 2) as 1 | 2 | 3 | 4 }
-          : ins,
-      );
+      if (prev.find((i) => i.id === insightId)?.span === span) return prev;
+      const updated = prev.map((ins) => (ins.id === insightId ? { ...ins, span } : ins));
       persistLayout(updated);
       return updated;
     });
@@ -355,6 +380,14 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                         {shareCopied ? "Copied!" : "Copy share link"}
                       </button>
                     )}
+                    <button
+                      onClick={toggleCompact}
+                      className="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-3 transition-colors flex items-center gap-1.5"
+                    >
+                      <Rows3 className="w-3 h-3" />
+                      <span className="flex-1">Compact layout</span>
+                      {compact && <Check className="w-3 h-3 text-accent" />}
+                    </button>
                     {!isDefault && (
                       <>
                         <button
@@ -378,6 +411,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
               )}
             </div>
           )}
+          {projectId && !titleEditing && <EventPulse projectId={projectId} />}
         </div>
         <div className="flex items-center gap-2">
           {dashboardId && (
@@ -434,8 +468,8 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         <GridLayout
           className="layout"
           width={width}
-          layout={computeLayout(insights)}
-          gridConfig={{ cols: COLS, rowHeight: ROW_HEIGHT, margin: [16, 16], containerPadding: [0, 0] }}
+          layout={computeLayout(insights, compact)}
+          gridConfig={{ cols: COLS, rowHeight: compact ? COMPACT_ROW_HEIGHT : ROW_HEIGHT, margin: compact ? [8, 8] : [16, 16], containerPadding: [0, 0] }}
           dragConfig={{ enabled: !editingId, handle: ".drag-handle" }}
           resizeConfig={{ enabled: false }}
           onDragStop={(l: Layout, _old: LayoutItem | null, dropped: LayoutItem | null, _ph: LayoutItem | null, event: Event) => handleDragStop(l, dropped, event)}
@@ -454,12 +488,35 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                     >
                       <GripVertical className="w-3 h-3" />
                     </button>
-                    <ActionButton
-                      label={SPAN_LABELS[SPAN_CYCLE[insight.span] ?? 2]}
-                      onClick={() => resizeInsight(insight.id)}
-                      icon={insight.span >= 3 ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-                      className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
-                    />
+                    <div className="relative">
+                      <ActionButton
+                        label="Resize"
+                        onClick={() => setSizeMenuFor(sizeMenuFor === insight.id ? null : insight.id)}
+                        icon={<Scaling className="w-3 h-3" />}
+                        className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
+                      />
+                      {sizeMenuFor === insight.id && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setSizeMenuFor(null)} />
+                          <div className="absolute right-0 top-full mt-1 bg-surface-2 border border-border rounded-md shadow-lg z-50 py-1 min-w-[120px]">
+                            {SIZE_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.span}
+                                onClick={() => setInsightSpan(insight.id, opt.span)}
+                                className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center gap-1.5 ${
+                                  insight.span === opt.span
+                                    ? "text-accent bg-accent/8"
+                                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3"
+                                }`}
+                              >
+                                <span className="flex-1">{opt.label}</span>
+                                {insight.span === opt.span && <Check className="w-3 h-3" />}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                     <ActionButton
                       label="Configure"
                       onClick={() => setEditingId(insight.id)}

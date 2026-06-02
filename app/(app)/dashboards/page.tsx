@@ -74,6 +74,7 @@ export default async function DashboardsRoute({
       projectId={activeProjectId ?? ""}
       projectKey={activeProject?.clientKey ?? activeProject?.apiKey}
       shareToken={activeDashboard?.shareToken}
+      compact={(activeDashboard?.layout as { compact?: boolean } | null)?.compact ?? false}
     />
   );
 }

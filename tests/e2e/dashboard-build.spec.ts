@@ -50,14 +50,15 @@ test("add, configure, preview, persist, and resize an insight", async ({ page })
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(page.getByText(TITLE)).toBeVisible();
 
-  // Resize the new (span-2) insight; the next size in the cycle is "Full width".
+  // Resize the new insight: open the size popover, then pick "Full width".
   const card = page.locator("div.group\\/insight").filter({ hasText: TITLE });
   await card.hover();
+  await card.getByRole("button", { name: "Resize" }).click();
   const [resizePut] = await Promise.all([
     page.waitForResponse(
       (r) => r.url().includes("/api/v0/dashboards/") && r.request().method() === "PUT",
     ),
-    card.getByRole("button", { name: "Full width" }).click(),
+    page.getByRole("button", { name: "Full width" }).click(),
   ]);
   expect(resizePut.ok(), `resize PUT should succeed, got ${resizePut.status()}`).toBeTruthy();
 });

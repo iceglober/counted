@@ -7,6 +7,7 @@ test("dragged card shrinks; siblings never leave the grid", async ({ page }) => 
   await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
   const cells = page.locator("[data-insight-id]");
   await expect(async () => expect(await cells.count()).toBeGreaterThan(2)).toPass();
+  await page.waitForTimeout(400); // let react-grid-layout finish measuring/wiring drag
 
   // A normal card's width, for the shrink comparison.
   const siblingW = (await cells.nth(1).locator(".insight-card").boundingBox())!.width;
