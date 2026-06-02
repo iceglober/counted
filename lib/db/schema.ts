@@ -165,6 +165,9 @@ export const projects = pgTable("projects", {
   apiKey: text("api_key").notNull().unique(),
   clientKey: text("client_key").unique(),
   serverKey: text("server_key").unique(),
+  // Set for an anonymous (agent-provisioned) project until a user claims it.
+  // While set, the project has no members; claiming clears it and adds an owner.
+  claimToken: text("claim_token").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   settings: jsonb("settings").notNull().default({}),
 });

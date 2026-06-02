@@ -87,6 +87,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
   }
 
+  // Anonymous (agent-provisioned, unclaimed) projects stop ingesting after 7
+  // days, so abandoned/abuse keys self-disable until a user claims the project.
+  if (project.claimToken && Date.now() - project.createdAt.getTime() > 7 * 24 * 60 * 60 * 1000) {
+    return NextResponse.json(
+      { error: "Unclaimed project expired — claim it to keep ingesting events." },
+      { status: 403 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
