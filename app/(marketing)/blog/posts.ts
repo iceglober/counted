@@ -23,10 +23,19 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
   },
   {
-    slug: "agent-harness-eval-in-5-minutes",
-    title: "Track your agent harness eval in 5 minutes",
+    slug: "claude-code-eval-in-5-minutes",
+    title: "Track your Claude Code agent eval in 5 minutes",
     description:
-      "Capture tool calls, file edits, commands, and outcomes from your AI coding agent into a pre-built eval dashboard — privacy-safe.",
+      "Capture tool calls, file edits, commands, and outcomes from Claude Code into a pre-built eval dashboard — privacy-safe, via the native plugin.",
+    date: "2026-06-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+  },
+  {
+    slug: "opencode-eval-in-5-minutes",
+    title: "Track your OpenCode agent eval in 5 minutes",
+    description:
+      "Capture tool calls, file edits, commands, and outcomes from OpenCode into a pre-built eval dashboard — privacy-safe, via the native plugin.",
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",

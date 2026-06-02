@@ -44,7 +44,7 @@ export default function ForAgentsPage() {
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
           <TrackedCTA href="/login" location="for_agents" label="start_free">Start free</TrackedCTA>
-          <SecondaryCTA href="/blog/agent-harness-eval-in-5-minutes">Track an eval in 5 min</SecondaryCTA>
+          <SecondaryCTA href="/blog/claude-code-eval-in-5-minutes">Track an eval in 5 min</SecondaryCTA>
         </div>
       </section>
 
@@ -78,8 +78,11 @@ export default function ForAgentsPage() {
 export COUNTED_AGENT_KEY="ck_your_project_key"`}</CodeBlock>
             </div>
             <p className="mt-4 text-xs text-text-tertiary">
-              Prefer OpenCode? <code className="font-mono">@counted/opencode</code> ships a native
-              plugin too. Other tools can use the zero-dependency core SDK directly.
+              Prefer OpenCode?{" "}
+              <a href="/blog/opencode-eval-in-5-minutes" className="text-accent hover:text-accent-hover transition-colors">
+                <code className="font-mono">@counted/opencode</code> ships a native plugin too
+              </a>
+              . Other tools can use the zero-dependency core SDK directly.
             </p>
           </div>
         </section>
