@@ -2,8 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dashboards } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireProjectAccess } from "@/lib/auth-guard";
+import { requireSession } from "@/lib/auth-guard";
 import { randomBytes } from "node:crypto";
+
+// Dashboards are user-owned; authorize by ownership.
+async function ownedDashboard(id: string) {
+  const { session, error, status } = await requireSession();
+  if (error || !session) return { error: error ?? "Unauthorized", status: status ?? 401 } as const;
+  const existing = await db.query.dashboards.findFirst({ where: eq(dashboards.id, id) });
+  if (!existing) return { error: "Not found", status: 404 } as const;
+  if (existing.userId && existing.userId !== session.user.id) {
+    return { error: "Forbidden", status: 403 } as const;
+  }
+  return { existing } as const;
+}
 
 export async function POST(
   _request: NextRequest,
@@ -11,16 +23,9 @@ export async function POST(
 ) {
   const { id } = await params;
 
-  const existing = await db.query.dashboards.findFirst({
-    where: eq(dashboards.id, id),
-  });
-  if (!existing) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const access = await requireProjectAccess(existing.projectId);
-  if (access.error) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+  const owned = await ownedDashboard(id);
+  if ("error" in owned) {
+    return NextResponse.json({ error: owned.error }, { status: owned.status });
   }
 
   const shareToken = randomBytes(16).toString("hex");
@@ -40,16 +45,9 @@ export async function DELETE(
 ) {
   const { id } = await params;
 
-  const existing = await db.query.dashboards.findFirst({
-    where: eq(dashboards.id, id),
-  });
-  if (!existing) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const access = await requireProjectAccess(existing.projectId);
-  if (access.error) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+  const owned = await ownedDashboard(id);
+  if ("error" in owned) {
+    return NextResponse.json({ error: owned.error }, { status: owned.status });
   }
 
   await db

@@ -2,7 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dashboards } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireProjectAccess } from "@/lib/auth-guard";
+import { requireSession } from "@/lib/auth-guard";
+
+// Dashboards are user-owned; authorize by ownership.
+async function ownedDashboard(id: string) {
+  const { session, error, status } = await requireSession();
+  if (error || !session) return { error: error ?? "Unauthorized", status: status ?? 401 } as const;
+  const existing = await db.query.dashboards.findFirst({ where: eq(dashboards.id, id) });
+  if (!existing) return { error: "Not found", status: 404 } as const;
+  if (existing.userId && existing.userId !== session.user.id) {
+    return { error: "Forbidden", status: 403 } as const;
+  }
+  return { existing, userId: session.user.id } as const;
+}
 
 export async function PUT(
   request: NextRequest,
@@ -10,25 +22,20 @@ export async function PUT(
 ) {
   const { id } = await params;
 
-  const existing = await db.query.dashboards.findFirst({
-    where: eq(dashboards.id, id),
-  });
-  if (!existing) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const owned = await ownedDashboard(id);
+  if ("error" in owned) {
+    return NextResponse.json({ error: owned.error }, { status: owned.status });
   }
-
-  const access = await requireProjectAccess(existing.projectId);
-  if (access.error) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
-  }
+  const { existing, userId } = owned;
 
   const { name, slug, layout, filters, isDefault } = await request.json();
 
+  // One default per user.
   if (isDefault) {
     await db
       .update(dashboards)
       .set({ isDefault: false })
-      .where(eq(dashboards.projectId, existing.projectId));
+      .where(eq(dashboards.userId, existing.userId ?? userId));
   }
 
   const [result] = await db
@@ -53,20 +60,13 @@ export async function DELETE(
 ) {
   const { id } = await params;
 
-  const existing = await db.query.dashboards.findFirst({
-    where: eq(dashboards.id, id),
-  });
-  if (!existing) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const owned = await ownedDashboard(id);
+  if ("error" in owned) {
+    return NextResponse.json({ error: owned.error }, { status: owned.status });
   }
 
-  if (existing.isDefault) {
+  if (owned.existing.isDefault) {
     return NextResponse.json({ error: "Cannot delete the default dashboard" }, { status: 400 });
-  }
-
-  const access = await requireProjectAccess(existing.projectId);
-  if (access.error) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   await db.delete(dashboards).where(eq(dashboards.id, id));

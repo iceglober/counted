@@ -203,9 +203,13 @@ export const dashboards = pgTable(
   "dashboards",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    projectId: uuid("project_id")
-      .notNull()
-      .references(() => projects.id),
+    // Owner (workspace-level). A dashboard is a view layer over data and is NOT
+    // owned by a single project.
+    userId: text("user_id").references(() => user.id),
+    // Optional associated project — only used to source a client key for the
+    // agent/onboarding setup card. Nullable: deleting a project orphans this
+    // (sets it null); it does not delete the dashboard.
+    projectId: uuid("project_id").references(() => projects.id),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     layout: jsonb("layout").notNull().default([]),
@@ -216,7 +220,7 @@ export const dashboards = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("dashboards_project_slug").on(table.projectId, table.slug),
+    index("dashboards_user_idx").on(table.userId),
   ],
 );
 
@@ -352,6 +356,10 @@ export const dashboardsRelations = relations(dashboards, ({ one }) => ({
   project: one(projects, {
     fields: [dashboards.projectId],
     references: [projects.id],
+  }),
+  user: one(user, {
+    fields: [dashboards.userId],
+    references: [user.id],
   }),
 }));
 

@@ -153,13 +153,13 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     const res = await fetch("/api/v0/dashboard-data", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, timeRange: timeRangeMap[timeRange] }),
+      body: JSON.stringify({ projectId, dashboardId, timeRange: timeRangeMap[timeRange] }),
     });
     if (res.ok) {
       const data = await res.json();
       setInsights(data.insights);
     }
-  }, [projectId, timeRange]);
+  }, [projectId, dashboardId, timeRange]);
 
   async function handleTimeRangeChange(tr: string) {
     setTimeRange(tr);
@@ -169,7 +169,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
       const res = await fetch("/api/v0/dashboard-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, timeRange: timeRangeMap[tr] }),
+        body: JSON.stringify({ projectId, dashboardId, timeRange: timeRangeMap[tr] }),
       });
       if (res.ok) {
         const data = await res.json();

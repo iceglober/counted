@@ -34,6 +34,7 @@ export default async function DashboardRedirect() {
     });
 
     await tx.insert(dashboards).values({
+      userId: session.user.id,
       projectId: project.id,
       name: "Default",
       slug: "default",

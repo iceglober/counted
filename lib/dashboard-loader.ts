@@ -201,6 +201,6 @@ export async function loadDashboardById(
     return { insights: [], dashboardId };
   }
 
-  const result = await loadDashboardData(dashboard.projectId, timeRange, dashboardId);
+  const result = await loadDashboardData(dashboard.projectId ?? "", timeRange, dashboardId);
   return { insights: result.insights, dashboardId };
 }

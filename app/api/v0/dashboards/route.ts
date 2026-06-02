@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dashboards } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { requireProjectAccess } from "@/lib/auth-guard";
+import { eq, and } from "drizzle-orm";
+import { requireSession, requireProjectAccess } from "@/lib/auth-guard";
 import { createDefaultLayout } from "@/lib/default-dashboard";
 import { createAgentDashboardLayout } from "@/lib/agent-dashboard";
 
@@ -13,37 +13,38 @@ const DASHBOARD_TEMPLATES = {
 } as const;
 
 export async function GET(request: NextRequest) {
+  const { session, error, status } = await requireSession();
+  if (error) return NextResponse.json({ error }, { status });
+
+  // Dashboards are workspace-level (owned by the user). An optional projectId
+  // narrows to those associated with a project.
   const projectId = request.nextUrl.searchParams.get("projectId");
-  if (!projectId) {
-    return NextResponse.json({ error: "projectId required" }, { status: 400 });
-  }
-
-  const access = await requireProjectAccess(projectId);
-  if (access.error) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
-  }
-
   const result = await db.query.dashboards.findMany({
-    where: eq(dashboards.projectId, projectId),
+    where: projectId
+      ? and(eq(dashboards.userId, session!.user.id), eq(dashboards.projectId, projectId))
+      : eq(dashboards.userId, session!.user.id),
   });
 
   return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {
+  const { session, error, status } = await requireSession();
+  if (error) return NextResponse.json({ error }, { status });
+
   const body = await request.json();
   const { projectId, name, slug, layout, filters, isDefault, template } = body;
 
-  if (!projectId || !slug) {
-    return NextResponse.json(
-      { error: "projectId and slug are required" },
-      { status: 400 },
-    );
+  if (!slug) {
+    return NextResponse.json({ error: "slug is required" }, { status: 400 });
   }
 
-  const access = await requireProjectAccess(projectId);
-  if (access.error) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+  // If associating a project, the user must have access to it.
+  if (projectId) {
+    const access = await requireProjectAccess(projectId);
+    if (access.error) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
+    }
   }
 
   // A template fills the layout + a default name; an explicit layout/name wins.
@@ -54,12 +55,13 @@ export async function POST(request: NextRequest) {
   const [result] = await db
     .insert(dashboards)
     .values({
-      projectId,
+      userId: session!.user.id,
+      projectId: projectId || null,
       name: name ?? tpl?.name ?? "Untitled",
       slug,
       layout: layout ?? tpl?.layout ?? { insights: [] },
       filters: filters ?? {},
-      // New dashboards are never default — the project's first one stays default.
+      // New dashboards are never default — the first one stays default.
       isDefault: isDefault ?? false,
     })
     .returning();

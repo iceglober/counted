@@ -21,15 +21,16 @@ export default async function DashboardsRoute({
   const memberships = await db.query.projectMembers.findMany({
     where: eq(projectMembers.userId, session.user.id),
   });
-
   const projectIds = memberships.map((m) => m.projectId);
-  if (projectIds.length === 0) {
+
+  // Dashboards are workspace-level — owned by the user, not a project.
+  const allDashboards = await db.query.dashboards.findMany({
+    where: eq(dashboards.userId, session.user.id),
+  });
+
+  if (allDashboards.length === 0 && projectIds.length === 0) {
     redirect("/projects");
   }
-
-  const allDashboards = await db.query.dashboards.findMany({
-    where: inArray(dashboards.projectId, projectIds),
-  });
 
   const timeRange: TimeRange = { type: "relative", value: 30, unit: "days" };
 
@@ -44,7 +45,6 @@ export default async function DashboardsRoute({
 
   let insights: Awaited<ReturnType<typeof loadDashboardById>>["insights"] = [];
   let dashboardId: string | null = null;
-  const activeProjectId = activeDashboard?.projectId ?? projectIds[0];
 
   if (activeDashboard) {
     const result = await loadDashboardById(activeDashboard.id, timeRange);
@@ -52,10 +52,17 @@ export default async function DashboardsRoute({
     dashboardId = activeDashboard.id;
   }
 
-  // Get project key for onboarding
-  const activeProject = await db.query.projects.findFirst({
-    where: eq(projects.id, activeProjectId),
-  });
+  // The "active project" context (for new insights / the onboarding key): the
+  // dashboard's associated project, else a project one of its insights uses,
+  // else the user's first project.
+  const activeProjectId =
+    activeDashboard?.projectId ??
+    insights.find((i) => i.projectId)?.projectId ??
+    projectIds[0];
+
+  const activeProject = activeProjectId
+    ? await db.query.projects.findFirst({ where: eq(projects.id, activeProjectId) })
+    : undefined;
 
   return (
     <DashboardPage
@@ -64,7 +71,7 @@ export default async function DashboardsRoute({
       activeDashboardName={activeDashboard?.name}
       isDefault={activeDashboard?.isDefault ?? false}
       initialInsights={insights}
-      projectId={activeProjectId}
+      projectId={activeProjectId ?? ""}
       projectKey={activeProject?.clientKey ?? activeProject?.apiKey}
       shareToken={activeDashboard?.shareToken}
     />

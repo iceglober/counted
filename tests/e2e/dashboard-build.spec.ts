@@ -63,19 +63,22 @@ test("add, configure, preview, persist, and resize an insight", async ({ page })
 });
 
 test("reorder insights by drag-and-drop", async ({ page }) => {
+  // Tall viewport so every cell (and the drop target) is on-screen.
+  await page.setViewportSize({ width: 1280, height: 1600 });
   await page.goto(`/dashboards?dashboard=${await seededDashboardId(page.request)}`);
 
   // react-grid-layout cells carry data-insight-id in DOM (== layout) order.
   const cells = page.locator("[data-insight-id]");
   await expect(async () => expect(await cells.count()).toBeGreaterThan(2)).toPass();
+  await page.waitForTimeout(400); // let RGL finish measuring/wiring drag
   const order = () =>
     cells.evaluateAll((els) => els.map((e) => e.getAttribute("data-insight-id")));
   const before = await order();
 
-  // Pointer-drag the first card's handle onto the last card's position.
+  // Pointer-drag the first card's handle onto the third card's position.
   const handle = page.locator("[data-drag-handle]").first();
   const hb = (await handle.boundingBox())!;
-  const dest = (await cells.nth((await cells.count()) - 1).boundingBox())!;
+  const dest = (await cells.nth(2).boundingBox())!;
   await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
   await page.mouse.down();
   await page.mouse.move(hb.x + 30, hb.y + 30, { steps: 5 }); // pass the drag threshold

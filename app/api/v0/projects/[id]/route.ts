@@ -52,7 +52,9 @@ export async function DELETE(
 
   await db.transaction(async (tx) => {
     await pool.query("DELETE FROM events WHERE project_id = $1", [id]);
-    await tx.delete(dashboards).where(eq(dashboards.projectId, id));
+    // Dashboards are user-owned — orphan the project association, don't delete
+    // the dashboards (their insights may reference other projects too).
+    await tx.update(dashboards).set({ projectId: null }).where(eq(dashboards.projectId, id));
     await tx.delete(projectMembers).where(eq(projectMembers.projectId, id));
     await tx.delete(projects).where(eq(projects.id, id));
   });

@@ -421,15 +421,22 @@ async function seed() {
     ...secondaryDashboards(mobileId),
     ...secondaryDashboards(marketingId),
   ];
-  await db.insert(schema.dashboards).values(dashboardRows.map((d) => ({
-    projectId: d.projectId,
-    name: d.name,
-    slug: d.slug,
-    layout: d.layout,
-    filters: d.filters,
-    isDefault: d.isDefault,
-    shareToken: (d as { shareToken?: string }).shareToken ?? null,
-  })));
+  // Dashboards are user-owned with one default per user.
+  let defaultAssigned = false;
+  await db.insert(schema.dashboards).values(dashboardRows.map((d) => {
+    const isDefault = !!d.isDefault && !defaultAssigned;
+    if (isDefault) defaultAssigned = true;
+    return {
+      userId,
+      projectId: d.projectId,
+      name: d.name,
+      slug: d.slug,
+      layout: d.layout,
+      filters: d.filters,
+      isDefault,
+      shareToken: (d as { shareToken?: string }).shareToken ?? null,
+    };
+  }));
   console.log(`\nDashboards: ${dashboardRows.length} (${dashboardRows.filter((d) => "shareToken" in d).length} shared)`);
 
   // Alerts
