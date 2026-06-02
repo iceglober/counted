@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CountedLogo } from "@/components/icons";
 import { Check } from "lucide-react";
 import { AgentPrompt } from "./agent-prompt";
+import { Reveal } from "./reveal";
 
 export default function Home() {
   return (
@@ -21,36 +22,39 @@ export default function Home() {
 
       {/* Hero */}
       <section className="px-6 pt-24 pb-16 max-w-3xl mx-auto text-center">
-        <h1 className="font-display text-4xl md:text-5xl tracking-tight leading-tight">
+        <h1 className="animate-rise font-display text-[clamp(2.25rem,5.5vw,3.25rem)] tracking-tight leading-tight">
           Privacy-first analytics
           <br />
           <span className="text-accent">for apps that respect users</span>
         </h1>
-        <p className="mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed">
+        <p className="animate-rise mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed" style={{ animationDelay: "90ms" }}>
           Lightweight, no-cookie event tracking with composable dashboards — under 3KB,
           no PII. Or skip setup entirely and hand the prompt below to your coding agent.
         </p>
-        <div className="mt-8 flex items-center justify-center gap-4">
+        <div className="animate-rise mt-8 flex items-center justify-center gap-4" style={{ animationDelay: "180ms" }}>
           <Link
             href="/login"
-            className="px-6 py-2.5 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover active:translate-y-px transition-[background-color,transform] duration-150"
           >
             Start free
           </Link>
           <Link
             href="/pricing"
-            className="px-6 py-2.5 border border-border text-text-secondary rounded-md text-sm hover:border-border-hover hover:text-text-primary transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 border border-border text-text-secondary rounded-md text-sm hover:border-border-hover hover:text-text-primary active:translate-y-px transition-[border-color,color,transform] duration-150"
           >
             View pricing
           </Link>
         </div>
-        <p className="mt-4 text-xs text-text-tertiary">100K events/month free. No credit card required.</p>
+        <p className="animate-rise mt-4 text-xs text-text-tertiary" style={{ animationDelay: "240ms" }}>100K events/month free. No credit card required.</p>
       </section>
 
       {/* Give this to your agent — the differentiated, agent-native path (dominant) */}
-      <AgentPrompt />
+      <Reveal>
+        <AgentPrompt />
+      </Reveal>
 
       {/* Or wire it up yourself — secondary, deliberately muted */}
+      <Reveal>
       <section className="px-6 max-w-2xl mx-auto pb-20">
         <p className="text-center text-xs text-text-tertiary mb-3">Or wire it up yourself in 3 lines</p>
         <pre className="bg-surface-1 border border-border rounded-lg px-6 py-5 text-sm font-mono text-text-secondary overflow-x-auto">
@@ -64,8 +68,10 @@ export default function Home() {
           {"analytics.track(\"page_view\", { path: \"/\" });"}
         </pre>
       </section>
+      </Reveal>
 
       {/* Value props */}
+      <Reveal>
       <section className="px-6 py-16 border-t border-border">
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
@@ -91,8 +97,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Free tier callout */}
+      <Reveal>
       <section className="px-6 py-16 border-t border-border">
         <div className="max-w-xl mx-auto text-center">
           <h2 className="text-2xl font-display tracking-tight">Generous free tier</h2>
@@ -117,13 +125,14 @@ export default function Home() {
           <div className="mt-8">
             <Link
               href="/login"
-              className="px-6 py-2.5 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover transition-colors"
+              className="inline-flex items-center justify-center px-6 py-3 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover active:translate-y-px transition-[background-color,transform] duration-150"
             >
               Get started
             </Link>
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Footer */}
       <footer className="px-6 py-8 border-t border-border">
