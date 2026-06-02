@@ -18,3 +18,12 @@ test("marketing home renders", async ({ page }) => {
   expect(res?.status()).toBeLessThan(400);
   await expect(page.getByText(/counted/i).first()).toBeVisible();
 });
+
+test("agent docs are served at /docs/llms.txt", async ({ page }) => {
+  const res = await page.request.get("/docs/llms.txt");
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toContain("text/plain");
+  const body = await res.text();
+  expect(body).toContain("/api/v0/provision");
+  expect(body).toContain("npm install @counted/sdk");
+});
