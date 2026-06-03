@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { POSTS } from "./(marketing)/blog/posts";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://counted.dev";
+  const baseUrl = "https://www.counted.dev";
   const now = new Date();
 
   const staticPages: MetadataRoute.Sitemap = [

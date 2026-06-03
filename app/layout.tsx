@@ -26,12 +26,12 @@ export const metadata: Metadata = {
   title: "Counted — Privacy-focused app analytics",
   description:
     "Privacy-first analytics with composable dashboards. No cookies, no fingerprinting, no PII. Under 3KB.",
-  metadataBase: new URL("https://counted.dev"),
+  metadataBase: new URL("https://www.counted.dev"),
   openGraph: {
     title: "Counted — Privacy-focused app analytics",
     description:
       "Composable dashboards, agent-native SDKs, and self-hosting in 60 seconds. No cookies, no fingerprinting, no PII.",
-    url: "https://counted.dev",
+    url: "https://www.counted.dev",
     siteName: "Counted",
     type: "website",
   },
