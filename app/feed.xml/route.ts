@@ -3,7 +3,7 @@ import { sortedPosts } from "../(marketing)/blog/posts";
 // RSS 2.0 feed for the blog, generated from the posts registry so it stays in
 // sync with what ships. Prerendered; regenerates on each build/deploy.
 
-const SITE = "https://www.counted.dev";
+const SITE = "https://counted.dev";
 
 export const dynamic = "force-static";
 

@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   title: "Counted — Privacy-focused app analytics",
   description:
     "Privacy-first analytics with composable dashboards. No cookies, no fingerprinting, no PII. Under 3KB.",
-  metadataBase: new URL("https://www.counted.dev"),
+  metadataBase: new URL("https://counted.dev"),
   alternates: {
     types: { "application/rss+xml": [{ url: "/feed.xml", title: "Counted Blog" }] },
   },
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     title: "Counted — Privacy-focused app analytics",
     description:
       "Composable dashboards, agent-native SDKs, and self-hosting in 60 seconds. No cookies, no fingerprinting, no PII.",
-    url: "https://www.counted.dev",
+    url: "https://counted.dev",
     siteName: "Counted",
     type: "website",
   },
