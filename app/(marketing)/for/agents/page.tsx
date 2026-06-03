@@ -70,7 +70,7 @@ export default function ForAgentsPage() {
       <Reveal>
         <section className="px-6 py-16 border-t border-border">
           <div className="max-w-2xl mx-auto">
-            <Eyebrow>Claude Code, one command</Eyebrow>
+            <Eyebrow>Claude Code plugin</Eyebrow>
             <h2 className="mt-2 font-display text-2xl md:text-3xl tracking-tight">Install the plugin</h2>
             <p className="mt-4 text-text-secondary leading-relaxed">
               Counted ships as a real Claude Code plugin. Add the marketplace, install, and set a

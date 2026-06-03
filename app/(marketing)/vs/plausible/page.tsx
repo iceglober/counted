@@ -111,8 +111,8 @@ export default function VsPlausiblePage() {
               simplest possible setup.
             </p>
             <p className="mt-4 text-sm text-text-secondary leading-relaxed">
-              <span className="text-text-primary font-medium">Use Counted if</span> you want privacy-first
-              <em> product</em> analytics: custom events, funnels and retention (free, even
+              <span className="text-text-primary font-medium">Use Counted if</span> you want privacy-first{" "}
+              <em>product</em> analytics: custom events, funnels and retention (free, even
               self-hosted), dashboards you compose yourself, polyglot SDKs, and native instrumentation
               for AI coding agents — all with the same no-cookie, no-PII stance.
             </p>
