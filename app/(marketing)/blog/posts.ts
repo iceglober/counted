@@ -23,6 +23,15 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
   },
   {
+    slug: "rust-analytics-in-5-minutes",
+    title: "Instrument a Rust service in 5 minutes",
+    description:
+      "Add privacy-first analytics to a Rust service with the counted-sdk crate — thread-safe, flushes on drop. No PII.",
+    date: "2026-06-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+  },
+  {
     slug: "go-analytics-in-5-minutes",
     title: "Instrument a Go service in 5 minutes",
     description:
