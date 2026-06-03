@@ -31,7 +31,7 @@ const ROWS: Row[] = [
   { label: "No PII collected by design", counted: true, posthog: "Configurable" },
   { label: "GDPR/CCPA without a consent banner", counted: true, posthog: "Possible (cookieless mode)" },
   { label: "Composable dashboards", counted: true, posthog: true },
-  { label: "Funnels & retention", counted: true, posthog: true },
+  { label: "Funnels", counted: true, posthog: true },
   { label: "Agent-native SDKs (Claude Code, OpenCode)", counted: true, posthog: false },
   { label: "Web SDK size", counted: "Under 3KB", posthog: "Much larger (full platform)" },
   { label: "Scope", counted: "Focused product analytics", posthog: "All-in-one (replay, flags, experiments, CDP…)" },

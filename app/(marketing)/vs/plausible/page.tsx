@@ -7,7 +7,7 @@ import { TrackedCTA } from "../../track";
 export const metadata: Metadata = {
   title: "Counted vs Plausible — privacy-first product analytics, not just pageviews",
   description:
-    "Plausible is excellent privacy-first web analytics. Counted is privacy-first product analytics: same no-cookie stance, plus a free tier, funnels & retention, composable dashboards, and agent-native SDKs.",
+    "Plausible is excellent privacy-first web analytics. Counted is privacy-first product analytics: same no-cookie stance, plus a free tier, funnels, composable dashboards, and agent-native SDKs.",
   alternates: { canonical: "/vs/plausible" },
   openGraph: {
     title: "Counted vs Plausible",
@@ -32,7 +32,7 @@ const ROWS: Row[] = [
   { label: "Self-hostable, open source", counted: true, plausible: true },
   { label: "Custom events", counted: true, plausible: true },
   { label: "Free cloud tier", counted: "100K events/mo", plausible: "No (30-day trial)" },
-  { label: "Funnels & retention", counted: "Included", plausible: "Paid tier; not in self-hosted" },
+  { label: "Funnels", counted: "Included (free)", plausible: "Business tier only" },
   { label: "Composable dashboards", counted: true, plausible: "Fixed dashboard" },
   { label: "Agent-native SDKs (Claude Code, OpenCode)", counted: true, plausible: false },
   { label: "SDKs", counted: "JS, React, Python, Go, Rust", plausible: "Script tag + integrations" },
@@ -60,7 +60,7 @@ export default function VsPlausiblePage() {
         <p className="mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed">
           Plausible is excellent, privacy-first web analytics — no cookies, no banner, beautifully
           simple. Counted shares that stance but goes further into product analytics: a free tier,
-          funnels and retention included, composable dashboards you build yourself, and native SDKs
+          funnels included, composable dashboards you build yourself, and native SDKs
           for AI coding agents.
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
@@ -112,7 +112,7 @@ export default function VsPlausiblePage() {
             </p>
             <p className="mt-4 text-sm text-text-secondary leading-relaxed">
               <span className="text-text-primary font-medium">Use Counted if</span> you want privacy-first{" "}
-              <em>product</em> analytics: custom events, funnels and retention (free, even
+              <em>product</em> analytics: custom events, funnels (free, even
               self-hosted), dashboards you compose yourself, polyglot SDKs, and native instrumentation
               for AI coding agents — all with the same no-cookie, no-PII stance.
             </p>
