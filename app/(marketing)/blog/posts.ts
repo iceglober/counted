@@ -23,6 +23,33 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
   },
   {
+    slug: "python-analytics-in-5-minutes",
+    title: "Instrument a Python service in 5 minutes",
+    description:
+      "Add privacy-first analytics to a Python service with the zero-dependency counted SDK — track events, flush cleanly on shutdown. No PII.",
+    date: "2026-06-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+  },
+  {
+    slug: "self-host-counted-in-5-minutes",
+    title: "Self-host Counted in 5 minutes",
+    description:
+      "Run Counted on your own infrastructure with Docker Compose — your data never leaves your servers. Clone, configure, up.",
+    date: "2026-06-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+  },
+  {
+    slug: "nextjs-analytics-in-5-minutes",
+    title: "Add product analytics to your Next.js app in 5 minutes",
+    description:
+      "Drop @counted/react into a Next.js App Router app, track your first event, and auto-track page views — no cookies, under 3KB.",
+    date: "2026-06-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+  },
+  {
     slug: "claude-code-eval-in-5-minutes",
     title: "Track your Claude Code agent eval in 5 minutes",
     description:

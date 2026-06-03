@@ -15,6 +15,13 @@ export const metadata: Metadata = {
       "Composable dashboards, agent-native SDKs, a larger free tier, and a one-command migration — without leaving privacy-first analytics.",
     url: "/vs/aptabase",
     type: "article",
+    images: ["/og?title=Counted%20vs%20Aptabase&eyebrow=Comparison"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Counted vs Aptabase",
+    description: "Composable dashboards, agent-native SDKs, a larger free tier, and a one-command migration.",
+    images: ["/og?title=Counted%20vs%20Aptabase&eyebrow=Comparison"],
   },
 };
 

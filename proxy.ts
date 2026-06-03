@@ -11,7 +11,20 @@ const CORS_HEADERS = {
 const MARKETING_HOSTS = new Set(["counted.dev", "www.counted.dev"]);
 const APP_HOST = "app.counted.dev";
 
-const MARKETING_PATHS = new Set(["/", "/pricing", "/sitemap.xml", "/robots.txt"]);
+const MARKETING_PATHS = new Set([
+  "/",
+  "/pricing",
+  "/privacy",
+  "/terms",
+  "/sitemap.xml",
+  "/robots.txt",
+  "/feed.xml",
+  // Share images live at the app root but are referenced from the marketing
+  // host's metadata — serve them here so OG crawlers don't chase a redirect.
+  "/opengraph-image",
+  "/twitter-image",
+  "/og", // dynamic per-page share image (/og?title=…)
+]);
 
 // Marketing content also lives under these prefixes (comparisons, /for, blog).
 const MARKETING_PREFIXES = ["/vs/", "/for/", "/blog"];
