@@ -1,9 +1,13 @@
 // Registry of blog posts. Listing metadata lives here so the index page and the
 // sitemap stay in sync; each post's full content lives in its own route page.
 //
-// `published` gates visibility everywhere (index, post page 404, sitemap, RSS,
-// IndexNow). All posts are currently UNPUBLISHED pending a human review pass —
-// flip `published: true` per post to take it live (it then auto-indexes).
+// `published` gates visibility in production (index, post page 404, sitemap,
+// RSS, IndexNow). All posts are currently UNPUBLISHED pending a human review
+// pass — flip `published: true` per post to take it live (it then auto-indexes).
+//
+// PREVIEW: in dev (`bun run dev`) — or with SHOW_DRAFTS=1 — unpublished posts
+// render and appear in the index so you can review them locally. Production
+// builds set NODE_ENV=production, so drafts stay 404/hidden there.
 
 export type PostMeta = {
   slug: string;
@@ -16,6 +20,16 @@ export type PostMeta = {
 };
 
 export const POSTS: PostMeta[] = [
+  {
+    slug: "what-ai-native-means",
+    title: "What does it mean to be “AI-native”?",
+    description:
+      "AI-native isn't a chatbot bolted into the corner of your app. It's treating the agent as a first-class actor in your product — including in how you measure it. A short argument for a new default.",
+    date: "2026-06-03",
+    readingTime: "6 min",
+    category: "Perspective",
+    published: false,
+  },
   {
     slug: "public-dashboard-in-5-minutes",
     title: "Ship a public metrics dashboard in 5 minutes",
@@ -112,7 +126,21 @@ export function getPost(slug: string): PostMeta | undefined {
   return POSTS.find((p) => p.slug === slug);
 }
 
-// Published posts only, newest first — used by the index, sitemap, RSS, IndexNow.
+// When true, unpublished drafts are visible (index + post pages). Dev-only by
+// default; set SHOW_DRAFTS=1 to force it on a deployed preview.
+export const PREVIEW =
+  process.env.NODE_ENV !== "production" || process.env.SHOW_DRAFTS === "1";
+
+const byNewest = (a: PostMeta, b: PostMeta) => (a.date < b.date ? 1 : -1);
+
+// Published posts only, newest first — used by the sitemap, RSS, IndexNow (and
+// the index in production). Never leaks drafts into discovery surfaces.
 export function sortedPosts(): PostMeta[] {
-  return POSTS.filter((p) => p.published).sort((a, b) => (a.date < b.date ? 1 : -1));
+  return POSTS.filter((p) => p.published).sort(byNewest);
+}
+
+// Posts to list on the blog index: published in prod, published + drafts in
+// preview. Discovery surfaces (sitemap/RSS/IndexNow) still use sortedPosts().
+export function visiblePosts(): PostMeta[] {
+  return POSTS.filter((p) => p.published || PREVIEW).sort(byNewest);
 }

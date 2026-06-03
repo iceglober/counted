@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SiteNav, SiteFooter } from "../site-chrome";
 import { TrackedCTA } from "../track";
 import { JsonLd, blogPostingLd } from "@/components/json-ld";
-import type { PostMeta } from "./posts";
+import { PREVIEW, type PostMeta } from "./posts";
 
 // Shared chrome + prose primitives for blog posts, styled to match the
 // marketing site's tokens (font-display headings, text-secondary body).
@@ -16,12 +16,18 @@ function formatDate(iso: string): string {
 }
 
 export function PostLayout({ meta, children }: { meta: PostMeta; children: React.ReactNode }) {
-  // Unpublished posts 404 — pulled from the live site pending review.
-  if (!meta.published) notFound();
+  // Unpublished posts 404 in production (pulled pending review), but render in
+  // preview (dev / SHOW_DRAFTS) so they can be reviewed locally.
+  if (!meta.published && !PREVIEW) notFound();
 
   return (
     <div className="min-h-screen">
-      <JsonLd data={blogPostingLd(meta)} />
+      {meta.published && <JsonLd data={blogPostingLd(meta)} />}
+      {!meta.published && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2 text-center text-xs text-amber-400">
+          Draft preview — not published. Set <code className="font-mono">published: true</code> in posts.ts to take it live.
+        </div>
+      )}
       <SiteNav />
 
       <article className="px-6 pt-16 pb-12 max-w-2xl mx-auto">
