@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${baseUrl}/vs/aptabase`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/vs/posthog`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/vs/plausible`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/for/agents`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
   ];
