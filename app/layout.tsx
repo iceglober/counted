@@ -24,15 +24,15 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Counted — Privacy-first product & AI analytics",
+  title: "Counted — Privacy-first analytics for products and agents",
   description:
-    "Privacy-first product and AI analytics with composable dashboards. No cookies, no fingerprinting, no PII. Under 3KB.",
+    "Privacy-first analytics for products and agents, with composable dashboards. No cookies, no fingerprinting, no PII. Under 3KB.",
   metadataBase: new URL("https://counted.dev"),
   alternates: {
     types: { "application/rss+xml": [{ url: "/feed.xml", title: "Counted Blog" }] },
   },
   openGraph: {
-    title: "Counted — Privacy-first product & AI analytics",
+    title: "Counted — Privacy-first analytics for products and agents",
     description:
       "Composable dashboards, agent-native SDKs, and self-hosting with one command. No cookies, no fingerprinting, no PII.",
     url: "https://counted.dev",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Counted — Privacy-first product & AI analytics",
+    title: "Counted — Privacy-first analytics for products and agents",
     description:
       "Composable dashboards, agent-native SDKs, and self-hosting with one command. No cookies, no fingerprinting, no PII.",
   },
