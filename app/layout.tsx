@@ -27,6 +27,9 @@ export const metadata: Metadata = {
   description:
     "Privacy-first analytics with composable dashboards. No cookies, no fingerprinting, no PII. Under 3KB.",
   metadataBase: new URL("https://www.counted.dev"),
+  alternates: {
+    types: { "application/rss+xml": [{ url: "/feed.xml", title: "Counted Blog" }] },
+  },
   openGraph: {
     title: "Counted — Privacy-focused app analytics",
     description:
