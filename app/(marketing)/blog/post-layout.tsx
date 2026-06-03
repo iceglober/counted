@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SiteNav, SiteFooter } from "../site-chrome";
 import { TrackedCTA } from "../track";
+import { JsonLd, blogPostingLd } from "@/components/json-ld";
 import type { PostMeta } from "./posts";
 
 // Shared chrome + prose primitives for blog posts, styled to match the
@@ -16,6 +17,7 @@ function formatDate(iso: string): string {
 export function PostLayout({ meta, children }: { meta: PostMeta; children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
+      <JsonLd data={blogPostingLd(meta)} />
       <SiteNav />
 
       <article className="px-6 pt-16 pb-12 max-w-2xl mx-auto">
