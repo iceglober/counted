@@ -23,6 +23,15 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
   },
   {
+    slug: "python-analytics-in-5-minutes",
+    title: "Instrument a Python service in 5 minutes",
+    description:
+      "Add privacy-first analytics to a Python service with the zero-dependency counted SDK — track events, flush cleanly on shutdown. No PII.",
+    date: "2026-06-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+  },
+  {
     slug: "self-host-counted-in-5-minutes",
     title: "Self-host Counted in 5 minutes",
     description:
