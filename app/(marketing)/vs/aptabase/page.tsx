@@ -104,14 +104,15 @@ export default function VsAptabasePage() {
             <p className="mt-6 text-sm text-text-secondary leading-relaxed">
               <span className="text-text-primary font-medium">1. Import your events.</span>{" "}
               Point <code className="font-mono text-text-primary">@counted/migrate</code> at your
-              Aptabase Postgres (or a CSV export) and your Counted project key.
+              self-hosted Aptabase ClickHouse (or a CSV export), scoped to your app id, plus your
+              Counted project key.
             </p>
             <div className="mt-3">
               <CodeBlock>{`npx @counted/migrate \\
-  --source-db "postgres://aptabase:..." \\
+  --source-clickhouse "http://default:PASSWORD@your-aptabase-host:8123" \\
+  --app-id "YOUR_APTABASE_APP_ID" \\
   --target-key "ck_your_project_key" \\
-  --target-host "https://app.counted.dev" \\
-  --since "2025-01-01"`}</CodeBlock>
+  --target-host "https://app.counted.dev"`}</CodeBlock>
             </div>
 
             <p className="mt-8 text-sm text-text-secondary leading-relaxed">

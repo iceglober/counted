@@ -3,8 +3,9 @@ import { migrateAptabase } from "./aptabase";
 
 const { values } = parseArgs({
   options: {
-    "source-db": { type: "string" },
+    "source-clickhouse": { type: "string" },
     "source-csv": { type: "string" },
+    "app-id": { type: "string" },
     "target-key": { type: "string" },
     "target-host": { type: "string", default: "https://counted.dev" },
     since: { type: "string" },
@@ -21,14 +22,21 @@ if (!targetKey) {
   process.exit(1);
 }
 
-if (!values["source-db"] && !values["source-csv"]) {
-  console.error("Either --source-db or --source-csv is required");
+if (!values["source-clickhouse"] && !values["source-csv"]) {
+  console.error("Either --source-clickhouse or --source-csv is required");
+  process.exit(1);
+}
+
+if (values["source-clickhouse"] && !values["app-id"]) {
+  // Aptabase's ClickHouse `events` table holds every app; you must scope the import.
+  console.error("--app-id is required with --source-clickhouse (your Aptabase app id)");
   process.exit(1);
 }
 
 migrateAptabase({
-  sourceDb: values["source-db"],
+  sourceClickhouse: values["source-clickhouse"],
   sourceCsv: values["source-csv"],
+  appId: values["app-id"],
   targetKey,
   targetHost: values["target-host"]!,
   since: values.since,
