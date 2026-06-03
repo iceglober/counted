@@ -47,7 +47,7 @@ export function Hero() {
           : "No-cookie analytics for your product and your AI agents. Composable dashboards, no fingerprinting, no PII, under 3KB gzipped."}
       </p>
       <div className="animate-rise mt-8 flex items-center justify-center gap-4" style={{ animationDelay: "180ms" }}>
-        <TrackedCTA href={`/login?hero=${variant}`} location="homepage_hero" label="start_free" variant="primary">
+        <TrackedCTA href={`/login?exp_hero=${variant}`} location="homepage_hero" label="start_free" variant="primary">
           Start free
         </TrackedCTA>
         <TrackedCTA href="/pricing" location="homepage_hero" label="view_pricing" variant="secondary">
