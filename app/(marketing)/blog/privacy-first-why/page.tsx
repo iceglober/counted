@@ -10,81 +10,70 @@ export default function Post() {
   return (
     <PostLayout meta={meta}>
       <Lead>
-        &ldquo;Privacy-first&rdquo; usually gets read as a compliance checkbox — a cost you pay to
-        keep the lawyers happy. That&apos;s not why Counted is built this way. Privacy-first is the
-        founding bet: that the surveillance most analytics is built on was never something you needed
-        in the first place, and that giving it up makes the product <em>better</em>, not weaker.
+        Most companies treat &ldquo;privacy-first&rdquo; as a compliance line — the box you tick so
+        legal signs off. That&apos;s not why Counted is built this way. We think most analytics
+        collects far more than it needs to, and that collecting less makes the product better. Here&apos;s
+        the reasoning.
       </Lead>
 
-      <H2>The surveillance default</H2>
+      <H2>Analytics inherited ad-tech&apos;s habits</H2>
       <P>
-        Almost every analytics tool you can name inherited its architecture from ad-tech. The
-        assumption baked into the stack is that you want to follow individual people: a cookie to
-        re-recognize a browser, a fingerprint when the cookie fails, a cross-site identifier to stitch
-        someone&apos;s behavior together across the web. A decade of tooling was built to answer one
-        question — <em>who is this specific human and everywhere they&apos;ve been?</em> — because that
-        question is worth money to advertisers.
+        Most analytics tools are built on machinery designed for advertising: a cookie to recognize a
+        browser, a fingerprint for when the cookie fails, a shared ID to follow someone across sites.
+        All of it answers one question — who is this person, and where else have they been — because
+        that answer sells ads.
       </P>
       <P>
-        Then product teams adopted those same tools to answer completely different questions, and
-        inherited the surveillance machinery as a side effect. You wanted to know if your onboarding
-        funnel improved. You got a system that, by default, builds a persistent profile of every
-        visitor.
+        Product teams picked up those tools to answer different questions, and got the surveillance for
+        free. You wanted to know whether your new onboarding converts better. The tool you reached for
+        builds a profile of every visitor by default.
       </P>
 
-      <H2>You never needed most of it</H2>
+      <H2>You probably never used the identity</H2>
       <P>
-        Here&apos;s the uncomfortable part: the questions product teams actually ask almost never
-        require knowing <em>who</em>. &ldquo;Did this funnel convert better after the redesign?&rdquo;
-        &ldquo;Which feature gets used and which is dead weight?&rdquo; &ldquo;Is this agent
-        completing more tasks this week than last?&rdquo; Every one of those is answered by the shape
-        and volume of <em>events</em> — not by a dossier on the person who triggered them.
+        The questions teams actually ask rarely need a name attached. Did this funnel improve? Which
+        feature is dead weight? Is the agent finishing more tasks than last week? Each of those comes
+        out of the count and shape of events. The identity layer underneath was for targeting, and you
+        inherited it by accident.
       </P>
       <P>
-        The identity layer was for ad targeting. You adopted it by accident. Strip it out and, for the
-        overwhelming majority of product decisions, you lose nothing you were actually using — and you
-        shed a pile of liability you never wanted.
+        Take it out and, for nearly every decision you make, nothing changes — except you&apos;re no
+        longer sitting on a pile of personal data you have to protect.
       </P>
 
-      <H2>The consent-banner tax</H2>
+      <H2>The banner is a tax</H2>
       <P>
-        Tracking individuals has a cost that shows up long before any regulator does. Set a tracking
-        cookie and you owe your users a consent banner. That banner costs you three ways at once: it
-        degrades the first thing every visitor sees, a large share of people decline, and the ones who
-        decline vanish from your data — so the numbers you do collect are quietly biased toward people
-        who click &ldquo;accept all.&rdquo; You pay in UX, in data quality, and in the legal surface
-        area of holding personal data in the first place.
+        Tracking individuals costs you before any regulator shows up. Set a tracking cookie and you owe
+        users a consent banner. The banner hurts three ways: it&apos;s the first thing every visitor
+        sees, a chunk of people decline, and the ones who decline drop out of your data — so what you
+        keep skews toward people who click &ldquo;accept all.&rdquo; You pay in first impressions, in
+        data quality, and in the personal data you now have to store and defend.
       </P>
       <P>
-        Privacy-first deletes that entire tax. No tracking cookie means no consent banner, no
-        rejection sampling, and a much smaller story to tell a regulator — because there&apos;s
-        nothing personal to disclose. The data is cleaner precisely <em>because</em> it&apos;s less
-        invasive.
+        No tracking cookie, no banner. Nothing personal to disclose, so the compliance story is short.
+        And the numbers are less skewed, because you&apos;re not dropping everyone who said no.
       </P>
 
-      <H2>Privacy as a feature, not a cost</H2>
+      <H2>Privacy is a feature you can sell</H2>
       <P>
-        Treated as a constraint, privacy feels like something you give up margin for. Treated as a
-        design principle, it&apos;s a feature you can charge for. A privacy-first tool can be sold into
-        healthcare, finance, the public sector, and the EU without a six-month security review of what
-        you do with personal data — because the answer is &ldquo;nothing.&rdquo; There&apos;s no
-        breach to leak personal profiles, because they don&apos;t exist. The script is smaller and
-        faster because it isn&apos;t doing fingerprinting work. And the trust you earn by not
-        surveilling people is the kind competitors built on ad-tech can&apos;t copy without tearing out
-        their foundation.
+        As a constraint, privacy reads like lost margin. As a design choice, it&apos;s something to
+        charge for. A tool that holds no personal profiles can go into healthcare, finance, government,
+        and the EU without a long review of what it does with personal data, because the answer is
+        nothing. There&apos;s no profile database to breach. The script is smaller because it isn&apos;t
+        fingerprinting. And not surveilling people earns a kind of trust a competitor built on ad-tech
+        can&apos;t match without rebuilding from the floor up.
       </P>
 
-      <H2>The bet gets stronger, not weaker</H2>
+      <H2>The case gets stronger with agents</H2>
       <P>
-        We think this only compounds. As AI agents generate orders of magnitude more telemetry than
-        humans ever did, the surveillance default gets proportionally more dangerous — more data to
-        leak, more to regulate, more to defend. A system that was never designed to hoard identities
-        in the first place scales into that world cleanly. That&apos;s the bet: privacy-first
-        isn&apos;t the cautious choice, it&apos;s the forward one.
+        Agents already generate far more events than people do, and that gap is widening. The more
+        telemetry there is, the more a hoard-everything default costs you — more to leak, more to
+        regulate, more to keep safe. A tool that never collected identities in the first place walks
+        into that future with little to clean up.
       </P>
       <P>
-        If you want the mechanics — how you count anything without a cookie, and the honest tradeoffs
-        of giving up identity — that&apos;s the{" "}
+        Want the mechanics — how you count anything without a cookie, and what you give up by skipping
+        identity? That&apos;s the{" "}
         <a href="/blog/no-cookies-how" className="text-accent hover:text-accent-hover transition-colors">
           companion piece on what we do instead
         </a>

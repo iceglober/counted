@@ -5,7 +5,7 @@
 <h1 align="center">Counted</h1>
 
 <p align="center">
-  Privacy-first analytics with composable dashboards.<br/>
+  Privacy-first product and AI analytics with composable dashboards.<br/>
   No cookies. No fingerprinting. No PII. Under 3KB.
 </p>
 
