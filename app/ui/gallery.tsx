@@ -75,6 +75,22 @@ export function Gallery() {
         </p>
       </header>
       <div className="px-12 py-10 max-w-6xl columns-1 gap-10 lg:columns-2">
+        <Section title="Share image (OG)" note="The Open Graph / Twitter card shown when a Counted link is shared. Generated dynamically — see app/opengraph-image.tsx. Twitter uses the same image.">
+          <div className="py-6 flex flex-col gap-3">
+            <p className="text-xs text-text-tertiary">/opengraph-image · 1200×630</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/opengraph-image"
+              alt="Counted Open Graph preview"
+              width={600}
+              height={315}
+              className="rounded-lg border border-border w-full max-w-[600px]"
+            />
+            <a href="/opengraph-image" className="text-xs text-accent hover:text-accent-hover transition-colors">
+              Open full size →
+            </a>
+          </div>
+        </Section>
         <Section title="Accent" note="The primary color. Iris is the new default (applied live above/below). Compare against alternatives — say the word to switch.">
           {ACCENTS.map((a) => (
             <div key={a.name} className="flex items-center gap-6 py-4">
