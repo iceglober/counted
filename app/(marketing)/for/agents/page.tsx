@@ -14,6 +14,13 @@ export const metadata: Metadata = {
       "Agent eval dashboards in minutes. Native Claude Code & OpenCode plugins, polyglot SDKs, privacy-safe by default.",
     url: "/for/agents",
     type: "article",
+    images: ["/og?title=Analytics%20for%20AI%20agents&eyebrow=For%20agents"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Counted for agents — AI-native product analytics",
+    description: "Agent eval dashboards in minutes. Native Claude Code & OpenCode plugins, privacy-safe by default.",
+    images: ["/og?title=Analytics%20for%20AI%20agents&eyebrow=For%20agents"],
   },
 };
 
