@@ -29,6 +29,7 @@
     "seed": "bun scripts/seed.ts",
     "stripe:setup": "bun scripts/stripe-setup.ts",
     "indexnow": "bun scripts/indexnow.ts",
+    "syndicate:devto": "bun scripts/syndicate-devto.ts",
     "changeset": "npx @changesets/cli",
     "version-packages": "npx @changesets/cli version",
     "release": "npx @changesets/cli publish"
