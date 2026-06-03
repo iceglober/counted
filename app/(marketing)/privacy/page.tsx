@@ -25,7 +25,7 @@ export default function PrivacyPage() {
       </UL>
 
       <H2>Information we collect</H2>
-      <P><strong>Account information.</strong> To use the Counted app we collect your email address (for passwordless magic-link sign-in). You can also choose to sign in with Google or GitHub, in which case that provider handles authentication and shares basic profile information (such as your email) with us. Optionally, we store profile details and your organization name.</P>
+      <P><strong>Account information.</strong> To use the Counted app we collect your email address (for passwordless magic-link sign-in) and, optionally, profile details and your organization name.</P>
       <P><strong>Analytics events you send.</strong> When you instrument your app with a Counted SDK, we receive the event names and properties <em>you</em> choose to send, plus coarse system properties (such as OS name/version, locale, app version, and device model where your SDK provides them) and an ephemeral session identifier. We do not store IP addresses or attach them to your events. Like any web service, our servers receive the IP that sends a request; we use it transiently — held in memory for seconds — only to rate-limit abuse, and it is never written to disk, logged, or linked to your analytics. You control what properties you send — please don&apos;t send personal data in event properties.</P>
       <P><strong>Our marketing site.</strong> We use our own Counted SDK on counted.dev (we dogfood our product). This is first-party and cookie-free; basic acquisition attribution (UTM tags and referrer) is kept in your browser&apos;s <code className="font-mono">localStorage</code>, never in a cookie, and is not shared across sites.</P>
       <P><strong>Billing.</strong> Paid plans are processed by Stripe; we do not store your card details. Stripe&apos;s handling is governed by its own privacy policy.</P>
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
       <P>Counted is open source and can be self-hosted. If you run your own instance, all data stays in your infrastructure and this policy&apos;s collection terms do not apply to that data.</P>
 
       <H2>Changes & contact</H2>
-      <P>We&apos;ll update this policy as the product evolves and revise the date above. Questions or requests: <a href="mailto:austin@iceglobe.io" className="text-accent hover:text-accent-hover transition-colors">austin@iceglobe.io</a>.</P>
+      <P>We&apos;ll update this policy as the product evolves and revise the date above. Questions or requests (including data-access, export, or deletion): <a href="mailto:privacy@counted.dev" className="text-accent hover:text-accent-hover transition-colors">privacy@counted.dev</a>.</P>
     </LegalPage>
   );
 }

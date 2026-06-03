@@ -103,8 +103,8 @@ export default function PricingPage() {
           Counted is fully open source — self-host anytime. No cookies, no consent banner.
           <br />
           Need more than 1M events/month?{" "}
-          <a href="mailto:austin@iceglobe.io" className="text-accent hover:text-accent-hover transition-colors">
-            Let's talk
+          <a href="mailto:hello@counted.dev" className="text-accent hover:text-accent-hover transition-colors">
+            Let&apos;s talk
           </a>.
         </p>
       </section>
