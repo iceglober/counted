@@ -7,12 +7,12 @@ import { TrackedCTA } from "../../track";
 export const metadata: Metadata = {
   title: "Counted vs Aptabase — privacy analytics with composable dashboards",
   description:
-    "A side-by-side comparison of Counted and Aptabase: composable dashboards, agent-native SDKs, a larger free tier, and a one-command migration. Both are privacy-first and cookie-free.",
+    "A side-by-side comparison of Counted and Aptabase: composable dashboards, funnels, a larger free tier, and a migration CLI. Both are privacy-first and cookie-free.",
   alternates: { canonical: "/vs/aptabase" },
   openGraph: {
     title: "Counted vs Aptabase",
     description:
-      "Composable dashboards, agent-native SDKs, a larger free tier, and a one-command migration — without leaving privacy-first analytics.",
+      "Composable dashboards and funnels, a larger free tier, and a migration CLI — both privacy-first and cookie-free.",
     url: "/vs/aptabase",
     type: "article",
     images: ["/og?title=Counted%20vs%20Aptabase&eyebrow=Comparison"],
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Counted vs Aptabase",
-    description: "Composable dashboards, agent-native SDKs, a larger free tier, and a one-command migration.",
+    description: "Composable dashboards and funnels, a larger free tier, and a migration CLI.",
     images: ["/og?title=Counted%20vs%20Aptabase&eyebrow=Comparison"],
   },
 };
@@ -33,10 +33,10 @@ const ROWS: Row[] = [
   { label: "Composable dashboards (custom insights)", counted: true, aptabase: false },
   { label: "Funnels", counted: true, aptabase: false },
   { label: "Agent-native SDKs (Claude Code, OpenCode, Codex, Gemini)", counted: true, aptabase: false },
-  { label: "Web & backend SDKs", counted: "JS, React, Python, Go, Rust", aptabase: "JS, others" },
+  { label: "Web & backend SDKs", counted: "JS, React, Python, Go, Rust", aptabase: "JS, Swift, Kotlin, +more" },
   { label: "Mobile SDKs (Swift, Kotlin)", counted: "On the roadmap", aptabase: true },
-  { label: "SDK size (web)", counted: "Under 3KB", aptabase: "~5KB" },
-  { label: "Self-host (Docker)", counted: "One-liner", aptabase: true },
+  { label: "SDK size (web)", counted: "<3KB gzipped", aptabase: "~3KB" },
+  { label: "Self-host (Docker)", counted: "Docker Compose", aptabase: true },
   { label: "Free tier events / month", counted: "100K", aptabase: "20K" },
   { label: "Migration CLI", counted: "@counted/migrate", aptabase: false },
 ];
@@ -61,8 +61,8 @@ export default function VsAptabasePage() {
         </h1>
         <p className="mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed">
           Aptabase and Counted both reject cookies, fingerprinting, and PII. Counted adds
-          composable dashboards, agent-native SDKs, a larger free tier — and a one-command
-          way to bring your history over.
+          composable dashboards, funnels, a larger free tier — and a CLI to bring your
+          history over.
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
           <TrackedCTA href="/login" location="vs_aptabase" label="start_free">Start free</TrackedCTA>

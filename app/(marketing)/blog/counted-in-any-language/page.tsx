@@ -58,16 +58,16 @@ await counted.flush();   // before a short-lived process exits`}</CodeBlock>
         <CodeBlock>{`npm install @counted/react`}</CodeBlock>
       </div>
       <div className="mt-3">
-        <CodeBlock>{`import { CountedProvider, useCounted } from "@counted/react";
+        <CodeBlock>{`import { AnalyticsProvider, useAnalytics } from "@counted/react";
 
 // wrap your app
-<CountedProvider projectKey="ck_your_project_key">
+<AnalyticsProvider projectKey="ck_your_project_key">
   <App />
-</CountedProvider>;
+</AnalyticsProvider>;
 
 // then anywhere inside it
-const counted = useCounted();
-counted.track("cta_click", { location: "hero" });`}</CodeBlock>
+const { track } = useAnalytics();
+track("cta_click", { location: "hero" });`}</CodeBlock>
       </div>
       <P>
         The browser flushes automatically when the tab is hidden, so you rarely call{" "}
@@ -187,7 +187,7 @@ analytics.track("task_complete", {"duration_ms": 45000})`}</CodeBlock>
         Go and Rust take the same <code className="font-mono text-text-primary">SessionID</code> /{" "}
         <code className="font-mono text-text-primary">session_id</code> +{" "}
         <code className="font-mono text-text-primary">SessionTimeout: 0</code> options. From here,
-        build the dashboard you want — funnels, retention, per-tool breakdowns — all composable on top
+        build the dashboard you want — funnels, per-tool breakdowns, time series — all composable on top
         of the events you send, whatever language sent them.
       </P>
     </PostLayout>

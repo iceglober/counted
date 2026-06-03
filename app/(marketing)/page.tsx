@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { CountedLogo } from "@/components/icons";
 import { Check } from "lucide-react";
 import { LandingCTA } from "./landing-cta";
 import { Reveal } from "./reveal";
-import { SiteNav } from "./site-chrome";
+import { SiteNav, SiteFooter } from "./site-chrome";
 import { Hero } from "./hero";
 
 export default function Home() {
@@ -34,8 +33,8 @@ export default function Home() {
           <div>
             <h3 className="text-sm font-medium mb-2">Composable dashboards</h3>
             <p className="text-sm text-text-secondary leading-relaxed">
-              Build your own view. Add insights for any metric — breakdowns, time series, counts,
-              funnels. Mix metrics from different events on one board, and rearrange anytime.
+              Build your own view. Add any insight — breakdowns, time series, counts, funnels.
+              Mix metrics from different events on one board, and rearrange anytime.
             </p>
           </div>
           <div>
@@ -93,30 +92,7 @@ export default function Home() {
       </Reveal>
 
       {/* Footer */}
-      <footer className="px-6 py-8 border-t border-border">
-        <div className="max-w-4xl mx-auto flex flex-col gap-4 text-xs text-text-tertiary">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CountedLogo className="w-3.5 h-3.5" />
-              <span>Counted</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link href="/blog" className="hover:text-text-secondary transition-colors">Blog</Link>
-              <Link href="/pricing" className="hover:text-text-secondary transition-colors">Pricing</Link>
-              <Link href="/vs" className="hover:text-text-secondary transition-colors">Compare</Link>
-              <a href="https://github.com/iceglober/counted" className="hover:text-text-secondary transition-colors">GitHub</a>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-text-tertiary/80">
-            <span>No cookies. No fingerprinting. No PII.</span>
-            <span className="flex items-center gap-4">
-              <Link href="/privacy" className="hover:text-text-secondary transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-text-secondary transition-colors">Terms</Link>
-              <span>© {new Date().getFullYear()} Iceglobe Enterprises LLC</span>
-            </span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

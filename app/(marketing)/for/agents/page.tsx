@@ -4,12 +4,12 @@ import { SiteNav, SiteFooter, Eyebrow, CodeBlock, SecondaryCTA } from "../../sit
 import { TrackedCTA } from "../../track";
 
 export const metadata: Metadata = {
-  title: "AI-native product analytics & agent eval — Counted for agents",
+  title: "Agent analytics & eval — Counted for AI coding agents",
   description:
     "Track what your AI agents actually do: tool calls, file edits, commands, and outcomes — privacy-safe, in a pre-built eval dashboard. Native plugins for Claude Code and OpenCode, plus zero-dependency SDKs.",
   alternates: { canonical: "/for/agents" },
   openGraph: {
-    title: "Counted for agents — AI-native product analytics",
+    title: "Counted for agents — privacy-first agent analytics",
     description:
       "Agent eval dashboards in minutes. Native Claude Code & OpenCode plugins, polyglot SDKs, privacy-safe by default.",
     url: "/for/agents",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Counted for agents — AI-native product analytics",
+    title: "Counted for agents — privacy-first agent analytics",
     description: "Agent eval dashboards in minutes. Native Claude Code & OpenCode plugins, privacy-safe by default.",
     images: ["/og?title=Analytics%20for%20AI%20agents&eyebrow=For%20agents"],
   },

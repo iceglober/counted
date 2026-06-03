@@ -7,7 +7,7 @@ import { TrackedCTA } from "../../track";
 export const metadata: Metadata = {
   title: "Counted vs Plausible — privacy-first product analytics, not just pageviews",
   description:
-    "Plausible is excellent privacy-first web analytics. Counted is privacy-first product analytics: same no-cookie stance, plus a free tier, funnels, composable dashboards, and agent-native SDKs.",
+    "Plausible is excellent privacy-first web analytics. Counted is privacy-first product analytics: same no-cookie stance, plus a free tier, funnels, and composable dashboards.",
   alternates: { canonical: "/vs/plausible" },
   openGraph: {
     title: "Counted vs Plausible",

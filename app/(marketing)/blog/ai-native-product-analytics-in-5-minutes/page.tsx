@@ -51,7 +51,7 @@ counted.track("signup", { plan: "free" });`}</CodeBlock>
       <P>
         That&apos;s the honest trade: you can&apos;t silently follow one human across devices and
         weeks — which, without consent, you shouldn&apos;t be able to anyway. What you get back is a
-        number you can stand behind, GDPR/CCPA-clean, and zero consent banners. For most product
+        number you can stand behind, GDPR/CCPA-friendly, and zero consent banners. For most product
         questions (&quot;did this funnel improve?&quot;, &quot;which feature gets used?&quot;) that&apos;s
         exactly the data you wanted.
       </P>
@@ -78,7 +78,7 @@ await counted.flush();   // don't lose the last batch`}</CodeBlock>
         agent&apos;s actions are just events. <code className="font-mono text-text-primary">track(&quot;tool_use&quot;, {`{ tool, outcome }`})</code>{" "}
         is the same shape as <code className="font-mono text-text-primary">track(&quot;signup&quot;, {`{ plan }`})</code>.
         So you instrument your product <em>and</em> your AI coding agents with one SDK and read both
-        in the same composable dashboards — funnels, retention, breakdowns.
+        in the same composable dashboards — funnels, breakdowns, time series.
       </P>
       <P>
         If agents are why you&apos;re here, skip straight to{" "}

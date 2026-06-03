@@ -7,7 +7,7 @@ import { TrackedCTA } from "../../track";
 export const metadata: Metadata = {
   title: "Counted vs PostHog — lightweight, privacy-first product analytics",
   description:
-    "PostHog is a powerful all-in-one platform. Counted is focused product analytics: under 3KB, private by default, agent-native — without the weight or config. An honest comparison.",
+    "PostHog is a powerful all-in-one platform. Counted is focused product analytics: under 3KB gzipped, private by default, funnels and composable dashboards — without the weight or config. An honest comparison.",
   alternates: { canonical: "/vs/posthog" },
   openGraph: {
     title: "Counted vs PostHog",
@@ -33,9 +33,9 @@ const ROWS: Row[] = [
   { label: "Composable dashboards", counted: true, posthog: true },
   { label: "Funnels", counted: true, posthog: true },
   { label: "Agent-native SDKs (Claude Code, OpenCode)", counted: true, posthog: false },
-  { label: "Web SDK size", counted: "Under 3KB", posthog: "Much larger (full platform)" },
+  { label: "Web SDK size", counted: "<3KB gzipped", posthog: "Much larger (full platform)" },
   { label: "Scope", counted: "Focused product analytics", posthog: "All-in-one (replay, flags, experiments, CDP…)" },
-  { label: "Self-host", counted: "Docker one-liner", posthog: "Self-host (large stack)" },
+  { label: "Self-host", counted: "Docker Compose", posthog: "Self-host (large stack)" },
   { label: "Free tier events / month", counted: "100K", posthog: "1M" },
 ];
 
@@ -58,10 +58,10 @@ export default function VsPosthogPage() {
           <span className="text-accent">Counted does analytics — light and private.</span>
         </h1>
         <p className="mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed">
-          PostHog is a genuinely powerful all-in-one platform — analytics, session replay, feature
-          flags, experiments, and more. If you want all of that, use it. Counted is the opposite
-          bet: just product analytics, under 3KB, private by default, and agent-native — without
-          the weight or the config.
+          PostHog is a powerful all-in-one platform — analytics, session replay, feature flags,
+          experiments, and more. If you want all of that, use it. Counted is narrower on purpose:
+          just product analytics, under 3KB gzipped, private by default, funnels and composable
+          dashboards — without the weight or the config.
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
           <TrackedCTA href="/login" location="vs_posthog" label="start_free">Start free</TrackedCTA>
@@ -105,7 +105,7 @@ export default function VsPosthogPage() {
         <section id="who" className="px-6 py-16 border-t border-border scroll-mt-20">
           <div className="max-w-2xl mx-auto">
             <Eyebrow>Which one fits</Eyebrow>
-            <h2 className="mt-2 font-display text-2xl md:text-3xl tracking-tight">Be honest with yourself</h2>
+            <h2 className="mt-2 font-display text-2xl md:text-3xl tracking-tight">Pick by what you need</h2>
             <p className="mt-6 text-sm text-text-secondary leading-relaxed">
               <span className="text-text-primary font-medium">Use PostHog if</span> you want one tool
               for analytics <em>and</em>{" "}session replay, feature flags, experiments, surveys, and a

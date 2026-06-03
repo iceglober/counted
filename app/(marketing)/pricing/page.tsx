@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CountedLogo } from "@/components/icons";
 import { Check } from "lucide-react";
-import { SiteNav } from "../site-chrome";
+import { SiteNav, SiteFooter } from "../site-chrome";
 
 export const metadata: Metadata = {
   title: "Pricing — Counted",
@@ -100,7 +99,7 @@ export default function PricingPage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-text-tertiary">
-          All plans include the full SDK and every insight type — breakdowns, time series, and counts.
+          All plans include the full SDK and every insight type — breakdowns, time series, counts, and funnels.
           Counted is fully open source — self-host anytime. No cookies, no consent banner.
           <br />
           Need more than 1M events/month?{" "}
@@ -111,30 +110,7 @@ export default function PricingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-8 border-t border-border">
-        <div className="max-w-4xl mx-auto flex flex-col gap-4 text-xs text-text-tertiary">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CountedLogo className="w-3.5 h-3.5" />
-              <span>Counted</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link href="/" className="hover:text-text-secondary transition-colors">Home</Link>
-              <Link href="/blog" className="hover:text-text-secondary transition-colors">Blog</Link>
-              <Link href="/vs" className="hover:text-text-secondary transition-colors">Compare</Link>
-              <a href="https://github.com/iceglober/counted" className="hover:text-text-secondary transition-colors">GitHub</a>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-text-tertiary/80">
-            <span>No cookies. No fingerprinting. No PII.</span>
-            <span className="flex items-center gap-4">
-              <Link href="/privacy" className="hover:text-text-secondary transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-text-secondary transition-colors">Terms</Link>
-              <span>© {new Date().getFullYear()} Iceglobe Enterprises LLC</span>
-            </span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
