@@ -98,6 +98,15 @@ describe.skipIf(!hasDocker)("@counted/migrate e2e (real Aptabase ClickHouse + CS
     server = await startCaptureServer();
 
     await sh(["docker", "rm", "-f", CONTAINER]);
+
+    // Pre-pull with retries — Docker Hub registry fetches can transiently time
+    // out in CI, which otherwise fails the whole suite on a flake, not a bug.
+    let pulled = false;
+    for (let i = 0; i < 3 && !pulled; i++) {
+      if ((await sh(["docker", "pull", CH_IMAGE])).code === 0) pulled = true;
+      else await Bun.sleep(4000);
+    }
+
     const run = await sh([
       "docker", "run", "-d", "--name", CONTAINER,
       "--ulimit", "nofile=262144:262144",
