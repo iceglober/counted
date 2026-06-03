@@ -14,6 +14,15 @@ export type PostMeta = {
 
 export const POSTS: PostMeta[] = [
   {
+    slug: "public-dashboard-in-5-minutes",
+    title: "Ship a public metrics dashboard in 5 minutes",
+    description:
+      "Build a dashboard, then share it as a read-only public link — no login required. Perfect for a status page, a launch metric, or open startup metrics.",
+    date: "2026-06-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+  },
+  {
     slug: "ai-native-product-analytics-in-5-minutes",
     title: "Set up AI-native product analytics in 5 minutes",
     description:
