@@ -24,8 +24,8 @@ test("landing renders one of the A/B CTA variants", async ({ page }) => {
   await expect(
     page.getByText(/Give this to your coding agent|Drop in the SDK|Spin up a key|Get a live dashboard/),
   ).toBeVisible();
-  // Assignment is sticky.
-  const v = await page.evaluate(() => localStorage.getItem("counted_cta"));
+  // Assignment is sticky (shared experiment primitive: counted_exp_<name>).
+  const v = await page.evaluate(() => localStorage.getItem("counted_exp_cta"));
   expect(["agent", "code", "command", "trylive"]).toContain(v);
 });
 
