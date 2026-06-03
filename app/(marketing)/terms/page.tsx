@@ -45,10 +45,10 @@ export default function TermsPage() {
       <P>You may stop using the service at any time. We may suspend or terminate access for breach of these Terms or to protect the service. On termination, your right to use the hosted service ends; you may export your data first where feasible.</P>
 
       <H2>Governing law</H2>
-      <P>These Terms are governed by the laws of the State in which Iceglobe Enterprises LLC is organized, without regard to its conflict-of-laws rules, and you agree to the exclusive jurisdiction of the courts located there.</P>
+      <P>These Terms are governed by the laws of the State of Washington, USA, without regard to its conflict-of-laws rules, and you agree to the exclusive jurisdiction of the state and federal courts located in King County, Washington.</P>
 
       <H2>Changes & contact</H2>
-      <P>We may update these Terms and will revise the date above; continued use means you accept the changes. Questions: <a href="mailto:austin@iceglobe.io" className="text-accent hover:text-accent-hover transition-colors">austin@iceglobe.io</a>.</P>
+      <P>We may update these Terms and will revise the date above; continued use means you accept the changes. Questions: <a href="mailto:privacy@counted.dev" className="text-accent hover:text-accent-hover transition-colors">privacy@counted.dev</a>.</P>
     </LegalPage>
   );
 }
