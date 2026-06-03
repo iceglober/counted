@@ -1,0 +1,33 @@
+name: IndexNow
+
+# Auto-submit URLs to IndexNow (Bing/Yandex) when content ships to main, so new
+# or changed pages get picked up for indexing without a manual step. IndexNow is
+# a notification — the search engines crawl asynchronously, so it's fine that the
+# Railway deploy is still finishing when this runs.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**/posts.ts" # blog registry (a post added/changed)
+      - "app/**/vs/**" # comparison pages
+      - "app/**/for/**" # use-case landing pages
+      - "lib/indexnow.ts"
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+concurrency:
+  group: indexnow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    name: Submit URLs to IndexNow
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - run: bun run indexnow
