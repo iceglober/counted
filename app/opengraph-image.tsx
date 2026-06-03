@@ -4,7 +4,7 @@ import { ImageResponse } from "next/og";
 // this file). Rendered from JSX — no design asset to maintain. Per-page images
 // (e.g. blog post titles) can override by adding opengraph-image in a segment.
 
-export const alt = "Counted — Privacy-first analytics for products that respect users";
+export const alt = "Counted — Privacy-first analytics for products and agents";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -33,7 +33,7 @@ export default function OpengraphImage() {
             Privacy-first analytics
           </div>
           <div style={{ fontSize: 78, color: "#7C6CF7", lineHeight: 1.05, fontWeight: 600 }}>
-            for products that respect users
+            for products and agents
           </div>
         </div>
 

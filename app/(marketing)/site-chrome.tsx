@@ -3,9 +3,8 @@ import { CountedLogo } from "@/components/icons";
 
 const GITHUB = "https://github.com/iceglober/counted";
 
-// Shared nav + footer for marketing sub-pages (comparisons, /for, blog).
-// The home page keeps its own inline nav; these give every other marketing
-// surface the same chrome without duplicating it per page.
+// Shared nav + footer for every marketing surface (home, pricing, comparisons,
+// /for, blog) — one header/footer everywhere so the chrome stays consistent.
 
 export function SiteNav() {
   return (
@@ -15,8 +14,9 @@ export function SiteNav() {
         <span className="font-display text-lg tracking-wide">Counted</span>
       </Link>
       <div className="flex items-center gap-6 text-sm">
-        <Link href="/blog" className="text-text-secondary hover:text-text-primary transition-colors">Blog</Link>
         <Link href="/pricing" className="text-text-secondary hover:text-text-primary transition-colors">Pricing</Link>
+        <Link href="/vs" className="text-text-secondary hover:text-text-primary transition-colors">Compare</Link>
+        <Link href="/blog" className="text-text-secondary hover:text-text-primary transition-colors">Blog</Link>
         <a href={GITHUB} className="text-text-secondary hover:text-text-primary transition-colors">GitHub</a>
         <Link href="/login" className="text-accent hover:text-accent-hover transition-colors font-medium">Sign in</Link>
       </div>

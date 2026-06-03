@@ -6,7 +6,7 @@
 
 <p align="center">
   Privacy-first analytics for products and agents, with composable dashboards.<br/>
-  No cookies. No fingerprinting. No PII. Under 3KB.
+  No cookies. No fingerprinting. No PII. Under 3KB gzipped.
 </p>
 
 <p align="center">
@@ -57,7 +57,7 @@ function SignupButton() {
 
 - **Event tracking** — track any event with custom properties
 - **Composable dashboards** — build your own view with metrics, time series, and breakdowns
-- **Privacy by design** — no cookies, no IP storage, no fingerprinting, GDPR-compliant without a consent banner
+- **Privacy by design** — no cookies, no IP storage, no fingerprinting, GDPR/CCPA-friendly with no consent banner
 - **Lightweight SDK** — under 3KB gzipped, no dependencies
 
 ## What Counted Does NOT Do
@@ -70,7 +70,7 @@ function SignupButton() {
 
 ## Self-Hosting
 
-One command:
+With Docker Compose:
 
 ```bash
 git clone https://github.com/iceglober/counted.git
