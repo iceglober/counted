@@ -1,7 +1,7 @@
 import { getPost } from "../posts";
 import { postMetadata } from "../post-meta";
 import { CodeBlock } from "../../site-chrome";
-import { PostLayout, Lead, P, Step } from "../post-layout";
+import { PostLayout, Lead, P, H2 } from "../post-layout";
 
 const meta = getPost("ai-native-product-analytics-in-5-minutes")!;
 
@@ -11,74 +11,87 @@ export default function Post() {
   return (
     <PostLayout meta={meta}>
       <Lead>
-        Most analytics setups make you wire a consent banner before you can see a single number.
-        Counted doesn&apos;t — no cookies, no PII, under 3KB. Here&apos;s the whole thing, start to
-        live dashboard, in about five minutes.
+        I&apos;m tired of two things in an analytics setup: the cookie-consent banner, and the 50KB
+        script that loads before my own app does. Counted is the answer to both — and it treats your
+        AI agents as first-class event sources, not an afterthought. Here&apos;s the five-minute
+        version.
       </Lead>
 
-      <Step n={1} title="Get a project key">
-        <P>
-          Fastest path — no signup needed. Mint a write-only key straight from your terminal:
-        </P>
-        <div className="mt-3">
-          <CodeBlock>{`curl -X POST https://app.counted.dev/api/v0/provision`}</CodeBlock>
-        </div>
-        <P>
-          It returns a client key (<code className="font-mono text-text-primary">ck_…</code>) and a
-          claim link to keep the project. Already have an account? Create a project in the dashboard
-          and copy its key instead. Either way, client keys are write-only — safe to ship in browser
-          or app code; they send events but can&apos;t read your data.
-        </P>
-      </Step>
+      <H2>Two lines to your first event</H2>
+      <P>
+        Grab a write-only client key. No signup required — mint one from your terminal (it returns a{" "}
+        <code className="font-mono text-text-primary">ck_…</code> key plus a link to claim the project
+        later):
+      </P>
+      <div className="mt-3">
+        <CodeBlock>{`curl -X POST https://app.counted.dev/api/v0/provision`}</CodeBlock>
+      </div>
+      <P>Then install the zero-dependency SDK and send something:</P>
+      <div className="mt-3">
+        <CodeBlock>{`npm install @counted/sdk`}</CodeBlock>
+      </div>
+      <div className="mt-3">
+        <CodeBlock>{`import { Analytics } from "@counted/sdk";
 
-      <Step n={2} title="Install the SDK">
-        <P>The core SDK is zero-dependency and works in any JS runtime.</P>
-        <div className="mt-3">
-          <CodeBlock>{`npm install @counted/sdk
-# or: bun add @counted/sdk`}</CodeBlock>
-        </div>
-      </Step>
+const counted = new Analytics({ projectKey: "ck_your_key" });
+counted.track("signup", { plan: "free" });`}</CodeBlock>
+      </div>
+      <P>
+        Open the project and the event is there within a second or two. Properties are plain values —
+        strings, numbers, booleans — and that&apos;s deliberate: there&apos;s no field for a user id
+        or an email, because Counted doesn&apos;t store them.
+      </P>
 
-      <Step n={3} title="Initialize and send your first event">
-        <P>Create the client once, then track named events with whatever properties you care about.</P>
-        <div className="mt-3">
-          <CodeBlock>{`import { Analytics } from "@counted/sdk";
+      <H2>Why there&apos;s no cookie (and why that&apos;s more honest, not less)</H2>
+      <P>
+        The session id is generated in memory when the SDK starts and lives as long as the tab or
+        process does. Nothing is written to a cookie, localStorage, or an IP log — when the session
+        ends, it&apos;s gone. So you&apos;re counting <em>events and sessions</em>, not people.
+      </P>
+      <P>
+        That&apos;s the honest trade: you can&apos;t silently follow one human across devices and
+        weeks — which, without consent, you shouldn&apos;t be able to anyway. What you get back is a
+        number you can stand behind, GDPR/CCPA-clean, and zero consent banners. For most product
+        questions (&quot;did this funnel improve?&quot;, &quot;which feature gets used?&quot;) that&apos;s
+        exactly the data you wanted.
+      </P>
 
-const counted = new Analytics({
-  projectKey: "ck_your_project_key",
-  host: "https://app.counted.dev",
-});
+      <H2>The one gotcha: flush before a short-lived process exits</H2>
+      <P>
+        The SDK batches events and flushes on a timer. In the browser it also flushes when the tab is
+        hidden, so you rarely think about it. But in a <strong>short-lived process</strong> — a
+        serverless function, a CLI, a cron job — the process can exit before that timer fires and drop
+        the last batch. Flush explicitly before you exit:
+      </P>
+      <div className="mt-3">
+        <CodeBlock>{`counted.track("job_finished", { processed: 128 });
+await counted.flush();   // don't lose the last batch`}</CodeBlock>
+      </div>
+      <p className="mt-4 text-sm text-text-tertiary leading-relaxed">
+        (This is the single thing people trip on. The browser and long-running servers handle it for
+        you; ephemeral runtimes don&apos;t.)
+      </p>
 
-counted.track("signup", { plan: "free", referrer: "blog" });`}</CodeBlock>
-        </div>
-        <P>
-          Properties are plain values — strings, numbers, booleans. No user IDs, no emails, nothing
-          that identifies a person. Sessions are ephemeral and in-memory only.
-        </P>
-      </Step>
-
-      <Step n={4} title="Watch it land on a dashboard">
-        <P>
-          Open your project and you&apos;ll see the event arrive within a second or two. Add an
-          insight — a count of <code className="font-mono text-text-primary">signup</code> broken
-          down by <code className="font-mono text-text-primary">plan</code>, say — and you have a
-          composable dashboard you can keep building on. Funnels and retention work the same way.
-        </P>
-      </Step>
-
-      <Step n={5} title="(Optional) Auto-track a React or SPA app">
-        <P>
-          For a single-page app, <code className="font-mono text-text-primary">@counted/react</code>{" "}
-          can emit a page view on every route change, so you don&apos;t hand-instrument navigation.
-        </P>
-        <div className="mt-3">
-          <CodeBlock>{`npm install @counted/react`}</CodeBlock>
-        </div>
-      </Step>
+      <H2>Same SDK, your agents too</H2>
+      <P>
+        Here&apos;s what makes it &quot;AI-native&quot; rather than a buzzword on a quickstart: an
+        agent&apos;s actions are just events. <code className="font-mono text-text-primary">track(&quot;tool_use&quot;, {`{ tool, outcome }`})</code>{" "}
+        is the same shape as <code className="font-mono text-text-primary">track(&quot;signup&quot;, {`{ plan }`})</code>.
+        So you instrument your product <em>and</em> your AI coding agents with one SDK and read both
+        in the same composable dashboards — funnels, retention, breakdowns.
+      </P>
+      <P>
+        If agents are why you&apos;re here, skip straight to{" "}
+        <a href="/blog/claude-code-eval-in-5-minutes" className="text-accent hover:text-accent-hover transition-colors">
+          tracking a Claude Code eval in 5 minutes
+        </a>{" "}
+        — same idea, with the native plugin doing the instrumentation for you.
+      </P>
 
       <P>
-        That&apos;s it — instrumented, sending, and visible, without a cookie banner or a 50KB
-        bundle. From here, compose the dashboard you actually want.
+        That&apos;s the whole thing: instrumented and visible, no banner, no 50KB bundle, and one
+        event model for your users and your agents. From here, go compose the dashboard you actually
+        want.
       </P>
     </PostLayout>
   );
