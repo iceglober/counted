@@ -6,6 +6,7 @@ import { projectMembers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Toaster } from "@/components/ui/sonner";
+import { SignupTracker } from "@/components/signup-tracker";
 
 export default async function DashboardLayout({
   children,
@@ -33,6 +34,7 @@ export default async function DashboardLayout({
   return (
     <>
       <DashboardShell projects={projects}>{children}</DashboardShell>
+      <SignupTracker />
       <Toaster />
     </>
   );

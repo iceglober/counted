@@ -15,9 +15,9 @@ const PRO_FEATURES = [
   "1M events/month",
   "Unlimited projects",
   "24-month data retention",
+  "Full API access",
   "Priority support",
   "Custom accent colors",
-  "API access",
 ];
 
 export default function PricingPage() {
@@ -31,6 +31,7 @@ export default function PricingPage() {
         </Link>
         <div className="flex items-center gap-6 text-sm">
           <Link href="/" className="text-text-secondary hover:text-text-primary transition-colors">Home</Link>
+          <Link href="/blog" className="text-text-secondary hover:text-text-primary transition-colors">Blog</Link>
           <Link href="/login" className="text-accent hover:text-accent-hover transition-colors font-medium">Sign in</Link>
         </div>
       </nav>
@@ -100,7 +101,8 @@ export default function PricingPage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-text-tertiary">
-          All plans include the full SDK, all insight types, and open-source codebase access.
+          All plans include the full SDK and every insight type. Counted is fully open source —
+          self-host anytime. No cookies, no consent banner.
           <br />
           Need more than 1M events/month?{" "}
           <a href="mailto:austin@iceglobe.io" className="text-accent hover:text-accent-hover transition-colors">
@@ -111,14 +113,22 @@ export default function PricingPage() {
 
       {/* Footer */}
       <footer className="px-6 py-8 border-t border-border">
-        <div className="max-w-4xl mx-auto flex items-center justify-between text-xs text-text-tertiary">
-          <div className="flex items-center gap-2">
-            <CountedLogo className="w-3.5 h-3.5" />
-            <span>Counted</span>
+        <div className="max-w-4xl mx-auto flex flex-col gap-4 text-xs text-text-tertiary">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CountedLogo className="w-3.5 h-3.5" />
+              <span>Counted</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link href="/" className="hover:text-text-secondary transition-colors">Home</Link>
+              <Link href="/blog" className="hover:text-text-secondary transition-colors">Blog</Link>
+              <Link href="/vs/aptabase" className="hover:text-text-secondary transition-colors">Compare</Link>
+              <a href="https://github.com/iceglober/counted" className="hover:text-text-secondary transition-colors">GitHub</a>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/" className="hover:text-text-secondary transition-colors">Home</Link>
-            <a href="https://github.com/iceglober/counted" className="hover:text-text-secondary transition-colors">GitHub</a>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-text-tertiary/80">
+            <span>No cookies. No fingerprinting. No PII.</span>
+            <span>© {new Date().getFullYear()} Iceglobe Enterprises LLC</span>
           </div>
         </div>
       </footer>

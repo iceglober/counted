@@ -20,6 +20,7 @@
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
     "conformance": "bun test tests/conformance/conformance.test.ts",
+    "test:migrate": "bun test tests/migrate/migrate.e2e.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -31,6 +32,7 @@
     "release": "npx @changesets/cli publish"
   },
   "dependencies": {
+    "@counted/api": "workspace:*",
     "@counted/sdk": "workspace:*",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",

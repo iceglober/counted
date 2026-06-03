@@ -13,6 +13,14 @@ const APP_HOST = "app.counted.dev";
 
 const MARKETING_PATHS = new Set(["/", "/pricing", "/sitemap.xml", "/robots.txt"]);
 
+// Marketing content also lives under these prefixes (comparisons, /for, blog).
+const MARKETING_PREFIXES = ["/vs/", "/for/", "/blog"];
+
+function isMarketingPath(pathname: string): boolean {
+  if (MARKETING_PATHS.has(pathname)) return true;
+  return MARKETING_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
+}
+
 // Public, browser-callable API paths. They must be served same-origin with CORS
 // from the marketing host too — otherwise the marketing site's fetch gets
 // redirected to the app host and the cross-origin POST is blocked (no ACAO).
@@ -36,10 +44,11 @@ export function proxy(request: NextRequest) {
     return response;
   }
 
-  // Marketing domain: only serve marketing pages, redirect everything else to app
+  // Marketing domain: only serve marketing pages, redirect everything else to
+  // app — preserving the query string so attribution params survive the hop.
   if (MARKETING_HOSTS.has(host)) {
-    if (!MARKETING_PATHS.has(pathname) && !pathname.startsWith("/_next") && !pathname.startsWith("/icon")) {
-      return NextResponse.redirect(new URL(pathname, `https://${APP_HOST}`));
+    if (!isMarketingPath(pathname) && !pathname.startsWith("/_next") && !pathname.startsWith("/icon")) {
+      return NextResponse.redirect(new URL(pathname + request.nextUrl.search, `https://${APP_HOST}`));
     }
   }
 
