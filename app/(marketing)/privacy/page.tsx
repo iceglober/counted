@@ -20,13 +20,13 @@ export default function PrivacyPage() {
       <H2>Our privacy stance</H2>
       <UL>
         <li><strong>No tracking cookies, ever.</strong> We do not use cookies, fingerprinting, or any cross-site identifier for analytics — on our product or our own marketing site.</li>
-        <li><strong>No PII in analytics.</strong> We do not collect names, IP addresses, or persistent device identifiers as part of event analytics. Sessions are ephemeral and held in memory only.</li>
+        <li><strong>No PII in analytics.</strong> We never store IP addresses, fingerprints, or persistent device identifiers in your analytics, and we never link an IP to an event. Sessions are ephemeral and held in memory only.</li>
         <li><strong>GDPR/CCPA-friendly by default.</strong> Because we don&apos;t set tracking cookies or process personal identifiers for analytics, Counted can run without a consent banner.</li>
       </UL>
 
       <H2>Information we collect</H2>
       <P><strong>Account information.</strong> To use the Counted app we collect your email address (for passwordless magic-link sign-in) and, optionally, profile details and your organization name.</P>
-      <P><strong>Analytics events you send.</strong> When you instrument your app with a Counted SDK, we receive the event names and properties <em>you</em> choose to send, plus coarse system properties (such as OS name/version, locale, app version, and device model where your SDK provides them) and an ephemeral session identifier. We do not collect or store IP addresses. You control what properties you send — please don&apos;t send personal data in event properties.</P>
+      <P><strong>Analytics events you send.</strong> When you instrument your app with a Counted SDK, we receive the event names and properties <em>you</em> choose to send, plus coarse system properties (such as OS name/version, locale, app version, and device model where your SDK provides them) and an ephemeral session identifier. We do not store IP addresses or attach them to your events. Like any web service, our servers receive the IP that sends a request; we use it transiently — held in memory for seconds — only to rate-limit abuse, and it is never written to disk, logged, or linked to your analytics. You control what properties you send — please don&apos;t send personal data in event properties.</P>
       <P><strong>Our marketing site.</strong> We use our own Counted SDK on counted.dev (we dogfood our product). This is first-party and cookie-free; basic acquisition attribution (UTM tags and referrer) is kept in your browser&apos;s <code className="font-mono">localStorage</code>, never in a cookie, and is not shared across sites.</P>
       <P><strong>Billing.</strong> Paid plans are processed by Stripe; we do not store your card details. Stripe&apos;s handling is governed by its own privacy policy.</P>
 

@@ -31,6 +31,26 @@ export const POSTS: PostMeta[] = [
     published: false,
   },
   {
+    slug: "privacy-first-why",
+    title: "Privacy-first. Why?",
+    description:
+      "Most analytics is built on surveillance you never needed. Privacy-first isn't a compliance checkbox for us — it's the founding bet. Here's the argument, and the business case behind it.",
+    date: "2026-06-03",
+    readingTime: "6 min",
+    category: "Perspective",
+    published: false,
+  },
+  {
+    slug: "no-cookies-how",
+    title: "Why we don't use cookies — and what we do instead",
+    description:
+      "No cookies, no localStorage id, no fingerprint. So how does Counted count anything? The ephemeral session model explained — including the honest tradeoffs of giving up identity.",
+    date: "2026-06-03",
+    readingTime: "7 min",
+    category: "Perspective",
+    published: false,
+  },
+  {
     slug: "public-dashboard-in-5-minutes",
     title: "Ship a public metrics dashboard in 5 minutes",
     description:
@@ -51,32 +71,12 @@ export const POSTS: PostMeta[] = [
     published: false,
   },
   {
-    slug: "rust-analytics-in-5-minutes",
-    title: "Instrument a Rust service in 5 minutes",
+    slug: "counted-in-any-language",
+    title: "Counted in any language",
     description:
-      "Add privacy-first analytics to a Rust service with the counted-sdk crate — thread-safe, flushes on drop. No PII.",
+      "One privacy-first analytics model, the same event shape everywhere. Copy-paste quickstarts for JavaScript, React/Next.js, Python, Go, and Rust — install, track, flush.",
     date: "2026-06-02",
-    readingTime: "5 min",
-    category: "Quickstart",
-    published: false,
-  },
-  {
-    slug: "go-analytics-in-5-minutes",
-    title: "Instrument a Go service in 5 minutes",
-    description:
-      "Add privacy-first analytics to a Go service with the zero-dependency counted SDK — track events, flush cleanly on shutdown. No PII.",
-    date: "2026-06-02",
-    readingTime: "5 min",
-    category: "Quickstart",
-    published: false,
-  },
-  {
-    slug: "python-analytics-in-5-minutes",
-    title: "Instrument a Python service in 5 minutes",
-    description:
-      "Add privacy-first analytics to a Python service with the zero-dependency counted SDK — track events, flush cleanly on shutdown. No PII.",
-    date: "2026-06-02",
-    readingTime: "5 min",
+    readingTime: "7 min",
     category: "Quickstart",
     published: false,
   },

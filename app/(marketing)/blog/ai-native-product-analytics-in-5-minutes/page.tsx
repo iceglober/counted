@@ -45,7 +45,7 @@ counted.track("signup", { plan: "free" });`}</CodeBlock>
       <H2>Why there&apos;s no cookie (and why that&apos;s more honest, not less)</H2>
       <P>
         The session id is generated in memory when the SDK starts and lives as long as the tab or
-        process does. Nothing is written to a cookie, localStorage, or an IP log — when the session
+        process does. Nothing is written to a cookie, to localStorage, or to disk — when the session
         ends, it&apos;s gone. So you&apos;re counting <em>events and sessions</em>, not people.
       </P>
       <P>
