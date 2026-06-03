@@ -18,7 +18,7 @@ const STATIC_PAGES = ["/", "/pricing", "/vs", "/vs/aptabase", "/vs/posthog", "/v
 
 const urlList = [
   ...STATIC_PAGES,
-  ...POSTS.map((p) => `/blog/${p.slug}`),
+  ...POSTS.filter((p) => p.published).map((p) => `/blog/${p.slug}`),
 ].map((path) => `${INDEXNOW_SITE}${path}`);
 
 const dryRun = process.argv.includes("--dry-run");

@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { SiteNav, SiteFooter } from "../site-chrome";
 import { TrackedCTA } from "../track";
@@ -15,6 +16,9 @@ function formatDate(iso: string): string {
 }
 
 export function PostLayout({ meta, children }: { meta: PostMeta; children: React.ReactNode }) {
+  // Unpublished posts 404 — pulled from the live site pending review.
+  if (!meta.published) notFound();
+
   return (
     <div className="min-h-screen">
       <JsonLd data={blogPostingLd(meta)} />

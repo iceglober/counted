@@ -37,6 +37,11 @@ export default function BlogIndex() {
       </section>
 
       <section className="px-6 pb-20 max-w-2xl mx-auto">
+        {posts.length === 0 ? (
+          <p className="text-center text-text-tertiary text-sm py-10 border-t border-border">
+            Posts coming soon.
+          </p>
+        ) : (
         <div className="divide-y divide-border border-t border-border">
           {posts.map((post) => (
             <Link
@@ -58,6 +63,7 @@ export default function BlogIndex() {
             </Link>
           ))}
         </div>
+        )}
       </section>
 
       <SiteFooter />
