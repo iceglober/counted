@@ -24,13 +24,13 @@ export default function Home() {
       {/* Hero */}
       <section className="px-6 pt-24 pb-16 max-w-3xl mx-auto text-center">
         <h1 className="animate-rise font-display text-[clamp(2.25rem,5.5vw,3.25rem)] tracking-tight leading-tight">
-          Privacy-first analytics
+          Privacy-first product and AI analytics
           <br />
           <span className="text-accent">for products that respect users</span>
         </h1>
         <p className="animate-rise mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed" style={{ animationDelay: "90ms" }}>
-          Lightweight, no-cookie event tracking with composable dashboards.
-          No fingerprinting. No PII. Under 3KB.
+          Lightweight, no-cookie event tracking for your product and your agents,
+          with composable dashboards. No fingerprinting. No PII. Under 3KB.
         </p>
         <div className="animate-rise mt-8 flex items-center justify-center gap-4" style={{ animationDelay: "180ms" }}>
           <Link
@@ -61,8 +61,8 @@ export default function Home() {
           <div>
             <h3 className="text-sm font-medium mb-2">Privacy by design</h3>
             <p className="text-sm text-text-secondary leading-relaxed">
-              No cookies, no IP storage, no fingerprinting. GDPR-compliant without a consent banner.
-              Users can verify the claim — the code is open source.
+              No cookies, no IP storage, no fingerprinting. GDPR- and CCPA-friendly, with no consent
+              banner. You don&apos;t have to take our word for it — the code is open source.
             </p>
           </div>
           <div>

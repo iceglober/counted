@@ -74,7 +74,7 @@ await counted.flush();   // don't lose the last batch`}</CodeBlock>
 
       <H2>Same SDK, your agents too</H2>
       <P>
-        Here&apos;s what makes it &quot;AI-native&quot; rather than a buzzword on a quickstart: an
+        This is the part that makes it AI-native, not just a label: an
         agent&apos;s actions are just events. <code className="font-mono text-text-primary">track(&quot;tool_use&quot;, {`{ tool, outcome }`})</code>{" "}
         is the same shape as <code className="font-mono text-text-primary">track(&quot;signup&quot;, {`{ plan }`})</code>.
         So you instrument your product <em>and</em> your AI coding agents with one SDK and read both
@@ -89,9 +89,8 @@ await counted.flush();   // don't lose the last batch`}</CodeBlock>
       </P>
 
       <P>
-        That&apos;s the whole thing: instrumented and visible, no banner, no 50KB bundle, and one
-        event model for your users and your agents. From here, go compose the dashboard you actually
-        want.
+        That&apos;s it — instrumented and visible, no banner, no 50KB bundle, one event model for your
+        users and your agents. From here you build the dashboard you want.
       </P>
     </PostLayout>
   );
