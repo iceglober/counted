@@ -63,17 +63,39 @@ async function ensurePrice(
   );
 }
 
+const WEBHOOK_URL = "https://app.counted.dev/api/billing/webhook";
+const WEBHOOK_EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
+  "checkout.session.completed",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+  "invoice.payment_failed",
+];
+
+// Stripe only returns the signing secret when the endpoint is first created, so
+// this is create-once: if the endpoint already exists, reuse your existing
+// STRIPE_WEBHOOK_SECRET (or delete it in the dashboard and re-run).
+async function ensureWebhook(): Promise<{ secret: string | null; id: string }> {
+  const existing = await stripe.webhookEndpoints.list({ limit: 100 });
+  const found = existing.data.find((e) => e.url === WEBHOOK_URL);
+  if (found) return { secret: null, id: found.id };
+  const ep = await stripe.webhookEndpoints.create({ url: WEBHOOK_URL, enabled_events: WEBHOOK_EVENTS });
+  return { secret: ep.secret ?? null, id: ep.id };
+}
+
 const product = await ensureProduct();
 const monthly = await ensurePrice(product, MONTHLY);
 const annual = await ensurePrice(product, ANNUAL);
+const webhook = await ensureWebhook();
 
 console.log(`\nStripe mode: ${mode}`);
 console.log(`Product: ${product.name} (${product.id})`);
+console.log(`Webhook: ${WEBHOOK_URL} (${webhook.id})`);
 console.log(`\nSet these in your env (Railway + local .env):\n`);
 console.log(`STRIPE_PRICE_MONTHLY_ID=${monthly.id}`);
 console.log(`STRIPE_PRICE_ANNUAL_ID=${annual.id}`);
-console.log(`\nNext: add the webhook endpoint in Stripe → Developers → Webhooks`);
-console.log(`  URL:    https://app.counted.dev/api/billing/webhook`);
-console.log(`  Events: checkout.session.completed, customer.subscription.updated,`);
-console.log(`          customer.subscription.deleted, invoice.payment_failed`);
-console.log(`  Then set STRIPE_WEBHOOK_SECRET to the signing secret (whsec_…).`);
+if (webhook.secret) {
+  console.log(`STRIPE_WEBHOOK_SECRET=${webhook.secret}`);
+} else {
+  console.log(`# STRIPE_WEBHOOK_SECRET — endpoint already existed; reuse your saved secret,`);
+  console.log(`#   or delete the endpoint in the Stripe dashboard and re-run to mint a new one.`);
+}
