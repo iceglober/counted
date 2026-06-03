@@ -40,9 +40,13 @@ export function SiteFooter() {
             <a href={GITHUB} className="hover:text-text-secondary transition-colors">GitHub</a>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-text-tertiary/80">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-text-tertiary/80">
           <span>No cookies. No fingerprinting. No PII.</span>
-          <span>© {new Date().getFullYear()} Iceglobe Enterprises LLC</span>
+          <span className="flex items-center gap-4">
+            <Link href="/privacy" className="hover:text-text-secondary transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-text-secondary transition-colors">Terms</Link>
+            <span>© {new Date().getFullYear()} Iceglobe Enterprises LLC</span>
+          </span>
         </div>
       </div>
     </footer>

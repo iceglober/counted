@@ -11,7 +11,7 @@ const CORS_HEADERS = {
 const MARKETING_HOSTS = new Set(["counted.dev", "www.counted.dev"]);
 const APP_HOST = "app.counted.dev";
 
-const MARKETING_PATHS = new Set(["/", "/pricing", "/sitemap.xml", "/robots.txt"]);
+const MARKETING_PATHS = new Set(["/", "/pricing", "/privacy", "/terms", "/sitemap.xml", "/robots.txt"]);
 
 // Marketing content also lives under these prefixes (comparisons, /for, blog).
 const MARKETING_PREFIXES = ["/vs/", "/for/", "/blog"];
