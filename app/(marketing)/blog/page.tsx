@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav, SiteFooter, Eyebrow } from "../site-chrome";
-import { sortedPosts } from "./posts";
+import { visiblePosts } from "./posts";
 
 export const metadata: Metadata = {
   title: "Blog — Counted",
@@ -23,7 +23,7 @@ function formatDate(iso: string): string {
 }
 
 export default function BlogIndex() {
-  const posts = sortedPosts();
+  const posts = visiblePosts();
   return (
     <div className="min-h-screen">
       <SiteNav />
@@ -55,6 +55,11 @@ export default function BlogIndex() {
                 <span>{formatDate(post.date)}</span>
                 <span>·</span>
                 <span>{post.readingTime} read</span>
+                {!post.published && (
+                  <span className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-400">
+                    Draft
+                  </span>
+                )}
               </div>
               <h2 className="mt-2 font-display text-lg md:text-xl tracking-tight group-hover:text-accent transition-colors">
                 {post.title}
