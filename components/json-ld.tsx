@@ -18,7 +18,7 @@ export const organizationLd = {
   name: "Counted",
   url: SITE,
   logo: `${SITE}/opengraph-image`,
-  description: "Privacy-first product and AI analytics with composable dashboards and agent-native SDKs.",
+  description: "Privacy-first analytics for products and agents, with composable dashboards and agent-native SDKs.",
   sameAs: ["https://github.com/iceglober/counted"],
 };
 
