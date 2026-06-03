@@ -122,7 +122,7 @@ export default function PricingPage() {
             <div className="flex items-center gap-4">
               <Link href="/" className="hover:text-text-secondary transition-colors">Home</Link>
               <Link href="/blog" className="hover:text-text-secondary transition-colors">Blog</Link>
-              <Link href="/vs/aptabase" className="hover:text-text-secondary transition-colors">Compare</Link>
+              <Link href="/vs" className="hover:text-text-secondary transition-colors">Compare</Link>
               <a href="https://github.com/iceglober/counted" className="hover:text-text-secondary transition-colors">GitHub</a>
             </div>
           </div>

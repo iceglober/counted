@@ -43,7 +43,7 @@ const MARKETING_PATHS = new Set([
 ]);
 
 // Marketing content also lives under these prefixes (comparisons, /for, blog).
-const MARKETING_PREFIXES = ["/vs/", "/for/", "/blog"];
+const MARKETING_PREFIXES = ["/vs", "/for/", "/blog"];
 
 function isMarketingPath(pathname: string): boolean {
   if (MARKETING_PATHS.has(pathname)) return true;
