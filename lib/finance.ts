@@ -50,6 +50,7 @@ export async function trackRevenue(e: RevenueEvent): Promise<void> {
     });
   } catch (err) {
     // Never let finance instrumentation break the billing webhook.
-    console.error("[finance] revenue emit failed", err);
+    const { logError } = await import("./log");
+    logError("finance_revenue_emit", err, { stripeEventId: e.stripeEventId });
   }
 }

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { trackRevenue, monthlyMrrCents } from "@/lib/finance";
+import { logError } from "@/lib/log";
 import type Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
       }
     }
   } catch (e) {
-    console.error(`[billing/webhook] ${event.type} (${event.id}) failed`, e);
+    logError("billing_webhook", e, { eventType: event.type, eventId: event.id });
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
   }
 

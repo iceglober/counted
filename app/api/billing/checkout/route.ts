@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth-guard";
 import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { logError } from "@/lib/log";
 
 export async function POST(request: NextRequest) {
   const { session, error, status } = await requireSession();
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
   } catch (e) {
     // Always return JSON (the client does res.json()); surface the Stripe/DB
     // error message so misconfig is debuggable instead of a bare 500.
-    console.error("[billing/checkout]", e);
+    logError("billing_checkout", e);
     const message = e instanceof Error ? e.message : "Checkout failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
