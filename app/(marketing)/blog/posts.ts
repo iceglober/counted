@@ -23,6 +23,15 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
   },
   {
+    slug: "self-host-counted-in-5-minutes",
+    title: "Self-host Counted in 5 minutes",
+    description:
+      "Run Counted on your own infrastructure with Docker Compose — your data never leaves your servers. Clone, configure, up.",
+    date: "2026-06-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+  },
+  {
     slug: "nextjs-analytics-in-5-minutes",
     title: "Add product analytics to your Next.js app in 5 minutes",
     description:
