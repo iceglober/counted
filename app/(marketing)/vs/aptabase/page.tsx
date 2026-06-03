@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Check, Minus } from "lucide-react";
 import { Reveal } from "../../reveal";
 import { SiteNav, SiteFooter, Eyebrow, CodeBlock, SecondaryCTA } from "../../site-chrome";
-import { PageView, TrackedCTA } from "../../track";
+import { TrackedCTA } from "../../track";
 
 export const metadata: Metadata = {
   title: "Counted vs Aptabase — privacy analytics with composable dashboards",
@@ -51,7 +51,6 @@ export default function VsAptabasePage() {
   return (
     <div className="min-h-screen">
       <SiteNav />
-      <PageView name="vs_aptabase" />
 
       <section className="px-6 pt-20 pb-10 max-w-3xl mx-auto text-center">
         <Eyebrow>Counted vs Aptabase</Eyebrow>

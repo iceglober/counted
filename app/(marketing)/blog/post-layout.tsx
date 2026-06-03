@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SiteNav, SiteFooter } from "../site-chrome";
-import { PageView, TrackedCTA } from "../track";
+import { TrackedCTA } from "../track";
 import type { PostMeta } from "./posts";
 
 // Shared chrome + prose primitives for blog posts, styled to match the
@@ -17,7 +17,6 @@ export function PostLayout({ meta, children }: { meta: PostMeta; children: React
   return (
     <div className="min-h-screen">
       <SiteNav />
-      <PageView name={`blog:${meta.slug}`} />
 
       <article className="px-6 pt-16 pb-12 max-w-2xl mx-auto">
         <Link href="/blog" className="text-xs text-text-tertiary hover:text-text-secondary transition-colors">

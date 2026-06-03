@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Reveal } from "../../reveal";
 import { SiteNav, SiteFooter, Eyebrow, CodeBlock, SecondaryCTA } from "../../site-chrome";
-import { PageView, TrackedCTA } from "../../track";
+import { TrackedCTA } from "../../track";
 
 export const metadata: Metadata = {
   title: "AI-native product analytics & agent eval — Counted for agents",
@@ -35,7 +35,6 @@ export default function ForAgentsPage() {
   return (
     <div className="min-h-screen">
       <SiteNav />
-      <PageView name="for_agents" />
 
       <section className="px-6 pt-20 pb-12 max-w-3xl mx-auto text-center">
         <Eyebrow>Analytics for AI agents</Eyebrow>

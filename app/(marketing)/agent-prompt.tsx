@@ -29,7 +29,7 @@ export function AgentPrompt() {
           <button
             onClick={() => {
               navigator.clipboard.writeText(AGENT_PROMPT);
-              track("cta_activate", { variant: "agent", action: "copy_prompt" });
+              track("cta_click", { location: "homepage_hero", label: "copy_prompt" });
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}

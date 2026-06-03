@@ -27,7 +27,8 @@ export function LandingCTA() {
       }
     }
     setVariant(v);
-    track("landing_view", { variant: v });
+    // Homepage view is captured by the global page_view (CountedAnalytics); no
+    // separate landing_view. The hero variant still rotates but isn't measured.
   }, []);
 
   // Reserve space until assigned to avoid layout shift / SSR flash.
@@ -60,7 +61,7 @@ function CodeVariant() {
       <div className="mt-6">
         <Link
           href="/login"
-          onClick={() => track("cta_activate", { variant: "code", action: "start_free" })}
+          onClick={() => track("cta_click", { location: "homepage_hero", label: "start_free" })}
           className="inline-flex items-center justify-center px-6 py-3 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover active:translate-y-px transition-[background-color,transform] duration-150"
         >
           Start free
@@ -84,7 +85,7 @@ function CommandVariant() {
         <button
           onClick={() => {
             navigator.clipboard.writeText(PROVISION);
-            track("cta_activate", { variant: "command", action: "copy_command" });
+            track("cta_click", { location: "homepage_hero", label: "copy_command" });
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           }}
@@ -103,7 +104,7 @@ function TryLiveVariant() {
 
   async function provision() {
     setState("loading");
-    track("cta_activate", { variant: "trylive", action: "provision" });
+    track("cta_click", { location: "homepage_hero", label: "provision" });
     try {
       const res = await fetch("/api/v0/provision", { method: "POST" });
       if (res.ok) {
