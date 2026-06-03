@@ -14,7 +14,7 @@ export {};
 import { INDEXNOW_KEY, INDEXNOW_SITE, INDEXNOW_KEY_LOCATION } from "../lib/indexnow";
 import { POSTS } from "../app/(marketing)/blog/posts";
 
-const STATIC_PAGES = ["/", "/pricing", "/vs/aptabase", "/for/agents", "/blog", "/privacy", "/terms"];
+const STATIC_PAGES = ["/", "/pricing", "/vs/aptabase", "/vs/posthog", "/for/agents", "/blog", "/privacy", "/terms"];
 
 const urlList = [
   ...STATIC_PAGES,
