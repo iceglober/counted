@@ -11,6 +11,21 @@ const CORS_HEADERS = {
 const MARKETING_HOSTS = new Set(["counted.dev", "www.counted.dev"]);
 const APP_HOST = "app.counted.dev";
 
+// Lock the origin to Cloudflare. Railway has no network-level IP allowlist and
+// sits in front of the app, so we can't filter by Cloudflare's IP ranges.
+// Instead, Cloudflare injects a secret header (X-Origin-Auth, via a Transform
+// Rule) on every proxied request; we reject anything missing it — which blocks
+// direct hits to the public *.up.railway.app origin.
+//
+// To enable: set ORIGIN_GUARD_SECRET in Railway to a long random string, and add
+// a Cloudflare Transform Rule (Modify Request Header) that sets
+//   X-Origin-Auth: <same secret>
+// on all requests to counted.dev / app.counted.dev. DISABLED (no-op) until the
+// env var is set, so deploying this is safe. The Railway health check probes the
+// origin directly (not via Cloudflare), so it is always exempt.
+const ORIGIN_GUARD_SECRET = process.env.ORIGIN_GUARD_SECRET;
+const ORIGIN_GUARD_EXEMPT = new Set(["/api/health"]);
+
 const MARKETING_PATHS = new Set([
   "/",
   "/pricing",
@@ -46,6 +61,13 @@ const PUBLIC_API_PATHS = new Set([
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
+
+  // Cloudflare origin guard (no-op unless ORIGIN_GUARD_SECRET is set).
+  if (ORIGIN_GUARD_SECRET && !ORIGIN_GUARD_EXEMPT.has(pathname)) {
+    if (request.headers.get("x-origin-auth") !== ORIGIN_GUARD_SECRET) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+  }
 
   // CORS for public ingestion / provisioning endpoints.
   if (PUBLIC_API_PATHS.has(pathname)) {
