@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 import { LandingCTA } from "./landing-cta";
 import { Reveal } from "./reveal";
 import { SiteNav } from "./site-chrome";
+import { Hero } from "./hero";
 
 export default function Home() {
   return (
@@ -11,33 +12,8 @@ export default function Home() {
       {/* Nav */}
       <SiteNav />
 
-      {/* Hero */}
-      <section className="px-6 pt-24 pb-16 max-w-3xl mx-auto text-center">
-        <h1 className="animate-rise font-display text-[clamp(2.25rem,5.5vw,3.25rem)] tracking-tight leading-tight">
-          Privacy-first analytics
-          <br />
-          <span className="text-accent">for products and agents</span>
-        </h1>
-        <p className="animate-rise mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed" style={{ animationDelay: "90ms" }}>
-          No-cookie analytics for your product and your AI agents. Composable
-          dashboards, no fingerprinting, no PII, under 3KB gzipped.
-        </p>
-        <div className="animate-rise mt-8 flex items-center justify-center gap-4" style={{ animationDelay: "180ms" }}>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center px-6 py-3 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover active:translate-y-px transition-[background-color,transform] duration-150"
-          >
-            Start free
-          </Link>
-          <Link
-            href="/pricing"
-            className="inline-flex items-center justify-center px-6 py-3 border border-border text-text-secondary rounded-md text-sm hover:border-border-hover hover:text-text-primary active:translate-y-px transition-[border-color,color,transform] duration-150"
-          >
-            View pricing
-          </Link>
-        </div>
-        <p className="animate-rise mt-4 text-xs text-text-tertiary" style={{ animationDelay: "240ms" }}>100K events/month free. No credit card required.</p>
-      </section>
+      {/* Hero — live A/B test: privacy-lead vs agent-lead (see hero.tsx) */}
+      <Hero />
 
       {/* A/B-tested hero CTA — agent prompt / code-first / one-command / try-live */}
       <Reveal>

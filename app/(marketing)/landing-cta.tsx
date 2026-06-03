@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { track } from "./analytics";
+import { assignExperiment, track } from "./analytics";
 import { AgentPrompt } from "./agent-prompt";
 
 const VARIANTS = ["agent", "code", "command", "trylive"] as const;
@@ -10,25 +10,18 @@ type Variant = (typeof VARIANTS)[number];
 
 const PROVISION = "curl -X POST https://app.counted.dev/api/v0/provision";
 
-// A/B test the hero CTA. Assignment is sticky in localStorage (not a tracking
-// cookie). landing_view + cta_activate are tagged with the variant and sent to
-// Counted's own SDK, so the Growth dashboard can compare conversion.
+// A/B test the hero CTA section. Assignment is sticky in localStorage (not a
+// tracking cookie) via the shared experiment primitive, which registers the
+// variant as the exp_cta super-property — so the cta_click events below carry it
+// automatically and the dogfood dashboard can compare conversion. Exposure is the
+// explicit experiment_view event.
 export function LandingCTA() {
   const [variant, setVariant] = useState<Variant | null>(null);
 
   useEffect(() => {
-    let v = (typeof localStorage !== "undefined" && localStorage.getItem("counted_cta")) as Variant | null;
-    if (!v || !VARIANTS.includes(v)) {
-      v = VARIANTS[Math.floor(Math.random() * VARIANTS.length)];
-      try {
-        localStorage.setItem("counted_cta", v);
-      } catch {
-        /* private mode */
-      }
-    }
+    const v = assignExperiment("cta", VARIANTS);
     setVariant(v);
-    // Homepage view is captured by the global page_view (CountedAnalytics); no
-    // separate landing_view. The hero variant still rotates but isn't measured.
+    track("experiment_view", { experiment: "cta", variant: v });
   }, []);
 
   // Reserve space until assigned to avoid layout shift / SSR flash.

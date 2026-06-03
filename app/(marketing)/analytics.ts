@@ -115,3 +115,31 @@ export function track(event: string, props?: Record<string, string | number | bo
     /* analytics must never break the page */
   }
 }
+
+// Assign a sticky A/B variant for an experiment. The bucket is persisted in
+// first-party localStorage (a non-identifying value — allowed by the privacy
+// philosophy; never a tracking cookie). The variant is registered as the
+// `exp_<name>` super-property, so every subsequent event (cta_click, …) carries
+// it and the dogfood dashboard can split the funnel by variant. Call from a
+// client effect, then fire an explicit `experiment_view` exposure event.
+export function assignExperiment<T extends string>(name: string, variants: readonly T[]): T {
+  const key = `counted_exp_${name}`;
+  let v: T | null = null;
+  try {
+    const stored = localStorage.getItem(key) as T | null;
+    if (stored && variants.includes(stored)) v = stored;
+    if (!v) {
+      v = variants[Math.floor(Math.random() * variants.length)];
+      localStorage.setItem(key, v);
+    }
+  } catch {
+    // private mode / no storage — assign for this render, don't persist
+    v = variants[Math.floor(Math.random() * variants.length)];
+  }
+  try {
+    client()?.register({ [`exp_${name}`]: v });
+  } catch {
+    /* super-property is best-effort */
+  }
+  return v;
+}
