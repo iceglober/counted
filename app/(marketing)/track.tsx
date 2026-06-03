@@ -7,14 +7,10 @@ import { track, appendAttribution } from "./analytics";
 // Client-side tracking primitives for the marketing pages. Attribution (UTM +
 // referrer) is attached to every event automatically by analytics.ts, so these
 // only need to name the event and a little context.
-
-// Fires a page_view once on mount. Drop one at the top of each marketing page.
-export function PageView({ name }: { name: string }) {
-  useEffect(() => {
-    track("page_view", { page: name });
-  }, [name]);
-  return null;
-}
+//
+// Note: page_view is emitted once per route by the global CountedAnalytics
+// (components/analytics.tsx) with a `path` prop — there is intentionally no
+// separate marketing page_view here, to avoid double-counting.
 
 // A Link that records a cta_click before navigating. Use for conversion CTAs
 // (Start free / Create a project) so the source → signup funnel is attributable.

@@ -74,6 +74,28 @@ const INSIGHTS: { name: string; description: string; query: InsightQuery }[] = [
     },
   },
   {
+    name: "Top landing pages",
+    description: "Entry pages — page_view grouped by landing_path (the session's first-touch page).",
+    query: {
+      measure: "unique_sessions",
+      eventFilter: { names: ["page_view"] },
+      groupBy: [{ type: "property", key: "landing_path" }],
+      orderBy: { field: "value", direction: "desc" },
+      limit: 20,
+    },
+  },
+  {
+    name: "Page views by path",
+    description: "Which pages get viewed — page_view grouped by path.",
+    query: {
+      measure: "count",
+      eventFilter: { names: ["page_view"] },
+      groupBy: [{ type: "property", key: "path" }],
+      orderBy: { field: "value", direction: "desc" },
+      limit: 20,
+    },
+  },
+  {
     name: "CTA clicks by surface",
     description: "Which pages convert — cta_click grouped by the location prop.",
     query: {
