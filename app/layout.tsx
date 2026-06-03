@@ -49,6 +49,15 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  // Search-console ownership verification. Set the env var to the token from
+  // Google Search Console / Bing Webmaster (HTML-tag method) and redeploy — the
+  // meta tag renders only when set. No code change or token-in-repo needed.
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+    other: process.env.BING_SITE_VERIFICATION
+      ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION }
+      : undefined,
+  },
 };
 
 export default function RootLayout({
