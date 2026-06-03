@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { POSTS } from "./(marketing)/blog/posts";
+import { sortedPosts } from "./(marketing)/blog/posts";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://counted.dev";
@@ -18,7 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
   ];
 
-  const postPages: MetadataRoute.Sitemap = POSTS.map((post) => ({
+  const postPages: MetadataRoute.Sitemap = sortedPosts().map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
     lastModified: new Date(post.date),
     changeFrequency: "monthly",

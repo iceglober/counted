@@ -1,7 +1,9 @@
 // Registry of blog posts. Listing metadata lives here so the index page and the
 // sitemap stay in sync; each post's full content lives in its own route page.
-// When the agentic content pipeline lands (ROADMAP phase 3), it appends entries
-// here and writes the matching page.
+//
+// `published` gates visibility everywhere (index, post page 404, sitemap, RSS,
+// IndexNow). All posts are currently UNPUBLISHED pending a human review pass —
+// flip `published: true` per post to take it live (it then auto-indexes).
 
 export type PostMeta = {
   slug: string;
@@ -10,6 +12,7 @@ export type PostMeta = {
   date: string; // ISO yyyy-mm-dd
   readingTime: string;
   category: string;
+  published: boolean;
 };
 
 export const POSTS: PostMeta[] = [
@@ -21,6 +24,7 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",
+    published: false,
   },
   {
     slug: "ai-native-product-analytics-in-5-minutes",
@@ -30,6 +34,7 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",
+    published: false,
   },
   {
     slug: "rust-analytics-in-5-minutes",
@@ -39,6 +44,7 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",
+    published: false,
   },
   {
     slug: "go-analytics-in-5-minutes",
@@ -48,6 +54,7 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",
+    published: false,
   },
   {
     slug: "python-analytics-in-5-minutes",
@@ -57,6 +64,7 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",
+    published: false,
   },
   {
     slug: "self-host-counted-in-5-minutes",
@@ -66,6 +74,7 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",
+    published: false,
   },
   {
     slug: "nextjs-analytics-in-5-minutes",
@@ -75,6 +84,7 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",
+    published: false,
   },
   {
     slug: "claude-code-eval-in-5-minutes",
@@ -84,6 +94,7 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",
+    published: false,
   },
   {
     slug: "opencode-eval-in-5-minutes",
@@ -93,6 +104,7 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-02",
     readingTime: "5 min",
     category: "Quickstart",
+    published: false,
   },
 ];
 
@@ -100,6 +112,7 @@ export function getPost(slug: string): PostMeta | undefined {
   return POSTS.find((p) => p.slug === slug);
 }
 
+// Published posts only, newest first — used by the index, sitemap, RSS, IndexNow.
 export function sortedPosts(): PostMeta[] {
-  return [...POSTS].sort((a, b) => (a.date < b.date ? 1 : -1));
+  return POSTS.filter((p) => p.published).sort((a, b) => (a.date < b.date ? 1 : -1));
 }
