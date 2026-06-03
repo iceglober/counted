@@ -24,26 +24,26 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Counted — Privacy-first analytics for products and agents",
+  title: "Counted — Privacy-first product analytics",
   description:
-    "Privacy-first analytics for products and agents, with composable dashboards. No cookies, no fingerprinting, no PII. Under 3KB.",
+    "Privacy-first product analytics with funnels and composable dashboards. No cookies, no fingerprinting, no PII. Under 3KB gzipped.",
   metadataBase: new URL("https://counted.dev"),
   alternates: {
     types: { "application/rss+xml": [{ url: "/feed.xml", title: "Counted Blog" }] },
   },
   openGraph: {
-    title: "Counted — Privacy-first analytics for products and agents",
+    title: "Counted — Privacy-first product analytics",
     description:
-      "Composable dashboards, agent-native SDKs, and self-hosting with Docker Compose. No cookies, no fingerprinting, no PII.",
+      "Funnels and composable dashboards, no cookies, no consent banner, self-host with Docker Compose. Under 3KB gzipped.",
     url: "https://counted.dev",
     siteName: "Counted",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Counted — Privacy-first analytics for products and agents",
+    title: "Counted — Privacy-first product analytics",
     description:
-      "Composable dashboards, agent-native SDKs, and self-hosting with Docker Compose. No cookies, no fingerprinting, no PII.",
+      "Funnels and composable dashboards, no cookies, no consent banner, self-host with Docker Compose. Under 3KB gzipped.",
   },
   robots: {
     index: true,

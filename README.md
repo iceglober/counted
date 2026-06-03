@@ -5,7 +5,7 @@
 <h1 align="center">Counted</h1>
 
 <p align="center">
-  Privacy-first analytics for products and agents, with composable dashboards.<br/>
+  Privacy-first product analytics — funnels and composable dashboards.<br/>
   No cookies. No fingerprinting. No PII. Under 3KB gzipped.
 </p>
 

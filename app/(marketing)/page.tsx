@@ -25,14 +25,6 @@ export default function Home() {
       <section className="px-6 py-16 border-t border-border">
         <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-sm font-medium mb-2">Agent-native</h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              See what your coding agents actually do. Native plugins for Claude Code, OpenCode,
-              Codex, and Gemini CLI capture tool calls and outcomes in a pre-built eval dashboard.{" "}
-              <Link href="/for/agents" className="text-accent hover:text-accent-hover transition-colors">See agent analytics →</Link>
-            </p>
-          </div>
-          <div>
             <h3 className="text-sm font-medium mb-2">Privacy by design</h3>
             <p className="text-sm text-text-secondary leading-relaxed">
               No cookies, no IP storage, no fingerprinting. GDPR- and CCPA-friendly, with no consent
@@ -42,8 +34,8 @@ export default function Home() {
           <div>
             <h3 className="text-sm font-medium mb-2">Composable dashboards</h3>
             <p className="text-sm text-text-secondary leading-relaxed">
-              Build your own view. Add insights for any metric — breakdowns, time series, counts.
-              Mix metrics from different events on one board, and rearrange anytime.
+              Build your own view. Add insights for any metric — breakdowns, time series, counts,
+              funnels. Mix metrics from different events on one board, and rearrange anytime.
             </p>
           </div>
           <div>
@@ -51,6 +43,14 @@ export default function Home() {
             <p className="text-sm text-text-secondary leading-relaxed">
               Under 3KB gzipped. Vanilla JS and React packages.
               Tracks events, not users. Session IDs are ephemeral and in-memory only.
+            </p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium mb-2">Agent-native too</h3>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              The same SDK instruments your AI coding agents — Claude Code, OpenCode, Codex, Gemini
+              CLI — into a pre-built eval dashboard.{" "}
+              <Link href="/for/agents" className="text-accent hover:text-accent-hover transition-colors">See agent analytics →</Link>
             </p>
           </div>
         </div>
