@@ -1,0 +1,35 @@
+name: Syndicate
+
+# Auto cross-post content/syndication/*.md to dev.to when it ships to main (each
+# as a draft with canonical_url back to counted.dev). Skips silently until the
+# DEV_TO_API_KEY repo secret is set, so it never blocks. Drafts are published
+# manually on dev.to after review.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "content/syndication/**"
+      - "scripts/syndicate-devto.ts"
+  workflow_dispatch: {}
+
+concurrency:
+  group: syndicate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  devto:
+    name: Syndicate to dev.to
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DEV_TO_API_KEY: ${{ secrets.DEV_TO_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - name: Syndicate (skipped until DEV_TO_API_KEY secret is set)
+        if: ${{ env.DEV_TO_API_KEY != '' }}
+        run: bun run syndicate:devto
