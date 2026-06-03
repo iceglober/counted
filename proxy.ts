@@ -39,6 +39,7 @@ const MARKETING_PATHS = new Set([
   "/opengraph-image",
   "/twitter-image",
   "/og", // dynamic per-page share image (/og?title=…)
+  "/b20e16eae7e00b584fa5cd18edd37866.txt", // IndexNow key file
 ]);
 
 // Marketing content also lives under these prefixes (comparisons, /for, blog).
