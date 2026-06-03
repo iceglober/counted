@@ -23,6 +23,15 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
   },
   {
+    slug: "nextjs-analytics-in-5-minutes",
+    title: "Add product analytics to your Next.js app in 5 minutes",
+    description:
+      "Drop @counted/react into a Next.js App Router app, track your first event, and auto-track page views — no cookies, under 3KB.",
+    date: "2026-06-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+  },
+  {
     slug: "claude-code-eval-in-5-minutes",
     title: "Track your Claude Code agent eval in 5 minutes",
     description:
