@@ -30,7 +30,7 @@ const COMPARISONS = [
   {
     href: "/vs/plausible",
     name: "Counted vs Plausible",
-    blurb: "The same no-cookie stance — but from web analytics to full product analytics: funnels, retention, composable dashboards.",
+    blurb: "The same no-cookie stance — but from web analytics to full product analytics: funnels, composable dashboards, agent-native SDKs.",
   },
 ];
 

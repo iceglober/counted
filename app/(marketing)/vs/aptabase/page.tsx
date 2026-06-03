@@ -31,7 +31,7 @@ const ROWS: Row[] = [
   { label: "No cookies, no fingerprinting", counted: true, aptabase: true },
   { label: "GDPR/CCPA without a consent banner", counted: true, aptabase: true },
   { label: "Composable dashboards (custom insights)", counted: true, aptabase: false },
-  { label: "Funnels & retention", counted: true, aptabase: false },
+  { label: "Funnels", counted: true, aptabase: false },
   { label: "Agent-native SDKs (Claude Code, OpenCode, Codex, Gemini)", counted: true, aptabase: false },
   { label: "Web & backend SDKs", counted: "JS, React, Python, Go, Rust", aptabase: "JS, others" },
   { label: "Mobile SDKs (Swift, Kotlin)", counted: "On the roadmap", aptabase: true },
