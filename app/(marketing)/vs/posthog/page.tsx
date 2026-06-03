@@ -108,13 +108,13 @@ export default function VsPosthogPage() {
             <h2 className="mt-2 font-display text-2xl md:text-3xl tracking-tight">Be honest with yourself</h2>
             <p className="mt-6 text-sm text-text-secondary leading-relaxed">
               <span className="text-text-primary font-medium">Use PostHog if</span> you want one tool
-              for analytics <em>and</em> session replay, feature flags, experiments, surveys, and a
+              for analytics <em>and</em>{" "}session replay, feature flags, experiments, surveys, and a
               data warehouse — and you&apos;re fine with a heavier SDK and more configuration.
             </p>
             <p className="mt-4 text-sm text-text-secondary leading-relaxed">
               <span className="text-text-primary font-medium">Use Counted if</span> you want focused
               product analytics that&apos;s private by default (no cookies, no fingerprinting, no PII
-              out of the box), ships in under 3KB, self-hosts with one command, and natively
+              out of the box), ships in under 3KB gzipped, self-hosts with Docker Compose, and natively
               instruments AI coding agents. No platform to learn — just events and composable
               dashboards.
             </p>
