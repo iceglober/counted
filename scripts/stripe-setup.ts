@@ -68,18 +68,25 @@ const WEBHOOK_EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
   "checkout.session.completed",
   "customer.subscription.updated",
   "customer.subscription.deleted",
+  "invoice.paid",
   "invoice.payment_failed",
 ];
 
 // Stripe only returns the signing secret when the endpoint is first created, so
 // this is create-once: if the endpoint already exists, reuse your existing
 // STRIPE_WEBHOOK_SECRET (or delete it in the dashboard and re-run).
-async function ensureWebhook(): Promise<{ secret: string | null; id: string }> {
+async function ensureWebhook(): Promise<{ secret: string | null; id: string; synced: boolean }> {
   const existing = await stripe.webhookEndpoints.list({ limit: 100 });
   const found = existing.data.find((e) => e.url === WEBHOOK_URL);
-  if (found) return { secret: null, id: found.id };
+  if (found) {
+    // Keep the event list current (e.g. invoice.paid added later) without
+    // recreating the endpoint (which would rotate the signing secret).
+    const missing = WEBHOOK_EVENTS.filter((ev) => !found.enabled_events.includes(ev));
+    if (missing.length) await stripe.webhookEndpoints.update(found.id, { enabled_events: WEBHOOK_EVENTS });
+    return { secret: null, id: found.id, synced: missing.length > 0 };
+  }
   const ep = await stripe.webhookEndpoints.create({ url: WEBHOOK_URL, enabled_events: WEBHOOK_EVENTS });
-  return { secret: ep.secret ?? null, id: ep.id };
+  return { secret: ep.secret ?? null, id: ep.id, synced: false };
 }
 
 const product = await ensureProduct();
@@ -89,7 +96,7 @@ const webhook = await ensureWebhook();
 
 console.log(`\nStripe mode: ${mode}`);
 console.log(`Product: ${product.name} (${product.id})`);
-console.log(`Webhook: ${WEBHOOK_URL} (${webhook.id})`);
+console.log(`Webhook: ${WEBHOOK_URL} (${webhook.id})${webhook.synced ? " — events synced" : ""}`);
 console.log(`\nSet these in your env (Railway + local .env):\n`);
 console.log(`STRIPE_PRICE_MONTHLY_ID=${monthly.id}`);
 console.log(`STRIPE_PRICE_ANNUAL_ID=${annual.id}`);
