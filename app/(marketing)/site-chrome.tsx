@@ -37,6 +37,7 @@ export function SiteFooter() {
             <Link href="/blog" className="hover:text-text-secondary transition-colors">Blog</Link>
             <Link href="/pricing" className="hover:text-text-secondary transition-colors">Pricing</Link>
             <Link href="/vs" className="hover:text-text-secondary transition-colors">Compare</Link>
+            <Link href="/for/agents" className="hover:text-text-secondary transition-colors">For agents</Link>
             <a href={GITHUB} className="hover:text-text-secondary transition-colors">GitHub</a>
           </div>
         </div>

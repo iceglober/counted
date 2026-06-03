@@ -115,7 +115,7 @@ export function PageViews() {
   return null;
 }`}</CodeBlock>
         </div>
-        <P>Render <code className="font-mono text-text-primary">&lt;PageViews /&gt;</code> inside the provider, and you have route-level analytics — composable into funnels and retention from there.</P>
+        <P>Render <code className="font-mono text-text-primary">&lt;PageViews /&gt;</code> inside the provider, and you have route-level analytics — composable into funnels and breakdowns from there.</P>
       </Step>
     </PostLayout>
   );

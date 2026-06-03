@@ -42,7 +42,7 @@ function CodeVariant() {
       <Eyebrow>Start in 3 lines</Eyebrow>
       <h2 className="mt-2 font-display text-2xl md:text-3xl tracking-tight">Drop in the SDK</h2>
       <p className="mt-3 text-text-secondary max-w-md mx-auto leading-relaxed">
-        Install, initialize, track. No cookies, no PII, under 3KB.
+        Install, initialize, track. No cookies, no PII, under 3KB gzipped.
       </p>
       <pre className="mt-6 text-left bg-surface-1 border border-accent/30 rounded-xl px-5 py-5 text-xs md:text-sm font-mono text-text-secondary overflow-x-auto">
         <span className="text-accent">import</span>{" { Analytics } "}

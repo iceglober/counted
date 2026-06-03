@@ -5,7 +5,7 @@ import { SiteNav, SiteFooter, Eyebrow } from "../site-chrome";
 export const metadata: Metadata = {
   title: "Compare Counted — vs Aptabase, PostHog, Plausible",
   description:
-    "How Counted compares to other analytics tools. Privacy-first, under 3KB, composable dashboards, agent-native — see the honest side-by-sides.",
+    "How Counted compares to other analytics tools. Privacy-first, under 3KB gzipped, funnels and composable dashboards — see the honest side-by-sides.",
   alternates: { canonical: "/vs" },
   openGraph: {
     title: "Compare Counted",
@@ -20,17 +20,17 @@ const COMPARISONS = [
   {
     href: "/vs/aptabase",
     name: "Counted vs Aptabase",
-    blurb: "Same privacy stance, more to build with — composable dashboards, agent-native SDKs, a larger free tier, and a one-command migration.",
+    blurb: "Same privacy stance, more to build with — composable dashboards, funnels, a larger free tier, and a migration CLI.",
   },
   {
     href: "/vs/posthog",
     name: "Counted vs PostHog",
-    blurb: "Lightweight, private-by-default product analytics vs the all-in-one platform. Under 3KB, focused, no config.",
+    blurb: "Lightweight, private-by-default product analytics vs the all-in-one platform. Under 3KB gzipped, focused, no config.",
   },
   {
     href: "/vs/plausible",
     name: "Counted vs Plausible",
-    blurb: "The same no-cookie stance — but from web analytics to full product analytics: funnels, composable dashboards, agent-native SDKs.",
+    blurb: "The same no-cookie stance — but from web analytics to full product analytics: funnels and composable dashboards.",
   },
 ];
 
