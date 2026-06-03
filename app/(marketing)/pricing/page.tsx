@@ -1,20 +1,29 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { CountedLogo } from "@/components/icons";
 import { Check } from "lucide-react";
+import { SiteNav } from "../site-chrome";
+
+export const metadata: Metadata = {
+  title: "Pricing — Counted",
+  description:
+    "Counted pricing: a free tier with 100K events/month and no credit card, and Pro at $12/month for 1M events. Self-host any plan.",
+  alternates: { canonical: "/pricing" },
+};
 
 const FREE_FEATURES = [
   "100K events/month",
   "3 projects",
-  "6-month data retention",
+  "6-month retention",
   "Composable dashboards",
-  "All insight types",
+  "Breakdowns, time series & counts",
   "Community support",
 ];
 
 const PRO_FEATURES = [
   "1M events/month",
   "Unlimited projects",
-  "24-month data retention",
+  "24-month retention",
   "Full API access",
   "Priority support",
   "Custom accent colors",
@@ -24,17 +33,7 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-5xl mx-auto">
-        <Link href="/" className="flex items-center gap-2">
-          <CountedLogo className="w-5 h-5 text-accent" />
-          <span className="font-display text-lg tracking-wide">Counted</span>
-        </Link>
-        <div className="flex items-center gap-6 text-sm">
-          <Link href="/" className="text-text-secondary hover:text-text-primary transition-colors">Home</Link>
-          <Link href="/blog" className="text-text-secondary hover:text-text-primary transition-colors">Blog</Link>
-          <Link href="/login" className="text-accent hover:text-accent-hover transition-colors font-medium">Sign in</Link>
-        </div>
-      </nav>
+      <SiteNav />
 
       {/* Header */}
       <section className="px-6 pt-20 pb-12 max-w-3xl mx-auto text-center">
@@ -95,14 +94,14 @@ export default function PricingPage() {
               href="/login"
               className="mt-8 block text-center px-4 py-2.5 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover transition-colors"
             >
-              Start free, upgrade anytime
+              Get Pro
             </Link>
           </div>
         </div>
 
         <p className="mt-8 text-center text-xs text-text-tertiary">
-          All plans include the full SDK and every insight type. Counted is fully open source —
-          self-host anytime. No cookies, no consent banner.
+          All plans include the full SDK and every insight type — breakdowns, time series, and counts.
+          Counted is fully open source — self-host anytime. No cookies, no consent banner.
           <br />
           Need more than 1M events/month?{" "}
           <a href="mailto:austin@iceglobe.io" className="text-accent hover:text-accent-hover transition-colors">

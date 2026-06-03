@@ -1,6 +1,6 @@
 # Self-Hosting Counted
 
-Run Counted on your own infrastructure. One command.
+Run Counted on your own infrastructure with Docker Compose.
 
 ## Quick Start
 

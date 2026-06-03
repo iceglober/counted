@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Counted — Privacy-first analytics for products and agents",
     description:
-      "Composable dashboards, agent-native SDKs, and self-hosting with one command. No cookies, no fingerprinting, no PII.",
+      "Composable dashboards, agent-native SDKs, and self-hosting with Docker Compose. No cookies, no fingerprinting, no PII.",
     url: "https://counted.dev",
     siteName: "Counted",
     type: "website",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Counted — Privacy-first analytics for products and agents",
     description:
-      "Composable dashboards, agent-native SDKs, and self-hosting with one command. No cookies, no fingerprinting, no PII.",
+      "Composable dashboards, agent-native SDKs, and self-hosting with Docker Compose. No cookies, no fingerprinting, no PII.",
   },
   robots: {
     index: true,

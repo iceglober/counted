@@ -3,23 +3,13 @@ import { CountedLogo } from "@/components/icons";
 import { Check } from "lucide-react";
 import { LandingCTA } from "./landing-cta";
 import { Reveal } from "./reveal";
+import { SiteNav } from "./site-chrome";
 
 export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-5xl mx-auto">
-        <div className="flex items-center gap-2">
-          <CountedLogo className="w-5 h-5 text-accent" />
-          <span className="font-display text-lg tracking-wide">Counted</span>
-        </div>
-        <div className="flex items-center gap-6 text-sm">
-          <Link href="/blog" className="text-text-secondary hover:text-text-primary transition-colors">Blog</Link>
-          <Link href="/pricing" className="text-text-secondary hover:text-text-primary transition-colors">Pricing</Link>
-          <Link href="https://github.com/iceglober/counted" className="text-text-secondary hover:text-text-primary transition-colors">GitHub</Link>
-          <Link href="/login" className="text-accent hover:text-accent-hover transition-colors font-medium">Sign in</Link>
-        </div>
-      </nav>
+      <SiteNav />
 
       {/* Hero */}
       <section className="px-6 pt-24 pb-16 max-w-3xl mx-auto text-center">
@@ -29,8 +19,8 @@ export default function Home() {
           <span className="text-accent">for products and agents</span>
         </h1>
         <p className="animate-rise mt-6 text-text-secondary text-lg max-w-xl mx-auto leading-relaxed" style={{ animationDelay: "90ms" }}>
-          Lightweight, no-cookie tracking for your product and your agents,
-          with composable dashboards. No fingerprinting. No PII. Under 3KB.
+          No-cookie analytics for your product and your AI agents. Composable
+          dashboards, no fingerprinting, no PII, under 3KB gzipped.
         </p>
         <div className="animate-rise mt-8 flex items-center justify-center gap-4" style={{ animationDelay: "180ms" }}>
           <Link
@@ -57,7 +47,7 @@ export default function Home() {
       {/* Value props */}
       <Reveal>
       <section className="px-6 py-16 border-t border-border">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
             <h3 className="text-sm font-medium mb-2">Privacy by design</h3>
             <p className="text-sm text-text-secondary leading-relaxed">
@@ -69,7 +59,15 @@ export default function Home() {
             <h3 className="text-sm font-medium mb-2">Composable dashboards</h3>
             <p className="text-sm text-text-secondary leading-relaxed">
               Build your own view. Add insights for any metric — breakdowns, time series, counts.
-              Every insight runs its own query. Rearrange anytime.
+              Mix metrics from different events on one board, and rearrange anytime.
+            </p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium mb-2">Agent-native</h3>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              Native plugins for Claude Code, OpenCode, Codex, and Gemini CLI. Capture tool calls and
+              outcomes in a pre-built eval dashboard.{" "}
+              <Link href="/for/agents" className="text-accent hover:text-accent-hover transition-colors">See agent analytics →</Link>
             </p>
           </div>
           <div>
@@ -87,9 +85,9 @@ export default function Home() {
       <Reveal>
       <section className="px-6 py-16 border-t border-border">
         <div className="max-w-xl mx-auto text-center">
-          <h2 className="text-2xl font-display tracking-tight">Generous free tier</h2>
+          <h2 className="text-2xl font-display tracking-tight">Free tier</h2>
           <p className="mt-4 text-text-secondary">
-            100,000 events per month. 3 projects. 6-month data retention. No credit card.
+            Everything you need to ship — no credit card required.
           </p>
           <ul className="mt-6 space-y-2 text-sm text-text-secondary inline-block text-left">
             {[
@@ -97,8 +95,8 @@ export default function Home() {
               "3 projects",
               "6-month retention",
               "Composable dashboards",
-              "All insight types",
-              "Open source SDK",
+              "Breakdowns, time series & counts",
+              "Community support",
             ].map((item) => (
               <li key={item} className="flex items-center gap-2">
                 <Check className="w-3.5 h-3.5 text-accent shrink-0" />
