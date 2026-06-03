@@ -8,6 +8,7 @@ import { useProjects } from "@/components/dashboard/dashboard-shell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import { toast } from "@/components/ui/sonner";
 
 type ThemeMode = "dark" | "light" | "auto";
 
@@ -256,8 +257,9 @@ export default function SettingsPage() {
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ interval: "monthly" }),
                           });
-                          const { url } = await res.json();
-                          if (url) window.location.href = url;
+                          const data = await res.json().catch(() => ({}));
+                          if (data.url) window.location.href = data.url;
+                          else toast.error(data.error ?? "Checkout failed");
                         } finally {
                           setBillingLoading(false);
                         }
