@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/dashboards", "/events", "/projects", "/settings"],
       },
     ],
-    sitemap: "https://www.counted.dev/sitemap.xml",
+    sitemap: "https://counted.dev/sitemap.xml",
   };
 }
