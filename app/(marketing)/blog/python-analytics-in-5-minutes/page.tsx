@@ -1,16 +1,11 @@
-import type { Metadata } from "next";
 import { getPost } from "../posts";
+import { postMetadata } from "../post-meta";
 import { CodeBlock } from "../../site-chrome";
 import { PostLayout, Lead, P, Step } from "../post-layout";
 
 const meta = getPost("python-analytics-in-5-minutes")!;
 
-export const metadata: Metadata = {
-  title: `${meta.title} — Counted`,
-  description: meta.description,
-  alternates: { canonical: `/blog/${meta.slug}` },
-  openGraph: { title: meta.title, description: meta.description, url: `/blog/${meta.slug}`, type: "article" },
-};
+export const metadata = postMetadata(meta.slug);
 
 export default function Post() {
   return (

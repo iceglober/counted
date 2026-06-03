@@ -23,6 +23,7 @@ const MARKETING_PATHS = new Set([
   // host's metadata — serve them here so OG crawlers don't chase a redirect.
   "/opengraph-image",
   "/twitter-image",
+  "/og", // dynamic per-page share image (/og?title=…)
 ]);
 
 // Marketing content also lives under these prefixes (comparisons, /for, blog).
