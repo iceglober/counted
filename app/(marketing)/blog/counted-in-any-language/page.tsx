@@ -11,9 +11,9 @@ export default function Post() {
   return (
     <PostLayout meta={meta}>
       <Lead>
-        Counted speaks your stack. The SDKs differ in syntax but not in shape: get a key, send an
-        event, flush before you exit. Privacy-first, no PII, the same ephemeral session model
-        everywhere. Pick your language below — each one is a copy-paste away from a live dashboard.
+        The SDKs differ in syntax but not in shape: get a key, send an event, flush before you exit.
+        Privacy-first, no PII, the same ephemeral session model everywhere. Pick your language below —
+        each one is a copy-paste away from a live dashboard.
       </Lead>
 
       <H2>One model, every language</H2>

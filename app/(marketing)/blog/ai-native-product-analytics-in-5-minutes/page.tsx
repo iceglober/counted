@@ -12,9 +12,8 @@ export default function Post() {
     <PostLayout meta={meta}>
       <Lead>
         I&apos;m tired of two things in an analytics setup: the cookie-consent banner, and the 50KB
-        script that loads before my own app does. Counted is the answer to both — and it treats your
-        AI agents as first-class event sources, not an afterthought. Here&apos;s the five-minute
-        version.
+        script that loads before my own app does. Counted has neither — and the same SDK also
+        instruments your AI agents. Here&apos;s the five-minute version.
       </Lead>
 
       <H2>Two lines to your first event</H2>
@@ -42,7 +41,7 @@ counted.track("signup", { plan: "free" });`}</CodeBlock>
         or an email, because Counted doesn&apos;t store them.
       </P>
 
-      <H2>Why there&apos;s no cookie (and why that&apos;s more honest, not less)</H2>
+      <H2>Why there&apos;s no cookie</H2>
       <P>
         The session id is generated in memory when the SDK starts and lives as long as the tab or
         process does. Nothing is written to a cookie, to localStorage, or to disk — when the session
@@ -74,8 +73,8 @@ await counted.flush();   // don't lose the last batch`}</CodeBlock>
 
       <H2>Same SDK, your agents too</H2>
       <P>
-        This is the part that makes it AI-native, not just a label: an
-        agent&apos;s actions are just events. <code className="font-mono text-text-primary">track(&quot;tool_use&quot;, {`{ tool, outcome }`})</code>{" "}
+        Here&apos;s the agent part: an agent&apos;s actions are just events.{" "}
+        <code className="font-mono text-text-primary">track(&quot;tool_use&quot;, {`{ tool, outcome }`})</code>{" "}
         is the same shape as <code className="font-mono text-text-primary">track(&quot;signup&quot;, {`{ plan }`})</code>.
         So you instrument your product <em>and</em> your AI coding agents with one SDK and read both
         in the same composable dashboards — funnels, breakdowns, time series.

@@ -72,7 +72,7 @@ export default function PricingPage() {
           {/* Pro */}
           <div className="bg-surface-1 border border-accent/30 rounded-lg p-6 relative">
             <div className="absolute -top-3 left-6 px-2 py-0.5 bg-accent text-surface-0 text-xs font-medium rounded">
-              Recommended
+              Early access
             </div>
             <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">Pro</h2>
             <div className="mt-3 flex items-baseline gap-1">
@@ -81,6 +81,7 @@ export default function PricingPage() {
             </div>
             <p className="mt-1 text-xs text-text-tertiary">or $120/year (save $24)</p>
             <p className="mt-2 text-sm text-text-tertiary">For production apps and teams.</p>
+            <p className="mt-2 text-xs text-accent">Billing opens soon — start free and upgrade when it&apos;s live.</p>
             <ul className="mt-6 space-y-2.5">
               {PRO_FEATURES.map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-text-secondary">
@@ -93,7 +94,7 @@ export default function PricingPage() {
               href="/login"
               className="mt-8 block text-center px-4 py-2.5 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover transition-colors"
             >
-              Get Pro
+              Start free
             </Link>
           </div>
         </div>

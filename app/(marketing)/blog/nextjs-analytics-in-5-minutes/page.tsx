@@ -11,9 +11,9 @@ export default function Post() {
   return (
     <PostLayout meta={meta}>
       <Lead>
-        Next.js apps deserve analytics that don&apos;t ship a 50KB script or a cookie banner.
-        Here&apos;s <code className="font-mono text-text-primary">@counted/react</code> in a Next.js
-        App Router app — provider, first event, and auto page views — in about five minutes.
+        <code className="font-mono text-text-primary">@counted/react</code> drops into a Next.js App
+        Router app without a 50KB script or a cookie banner. Here&apos;s the whole thing — provider,
+        first event, and auto page views — in about five minutes.
       </Lead>
 
       <Step n={1} title="Get a project key">
