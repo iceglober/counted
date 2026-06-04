@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SiteNav, SiteFooter } from "../site-chrome";
 import { TrackedCTA } from "../track";
 import { JsonLd, blogPostingLd } from "@/components/json-ld";
-import { PREVIEW, type PostMeta } from "./posts";
+import { PREVIEW, isLive, type PostMeta } from "./posts";
 
 // Shared chrome + prose primitives for blog posts, styled to match the
 // marketing site's tokens (font-display headings, text-secondary body).
@@ -16,16 +16,19 @@ function formatDate(iso: string): string {
 }
 
 export function PostLayout({ meta, children }: { meta: PostMeta; children: React.ReactNode }) {
-  // Unpublished posts 404 in production (pulled pending review), but render in
-  // preview (dev / SHOW_DRAFTS) so they can be reviewed locally.
-  if (!meta.published && !PREVIEW) notFound();
+  const live = isLive(meta);
+  // Not-yet-live posts (unpublished or scheduled for a future date) 404 in
+  // production, but render in preview (dev / SHOW_DRAFTS) so they can be reviewed.
+  if (!live && !PREVIEW) notFound();
 
   return (
     <div className="min-h-screen">
-      {meta.published && <JsonLd data={blogPostingLd(meta)} />}
-      {!meta.published && (
+      {live && <JsonLd data={blogPostingLd(meta)} />}
+      {!live && (
         <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2 text-center text-xs text-amber-400">
-          Draft preview — not published. Set <code className="font-mono">published: true</code> in posts.ts to take it live.
+          {meta.published
+            ? `Scheduled preview — goes live ${formatDate(meta.date)}.`
+            : "Draft preview — not published."}
         </div>
       )}
       <SiteNav />
