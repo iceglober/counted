@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 import { sortedPosts } from "./(marketing)/blog/posts";
 
+// Regenerate so scheduled posts (future-dated) enter the sitemap on their day.
+export const revalidate = 21600; // 6 hours
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://counted.dev";
   const now = new Date();

@@ -12,13 +12,15 @@
 export {};
 
 import { INDEXNOW_KEY, INDEXNOW_SITE, INDEXNOW_KEY_LOCATION } from "../lib/indexnow";
-import { POSTS } from "../app/(marketing)/blog/posts";
+import { sortedPosts } from "../app/(marketing)/blog/posts";
 
 const STATIC_PAGES = ["/", "/pricing", "/vs", "/vs/aptabase", "/vs/posthog", "/vs/plausible", "/for/agents", "/blog", "/privacy", "/terms"];
 
 const urlList = [
   ...STATIC_PAGES,
-  ...POSTS.filter((p) => p.published).map((p) => `/blog/${p.slug}`),
+  // Live posts only (published + scheduled date reached) — never submit a
+  // not-yet-due post. Scheduled posts get picked up via the sitemap on their day.
+  ...sortedPosts().map((p) => `/blog/${p.slug}`),
 ].map((path) => `${INDEXNOW_SITE}${path}`);
 
 const dryRun = process.argv.includes("--dry-run");
