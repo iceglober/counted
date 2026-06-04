@@ -12,9 +12,8 @@ export default function Post() {
   return (
     <PostLayout meta={meta}>
       <Lead>
-        Sometimes the best marketing is showing your numbers. With Counted you can build a dashboard
-        and publish it as a read-only link anyone can open — no login, no signup. Great for a status
-        page, a launch metric, or open startup metrics.
+        With Counted you can build a dashboard and publish it as a read-only link anyone can open —
+        no login, no signup. Good for a status page, a launch metric, or open startup metrics.
       </Lead>
 
       <Step n={1} title="Send some events">
