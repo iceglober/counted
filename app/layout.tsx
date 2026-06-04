@@ -49,11 +49,13 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  // Search-console ownership verification. Set the env var to the token from
-  // Google Search Console / Bing Webmaster (HTML-tag method) and redeploy — the
-  // meta tag renders only when set. No code change or token-in-repo needed.
+  // Search-console ownership verification. The Google token is a PUBLIC value (it
+  // ships as a <meta> tag in the page head), so it's hardcoded here rather than an
+  // env var — a build-time env var on Railway didn't reliably bake into the static
+  // head (build-cache reused stale output). Hardcoding is a source change, so it
+  // always rebuilds. Bing stays env-driven (set BING_SITE_VERIFICATION).
   verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION,
+    google: "766gLa372Fyei3KrEmrCXSjPCaMw0_HoedORek553po",
     other: process.env.BING_SITE_VERIFICATION
       ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION }
       : undefined,
