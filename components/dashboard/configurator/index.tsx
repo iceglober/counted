@@ -33,8 +33,7 @@ type ConfigState = {
   measureType: string;
   measureProperty: string;
   eventFilter: string;
-  groupByType: "system" | "property";
-  groupByKey: string;
+  groupByKeys: string[];
   timeBucket: "hour" | "day" | "week" | "month";
   limit: number;
   propFilters: PropFilter[];
@@ -49,7 +48,10 @@ type Action =
   | { type: "UPDATE_FILTER"; index: number; filter: PropFilter }
   | { type: "REMOVE_FILTER"; index: number }
   | { type: "ADD_FUNNEL_STEP"; step: string }
-  | { type: "REMOVE_FUNNEL_STEP"; index: number };
+  | { type: "REMOVE_FUNNEL_STEP"; index: number }
+  | { type: "ADD_GROUP_BY" }
+  | { type: "UPDATE_GROUP_BY"; index: number; value: string }
+  | { type: "REMOVE_GROUP_BY"; index: number };
 
 function reducer(state: ConfigState, action: Action): ConfigState {
   switch (action.type) {
@@ -65,6 +67,12 @@ function reducer(state: ConfigState, action: Action): ConfigState {
       return { ...state, funnelSteps: [...state.funnelSteps, action.step] };
     case "REMOVE_FUNNEL_STEP":
       return { ...state, funnelSteps: state.funnelSteps.filter((_, i) => i !== action.index) };
+    case "ADD_GROUP_BY":
+      return { ...state, groupByKeys: [...state.groupByKeys, ""] };
+    case "UPDATE_GROUP_BY":
+      return { ...state, groupByKeys: state.groupByKeys.map((k, i) => (i === action.index ? action.value : k)) };
+    case "REMOVE_GROUP_BY":
+      return { ...state, groupByKeys: state.groupByKeys.filter((_, i) => i !== action.index) };
   }
 }
 
@@ -89,7 +97,7 @@ function buildQueryFromState(state: ConfigState): InsightQuery | null {
     : state.measureType as "count" | "unique_sessions" | "unique_users";
 
   if (CUSTOM_AGGS.has(state.measureType) && !state.measureProperty) return null;
-  if (state.type === "breakdown" && !state.groupByKey) return null;
+  if (state.type === "breakdown" && state.groupByKeys.filter(Boolean).length === 0) return null;
 
   const query: InsightQuery = { measure };
 
@@ -112,12 +120,13 @@ function buildQueryFromState(state: ConfigState): InsightQuery | null {
     query.timeBucket = state.timeBucket;
   }
 
-  if (state.type === "breakdown" && state.groupByKey) {
-    if (state.groupByKey.startsWith("prop:")) {
-      query.groupBy = [{ type: "property", key: state.groupByKey.slice(5) }];
-    } else {
-      query.groupBy = [{ type: "system", key: state.groupByKey }];
-    }
+  if (state.type === "breakdown") {
+    const keys = state.groupByKeys.filter(Boolean);
+    query.groupBy = keys.map((k) =>
+      k.startsWith("prop:")
+        ? { type: "property", key: k.slice(5) }
+        : { type: "system", key: k },
+    );
     query.orderBy = { field: "value", direction: "desc" };
     query.limit = state.limit;
   }
@@ -132,10 +141,13 @@ function autoTitle(state: ConfigState): string {
     : state.measureType === "unique_sessions" ? "Sessions"
     : "Users";
 
-  if (state.type === "breakdown" && state.groupByKey) {
-    const key = state.groupByKey.startsWith("prop:") ? state.groupByKey.slice(5) : state.groupByKey;
-    const label = SYSTEM_GROUP_BY.find((g) => g.value === key)?.label ?? key;
-    return `${measureLabel} by ${label}`;
+  const gbKeys = state.groupByKeys.filter(Boolean);
+  if (state.type === "breakdown" && gbKeys.length) {
+    const labels = gbKeys.map((gk) => {
+      const key = gk.startsWith("prop:") ? gk.slice(5) : gk;
+      return SYSTEM_GROUP_BY.find((g) => g.value === key)?.label ?? key;
+    });
+    return `${measureLabel} by ${labels.join(" and ")}`;
   }
 
   if (state.type === "timeseries") return `${measureLabel} over time`;
@@ -173,10 +185,12 @@ function initState(insight: Insight, defaultProjectId: string): ConfigState {
     measureType: isCustomAgg ? (q!.measure as { aggregation: string }).aggregation : (q?.measure as string) ?? "count",
     measureProperty: isCustomAgg ? (q!.measure as { property: string }).property : "",
     eventFilter: q?.eventFilter?.names?.[0] ?? "",
-    groupByType: q?.groupBy?.[0]?.type === "property" ? "property" : "system",
-    groupByKey: q?.groupBy?.[0]
-      ? (q.groupBy[0].type === "property" ? `prop:${q.groupBy[0].key}` : q.groupBy[0].type === "system" ? q.groupBy[0].key : "")
-      : "",
+    groupByKeys: (() => {
+      const keys = (q?.groupBy ?? [])
+        .map((g) => (g.type === "property" ? `prop:${g.key}` : g.type === "system" ? g.key : ""))
+        .filter(Boolean);
+      return keys.length ? keys : insight.type === "breakdown" ? [""] : [];
+    })(),
     timeBucket: (q?.timeBucket as ConfigState["timeBucket"]) ?? "day",
     limit: q?.limit ?? 10,
     propFilters: q?.eventFilter?.properties ?? [],
@@ -262,7 +276,7 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [state.type, state.projectId, state.measureType, state.measureProperty, state.eventFilter, state.groupByKey, state.timeBucket, state.limit, state.propFilters, state.funnelSteps, isIncomplete, timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.type, state.projectId, state.measureType, state.measureProperty, state.eventFilter, state.groupByKeys, state.timeBucket, state.limit, state.propFilters, state.funnelSteps, isIncomplete, timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-persist (800ms debounce)
   useEffect(() => {
@@ -356,15 +370,47 @@ export function InsightConfigurator({ initialInsight, projects, timeRange, onCon
           </ConfigSection>
         )}
 
-        {/* Group by (breakdown only) */}
+        {/* Group by (breakdown only) — one or more properties */}
         {state.type === "breakdown" && (
           <ConfigSection label="Group by">
-            <Dropdown
-              value={state.groupByKey}
-              options={groupByOptions}
-              onChange={(v) => set("groupByKey", v)}
-              placeholder="Select field..."
-            />
+            <div className="space-y-2">
+              {state.groupByKeys.map((gk, i) => {
+                // Don't offer a property already chosen in another row.
+                const taken = new Set(state.groupByKeys.filter((_, j) => j !== i).filter(Boolean));
+                const opts = groupByOptions.filter((o) => !taken.has(o.value));
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <Dropdown
+                        value={gk}
+                        options={opts}
+                        onChange={(v) => dispatch({ type: "UPDATE_GROUP_BY", index: i, value: v })}
+                        placeholder="Select field..."
+                      />
+                    </div>
+                    {state.groupByKeys.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => dispatch({ type: "REMOVE_GROUP_BY", index: i })}
+                        className="shrink-0 text-text-tertiary hover:text-text-primary transition-colors p-1"
+                        aria-label="Remove group-by property"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              {state.groupByKeys.every(Boolean) && state.groupByKeys.length < groupByOptions.length && (
+                <button
+                  type="button"
+                  onClick={() => dispatch({ type: "ADD_GROUP_BY" })}
+                  className="text-xs text-accent hover:text-accent-hover transition-colors"
+                >
+                  + Add property
+                </button>
+              )}
+            </div>
           </ConfigSection>
         )}
 
