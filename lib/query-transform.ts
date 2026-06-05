@@ -25,10 +25,16 @@ export function mapQueryResultToInsightData(
       } satisfies TimeSeriesData;
     }
     case "breakdown": {
-      const labelKey = Object.keys(rows[0] ?? {}).find((k) => k !== "value") ?? "label";
+      // Every column except `value` is a group-by dimension. With multiple
+      // group-bys, combine them into one composite label ("US / pro").
+      const groupKeys = Object.keys(rows[0] ?? {}).filter((k) => k !== "value");
       return {
         items: rows.map((r) => ({
-          label: String(r[labelKey] ?? "unknown"),
+          label: groupKeys.length
+            ? groupKeys
+                .map((k) => (r[k] == null || r[k] === "" ? "unknown" : String(r[k])))
+                .join(" / ")
+            : "All",
           value: Number(r.value),
         })),
       } satisfies { items: BreakdownItem[] };
