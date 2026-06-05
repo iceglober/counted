@@ -143,6 +143,7 @@ export async function loadDashboardData(
       height: layout.height,
       data: mapQueryResultToInsightData(layout.type, rows),
       query: layout.query,
+      projectId: layout.projectId,
     };
   });
 
