@@ -570,6 +570,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
               <InsightConfigurator
                 initialInsight={ins}
                 projects={projects}
+                projectId={projectId}
                 timeRange={timeRangeMap[timeRange]}
                 onConfigChange={(config) => handleConfigChange(editingId, config)}
                 onDismiss={() => dismissConfigurator(editingId)}

@@ -169,6 +169,7 @@ type ProjectSchema = {
 type Props = {
   initialInsight: Insight;
   projects: { id: string; name: string }[];
+  projectId: string; // the dashboard's current project — the default for an insight without its own
   timeRange: TimeRange;
   onConfigChange: (insight: Partial<Insight> & { query: InsightQuery }) => void;
   onDismiss: () => void;
@@ -200,8 +201,10 @@ function initState(insight: Insight, defaultProjectId: string): ConfigState {
   };
 }
 
-export function InsightConfigurator({ initialInsight, projects, timeRange, onConfigChange, onDismiss }: Props) {
-  const [state, dispatch] = useReducer(reducer, initState(initialInsight, projects[0]?.id ?? ""));
+export function InsightConfigurator({ initialInsight, projects, projectId: dashboardProjectId, timeRange, onConfigChange, onDismiss }: Props) {
+  // Fall back to the dashboard's current project (not an arbitrary projects[0])
+  // for an insight that has no projectId of its own.
+  const [state, dispatch] = useReducer(reducer, initState(initialInsight, dashboardProjectId || projects[0]?.id || ""));
 
   const [schema, setSchema] = React.useState<ProjectSchema | null>(null);
   const [previewData, setPreviewData] = React.useState<Insight["data"] | null>(null);
