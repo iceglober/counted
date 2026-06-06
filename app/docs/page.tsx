@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SiteNav, SiteFooter, CodeBlock } from "../(marketing)/site-chrome";
+import { CodeBlock } from "../(marketing)/site-chrome";
 import { CodeTabs } from "@/components/code-tabs";
 
 export const metadata: Metadata = {
@@ -82,16 +82,17 @@ analytics.flush(); // or let it flush on drop`,
   },
 ];
 
-function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="mt-12 font-display text-xl md:text-2xl tracking-tight">{children}</h2>;
+function H2({ id, children }: { id?: string; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="scroll-mt-20 mt-10 font-display text-lg md:text-xl tracking-tight">
+      {children}
+    </h2>
+  );
 }
 
 function NextLink({ href, title, blurb }: { href: string; title: string; blurb: string }) {
   return (
-    <Link
-      href={href}
-      className="group block rounded-lg border border-border hover:border-border-hover p-4 transition-colors"
-    >
+    <Link href={href} className="group block rounded-lg border border-border hover:border-border-hover p-4 transition-colors">
       <div className="font-medium text-sm group-hover:text-accent transition-colors">{title}</div>
       <div className="mt-1 text-sm text-text-secondary leading-relaxed">{blurb}</div>
     </Link>
@@ -100,49 +101,47 @@ function NextLink({ href, title, blurb }: { href: string; title: string; blurb: 
 
 export default function DocsPage() {
   return (
-    <div className="min-h-screen">
-      <SiteNav />
-      <article className="px-6 pt-16 pb-12 max-w-2xl mx-auto">
-        <h1 className="font-display text-3xl md:text-4xl tracking-tight">Documentation</h1>
-        <p className="mt-4 text-text-secondary text-lg leading-relaxed">
-          Counted is privacy-first product analytics — no cookies, no fingerprinting, no PII. Get a
-          key, send an event, read it on a dashboard. Here&apos;s the whole loop.
-        </p>
+    <>
+      <p className="text-xs font-medium uppercase tracking-[0.15em] text-accent">Getting started</p>
+      <h1 className="mt-2 font-display text-2xl md:text-3xl tracking-tight">Overview</h1>
+      <p className="mt-3 text-text-secondary leading-relaxed">
+        Counted is privacy-first product analytics — no cookies, no fingerprinting, no PII. Send an
+        event with an SDK or a single HTTP call, then read it on a dashboard. Three steps to your
+        first event.
+      </p>
 
-        <H2>1. Get a project key</H2>
-        <p className="mt-3 text-sm text-text-secondary leading-relaxed">
-          Create a project and copy its write-only <code className="font-mono text-text-primary">ck_</code> key — or mint
-          one from your terminal, no signup:
-        </p>
-        <div className="mt-3">
-          <CodeBlock>{`curl -X POST https://app.counted.dev/api/v0/provision`}</CodeBlock>
-        </div>
+      <H2>Get a project key</H2>
+      <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+        Create a project and copy its write-only <code className="font-mono text-text-primary">ck_</code> key — or mint
+        one from your terminal, no signup:
+      </p>
+      <div className="mt-3">
+        <CodeBlock>{`curl -X POST https://app.counted.dev/api/v0/provision`}</CodeBlock>
+      </div>
 
-        <H2>2. Track an event</H2>
-        <p className="mt-3 text-sm text-text-secondary leading-relaxed">
-          Pick your stack. Properties are plain values — strings, numbers, booleans — and there&apos;s
-          no field for a user id or email, because Counted doesn&apos;t store them.
-        </p>
-        <div className="mt-4">
-          <CodeTabs tabs={QUICKSTART} />
-        </div>
+      <H2 id="quickstart">Quickstart</H2>
+      <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+        Pick your stack. Properties are plain values — strings, numbers, booleans — with no field for
+        a user id or email, because Counted doesn&apos;t store them.
+      </p>
+      <div className="mt-4">
+        <CodeTabs tabs={QUICKSTART} />
+      </div>
 
-        <H2>Next</H2>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <NextLink href="/docs/api" title="API Reference →" blurb="Every endpoint: ingestion, projects, query, dashboards, alerts." />
-          <NextLink href="/for/agents" title="Analytics for AI agents →" blurb="Native plugins for Claude Code, OpenCode, Codex, and Gemini CLI." />
-          <NextLink href="/blog/counted-in-any-language" title="SDK guides →" blurb="Per-language quickstarts and the flush gotcha." />
-          <NextLink href="/blog/self-host-counted-in-5-minutes" title="Self-host →" blurb="Run Counted on your own infra with Docker Compose." />
-        </div>
+      <H2>Next</H2>
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <NextLink href="/docs/api" title="API Reference →" blurb="Every endpoint: ingestion, projects, query, dashboards, alerts." />
+        <NextLink href="/for/agents" title="Analytics for AI agents →" blurb="Native plugins for Claude Code, OpenCode, Codex, and Gemini CLI." />
+        <NextLink href="/blog/counted-in-any-language" title="SDK guides →" blurb="Per-language quickstarts and the flush gotcha." />
+        <NextLink href="/blog/self-host-counted-in-5-minutes" title="Self-host →" blurb="Run Counted on your own infra with Docker Compose." />
+      </div>
 
-        <p className="mt-10 text-sm text-text-tertiary">
-          Prefer the machine-readable spec? It&apos;s at{" "}
-          <a href="/api/v0/openapi.json" className="text-accent hover:text-accent-hover transition-colors">/api/v0/openapi.json</a>
-          {" "}(OpenAPI 3.1), and an agent-friendly summary at{" "}
-          <a href="/docs/llms.txt" className="text-accent hover:text-accent-hover transition-colors">/docs/llms.txt</a>.
-        </p>
-      </article>
-      <SiteFooter />
-    </div>
+      <p className="mt-10 text-sm text-text-tertiary">
+        Machine-readable spec:{" "}
+        <a href="/api/v0/openapi.json" className="text-accent hover:text-accent-hover transition-colors">/api/v0/openapi.json</a>
+        {" "}(OpenAPI 3.1) · agent summary at{" "}
+        <a href="/docs/llms.txt" className="text-accent hover:text-accent-hover transition-colors">/docs/llms.txt</a>.
+      </p>
+    </>
   );
 }
