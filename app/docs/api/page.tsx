@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Metadata } from "next";
-import Link from "next/link";
 import { spec } from "@/lib/openapi";
-import { SiteNav, SiteFooter } from "../../(marketing)/site-chrome";
 
 export const metadata: Metadata = {
   title: "API Reference — Counted",
@@ -204,42 +202,38 @@ export default function ApiReferencePage() {
   const baseUrl = S.servers?.[0]?.url ?? "";
 
   return (
-    <div className="min-h-screen">
-      <SiteNav />
-      <article className="px-6 pt-16 pb-12 max-w-3xl mx-auto">
-        <Link href="/docs" className="text-xs text-text-tertiary hover:text-text-secondary transition-colors">← Docs</Link>
-        <h1 className="mt-6 font-display text-3xl md:text-4xl tracking-tight">API Reference</h1>
-        <p className="mt-3 text-text-secondary leading-relaxed">
-          The complete Counted HTTP API. Base URL{" "}
-          <code className="font-mono text-text-primary">{baseUrl}</code>. Ingestion uses a write-only
-          project key (<code className="font-mono text-text-primary">ck_…</code>); management endpoints
-          use your signed-in session. The machine-readable spec is at{" "}
-          <a href="/api/v0/openapi.json" className="text-accent hover:text-accent-hover transition-colors">/api/v0/openapi.json</a>.
-        </p>
+    <>
+      <p className="text-xs font-medium uppercase tracking-[0.15em] text-accent">Reference</p>
+      <h1 className="mt-2 font-display text-2xl md:text-3xl tracking-tight">API Reference</h1>
+      <p className="mt-3 text-text-secondary leading-relaxed">
+        The complete Counted HTTP API. Base URL{" "}
+        <code className="font-mono text-text-primary">{baseUrl}</code>. Ingestion uses a write-only
+        project key sent as the <code className="font-mono text-text-primary">project-key</code> header;
+        management endpoints use your signed-in session. Machine-readable spec:{" "}
+        <a href="/api/v0/openapi.json" className="text-accent hover:text-accent-hover transition-colors">/api/v0/openapi.json</a>.
+      </p>
 
-        {/* Quick nav */}
-        <nav className="mt-6 flex flex-wrap gap-2">
-          {orderedTags.map((t) => (
-            <a key={t.name} href={`#tag-${t.name}`} className="text-xs border border-border rounded-full px-2.5 py-1 text-text-secondary hover:text-text-primary hover:border-border-hover transition-colors">
-              {t.name}
-            </a>
-          ))}
-        </nav>
+      {/* In-page quick nav (sidebar covers this on desktop; useful on mobile) */}
+      <nav className="mt-6 flex flex-wrap gap-2 md:hidden">
+        {orderedTags.map((t) => (
+          <a key={t.name} href={`#tag-${t.name}`} className="text-xs border border-border rounded-full px-2.5 py-1 text-text-secondary hover:text-text-primary hover:border-border-hover transition-colors">
+            {t.name}
+          </a>
+        ))}
+      </nav>
 
-        {orderedTags.map((t) => {
-          const def = tagDefs.find((td) => td.name === t.name);
-          return (
-            <section key={t.name} id={`tag-${t.name}`} className="scroll-mt-24 mt-12">
-              <h2 className="font-display text-2xl tracking-tight">{t.name}</h2>
-              {def?.description && <p className="mt-1 text-sm text-text-tertiary">{def.description}</p>}
-              {byTag[t.name].map(({ path, method, op }) => (
-                <Endpoint key={`${method} ${path}`} path={path} method={method} op={op} />
-              ))}
-            </section>
-          );
-        })}
-      </article>
-      <SiteFooter />
-    </div>
+      {orderedTags.map((t) => {
+        const def = tagDefs.find((td) => td.name === t.name);
+        return (
+          <section key={t.name} id={`tag-${t.name}`} className="scroll-mt-20 mt-12">
+            <h2 className="font-display text-xl md:text-2xl tracking-tight">{t.name}</h2>
+            {def?.description && <p className="mt-1 text-sm text-text-tertiary">{def.description}</p>}
+            {byTag[t.name].map(({ path, method, op }) => (
+              <Endpoint key={`${method} ${path}`} path={path} method={method} op={op} />
+            ))}
+          </section>
+        );
+      })}
+    </>
   );
 }
