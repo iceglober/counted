@@ -75,6 +75,25 @@ cd packages/react && bun run build
 
 The Dockerfile handles this automatically. CI builds SDKs before typecheck.
 
+## API client (`@counted/api`) — Fern
+
+`lib/openapi.ts` is the single source of truth for the HTTP API. The typed
+management-API client is generated from it with Fern:
+
+```bash
+bun run api:export     # lib/openapi.ts -> fern/openapi/openapi.json (Fern's input)
+bun run api:generate   # export + `fern generate` -> packages/api/generated
+```
+
+- `fern/openapi/openapi.json` is committed; the **OpenAPI in sync** CI workflow
+  fails a PR if it drifts from `lib/openapi.ts` (run `bun run api:export` and commit).
+- **`fern generate` requires Fern auth** — run `fern login` locally, or set a
+  `FERN_TOKEN` repo secret for CI. (That's the one step that can't run unauthenticated.)
+- Once generated, `packages/api/src/index.ts` should re-export from `./generated`
+  (`export * from "../generated"`). Until then it carries hand-written types.
+- The human-readable reference at `/docs/api` and the agent summary at `/docs/llms.txt`
+  both render straight from `lib/openapi.ts`, so they never drift.
+
 ## Environment variables
 
 See `.env.example` for the full list. Key ones:
