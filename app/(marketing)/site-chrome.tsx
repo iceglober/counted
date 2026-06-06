@@ -14,6 +14,7 @@ export function SiteNav() {
         <span className="font-display text-lg tracking-wide">Counted</span>
       </Link>
       <div className="flex items-center gap-6 text-sm">
+        <Link href="/docs" className="text-text-secondary hover:text-text-primary transition-colors">Docs</Link>
         <Link href="/pricing" className="text-text-secondary hover:text-text-primary transition-colors">Pricing</Link>
         <Link href="/vs" className="text-text-secondary hover:text-text-primary transition-colors">Compare</Link>
         <Link href="/blog" className="text-text-secondary hover:text-text-primary transition-colors">Blog</Link>
@@ -34,6 +35,7 @@ export function SiteFooter() {
             <span>Counted</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/docs" className="hover:text-text-secondary transition-colors">Docs</Link>
             <Link href="/blog" className="hover:text-text-secondary transition-colors">Blog</Link>
             <Link href="/pricing" className="hover:text-text-secondary transition-colors">Pricing</Link>
             <Link href="/vs" className="hover:text-text-secondary transition-colors">Compare</Link>

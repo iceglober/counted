@@ -42,8 +42,8 @@ const MARKETING_PATHS = new Set([
   "/b20e16eae7e00b584fa5cd18edd37866.txt", // IndexNow key file
 ]);
 
-// Marketing content also lives under these prefixes (comparisons, /for, blog).
-const MARKETING_PREFIXES = ["/vs", "/for/", "/blog"];
+// Marketing content also lives under these prefixes (comparisons, /for, blog, docs).
+const MARKETING_PREFIXES = ["/vs", "/for/", "/blog", "/docs"];
 
 function isMarketingPath(pathname: string): boolean {
   if (MARKETING_PATHS.has(pathname)) return true;
