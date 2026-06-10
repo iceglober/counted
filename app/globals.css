@@ -131,6 +131,39 @@ input[type="checkbox"], input[type="radio"], input[type="submit"] {
   opacity: 0.12 !important;
   border-radius: 0.5rem !important;
 }
+/* Vertical resize: the south handle is a full-width strip along the card's
+   bottom edge, signified by a centered grab bar that appears on hover. The
+   `.layout` prefix out-specifies react-grid-layout's own handle styles
+   (rotate(45deg) corner glyph), which can come later in the bundle. */
+.layout .react-grid-item > .react-resizable-handle.react-resizable-handle-s {
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  width: auto;
+  height: 14px;
+  margin-left: 0;
+  transform: none;
+  cursor: ns-resize;
+}
+.layout .react-grid-item > .react-resizable-handle.react-resizable-handle-s::after {
+  right: 50%;
+  bottom: 5px;
+  width: 32px;
+  height: 4px;
+  transform: translateX(50%);
+  border: none;
+  border-radius: 9999px;
+  background: var(--color-border);
+  opacity: 0;
+  transition: opacity 130ms ease, background 130ms ease;
+}
+.layout .react-grid-item:hover > .react-resizable-handle.react-resizable-handle-s::after {
+  opacity: 1;
+}
+.layout .react-grid-item > .react-resizable-handle.react-resizable-handle-s:hover::after,
+.layout .react-grid-item.resizing > .react-resizable-handle.react-resizable-handle-s::after {
+  background: var(--color-accent);
+}
 
 /* ── Accessibility: honour reduced-motion + keyboard focus (flow pass) ─────── */
 @media (prefers-reduced-motion: reduce) {

@@ -823,6 +823,49 @@ export const spec = {
               },
             },
           },
+          series: {
+            type: "array",
+            description:
+              "Additional series plotted alongside the primary measure (timeseries queries only). Each runs as its own bucketed query and is merged onto a shared time axis.",
+            items: {
+              type: "object",
+              required: ["measure"],
+              properties: {
+                label: { type: "string" },
+                measure: {
+                  oneOf: [
+                    {
+                      type: "string",
+                      enum: ["count", "unique_sessions", "unique_users"],
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        property: { type: "string" },
+                        aggregation: {
+                          type: "string",
+                          enum: ["sum", "avg", "min", "max"],
+                        },
+                      },
+                    },
+                  ],
+                },
+                eventFilter: {
+                  type: "object",
+                  properties: {
+                    names: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    properties: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/PropFilter" },
+                    },
+                  },
+                },
+              },
+            },
+          },
           groupBy: {
             type: "array",
             items: {

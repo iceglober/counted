@@ -18,9 +18,9 @@ export function Funnel({ title, steps }: { title: string; steps: FunnelStep[] })
   const maxValue = steps[0]?.value ?? 1;
 
   return (
-    <div className="w-full bg-surface-1 border border-border rounded-lg p-5 hover:border-border-hover transition-colors">
-      <div className="text-xs text-text-secondary uppercase tracking-wider mb-4">{title}</div>
-      <div className="space-y-2">
+    <div className="w-full h-full flex flex-col bg-surface-1 border border-border rounded-lg p-5 hover:border-border-hover transition-colors">
+      <div className="text-xs text-text-secondary uppercase tracking-wider mb-4 shrink-0">{title}</div>
+      <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">
         {steps.map((step, i) => {
           const widthPct = maxValue > 0 ? (step.value / maxValue) * 100 : 0;
           const isFirst = i === 0;
@@ -52,7 +52,7 @@ export function Funnel({ title, steps }: { title: string; steps: FunnelStep[] })
         })}
       </div>
       {steps.length >= 2 && (
-        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs text-text-tertiary">
+        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs text-text-tertiary shrink-0">
           <span>Overall conversion</span>
           <span className="font-medium tabular-nums">
             {maxValue > 0 ? ((steps[steps.length - 1].value / maxValue) * 100).toFixed(1) : 0}%

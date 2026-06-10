@@ -20,9 +20,9 @@ export function Retention({ title, data }: { title: string; data: RetentionData 
   }
 
   return (
-    <div className="w-full bg-surface-1 border border-border rounded-lg p-5 hover:border-border-hover transition-colors">
-      <div className="text-xs text-text-secondary uppercase tracking-wider mb-4">{title}</div>
-      <div className="overflow-x-auto">
+    <div className="w-full h-full flex flex-col bg-surface-1 border border-border rounded-lg p-5 hover:border-border-hover transition-colors">
+      <div className="text-xs text-text-secondary uppercase tracking-wider mb-4 shrink-0">{title}</div>
+      <div className="flex-1 min-h-0 overflow-auto">
         <table className="w-full text-xs">
           <thead>
             <tr>

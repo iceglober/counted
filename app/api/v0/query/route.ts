@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildQuery } from "@/lib/query-engine";
 import { executeFunnelQuery } from "@/lib/funnel-query";
+import { executeTimeSeriesQuery } from "@/lib/timeseries-query";
 import { pool } from "@/lib/db";
 import { requireProjectAccess } from "@/lib/auth-guard";
 
@@ -31,6 +32,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         data: funnel,
         meta: { totalEvents: funnel.steps[0]?.value ?? 0, executionMs },
+      });
+    }
+
+    // Multi-series timeseries runs one bucketed query per series and merges
+    // them onto a shared time axis — like funnels, return the shaped data
+    // ({ labels, values, series }) directly.
+    if (query.timeBucket && Array.isArray(query.series) && query.series.length > 0) {
+      const start = performance.now();
+      const ts = await executeTimeSeriesQuery(projectId, query, timeRange);
+      const executionMs = Math.round(performance.now() - start);
+      return NextResponse.json({
+        data: ts,
+        meta: { totalEvents: ts.labels.length, executionMs },
       });
     }
 

@@ -26,6 +26,12 @@ const CUSTOM_AGGS = new Set(["sum", "avg", "min", "max"]);
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 
+type SeriesRow = {
+  measureType: string;
+  measureProperty: string;
+  eventFilter: string;
+};
+
 type ConfigState = {
   title: string;
   type: InsightType;
@@ -33,6 +39,8 @@ type ConfigState = {
   measureType: string;
   measureProperty: string;
   eventFilter: string;
+  /** Extra series plotted alongside the primary measure (timeseries only). */
+  series: SeriesRow[];
   groupByKeys: string[];
   timeBucket: "hour" | "day" | "week" | "month";
   limit: number;
@@ -51,7 +59,10 @@ type Action =
   | { type: "REMOVE_FUNNEL_STEP"; index: number }
   | { type: "ADD_GROUP_BY" }
   | { type: "UPDATE_GROUP_BY"; index: number; value: string }
-  | { type: "REMOVE_GROUP_BY"; index: number };
+  | { type: "REMOVE_GROUP_BY"; index: number }
+  | { type: "ADD_SERIES" }
+  | { type: "UPDATE_SERIES"; index: number; patch: Partial<SeriesRow> }
+  | { type: "REMOVE_SERIES"; index: number };
 
 function reducer(state: ConfigState, action: Action): ConfigState {
   switch (action.type) {
@@ -73,6 +84,12 @@ function reducer(state: ConfigState, action: Action): ConfigState {
       return { ...state, groupByKeys: state.groupByKeys.map((k, i) => (i === action.index ? action.value : k)) };
     case "REMOVE_GROUP_BY":
       return { ...state, groupByKeys: state.groupByKeys.filter((_, i) => i !== action.index) };
+    case "ADD_SERIES":
+      return { ...state, series: [...state.series, { measureType: "count", measureProperty: "", eventFilter: "" }] };
+    case "UPDATE_SERIES":
+      return { ...state, series: state.series.map((s, i) => (i === action.index ? { ...s, ...action.patch } : s)) };
+    case "REMOVE_SERIES":
+      return { ...state, series: state.series.filter((_, i) => i !== action.index) };
   }
 }
 
@@ -118,6 +135,20 @@ function buildQueryFromState(state: ConfigState): InsightQuery | null {
 
   if (state.type === "timeseries") {
     query.timeBucket = state.timeBucket;
+    // Extra series: include only fully-configured rows so a half-built row
+    // doesn't break the insight. Shared property filters apply to every series.
+    const series = state.series
+      .filter((s) => !CUSTOM_AGGS.has(s.measureType) || s.measureProperty)
+      .map((s) => {
+        const measure: InsightQuery["measure"] = CUSTOM_AGGS.has(s.measureType)
+          ? { property: s.measureProperty, aggregation: s.measureType as "sum" | "avg" | "min" | "max" }
+          : s.measureType as "count" | "unique_sessions" | "unique_users";
+        const eventFilter: InsightQuery["eventFilter"] = {};
+        if (s.eventFilter) eventFilter.names = [s.eventFilter];
+        if (validFilters.length > 0) eventFilter.properties = query.eventFilter?.properties;
+        return { measure, ...(eventFilter.names || eventFilter.properties ? { eventFilter } : {}) };
+      });
+    if (series.length > 0) query.series = series;
   }
 
   if (state.type === "breakdown") {
@@ -134,12 +165,29 @@ function buildQueryFromState(state: ConfigState): InsightQuery | null {
   return query;
 }
 
+function rowLabel(measureType: string, measureProperty: string, eventFilter: string): string {
+  if (eventFilter) return eventFilter;
+  return CUSTOM_AGGS.has(measureType)
+    ? `${measureType} of ${measureProperty || "..."}`
+    : measureType === "count" ? "Events"
+    : measureType === "unique_sessions" ? "Sessions"
+    : "Users";
+}
+
 function autoTitle(state: ConfigState): string {
   const measureLabel = CUSTOM_AGGS.has(state.measureType)
     ? `${state.measureType} of ${state.measureProperty || "..."}`
     : state.measureType === "count" ? "Events"
     : state.measureType === "unique_sessions" ? "Sessions"
     : "Users";
+
+  if (state.type === "timeseries" && state.series.length > 0) {
+    const labels = [
+      rowLabel(state.measureType, state.measureProperty, state.eventFilter),
+      ...state.series.map((s) => rowLabel(s.measureType, s.measureProperty, s.eventFilter)),
+    ];
+    return labels.join(" vs ");
+  }
 
   const gbKeys = state.groupByKeys.filter(Boolean);
   if (state.type === "breakdown" && gbKeys.length) {
@@ -186,6 +234,14 @@ function initState(insight: Insight, defaultProjectId: string): ConfigState {
     measureType: isCustomAgg ? (q!.measure as { aggregation: string }).aggregation : (q?.measure as string) ?? "count",
     measureProperty: isCustomAgg ? (q!.measure as { property: string }).property : "",
     eventFilter: q?.eventFilter?.names?.[0] ?? "",
+    series: (q?.series ?? []).map((s) => {
+      const custom = typeof s.measure === "object";
+      return {
+        measureType: custom ? (s.measure as { aggregation: string }).aggregation : (s.measure as string),
+        measureProperty: custom ? (s.measure as { property: string }).property : "",
+        eventFilter: s.eventFilter?.names?.[0] ?? "",
+      };
+    }),
     groupByKeys: (() => {
       const keys = (q?.groupBy ?? [])
         .map((g) => (g.type === "property" ? `prop:${g.key}` : g.type === "system" ? g.key : ""))
@@ -262,9 +318,12 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
         if (!res.ok) throw new Error("Query failed");
 
         const { data, meta } = await res.json();
-        // Funnels come back already shaped ({ steps }); everything else is rows.
+        // Funnels and multi-series timeseries come back already shaped
+        // ({ steps } / { labels, values, series }); everything else is rows.
+        const preShaped = state.type === "funnel"
+          || (state.type === "timeseries" && (query?.series?.length ?? 0) > 0);
         setPreviewData(
-          state.type === "funnel"
+          preShaped
             ? data
             : mapQueryResultToInsightData(state.type as "metric" | "timeseries" | "breakdown", data),
         );
@@ -279,7 +338,7 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [state.type, state.projectId, state.measureType, state.measureProperty, state.eventFilter, state.groupByKeys, state.timeBucket, state.limit, state.propFilters, state.funnelSteps, isIncomplete, timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.type, state.projectId, state.measureType, state.measureProperty, state.eventFilter, state.series, state.groupByKeys, state.timeBucket, state.limit, state.propFilters, state.funnelSteps, isIncomplete, timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-persist (800ms debounce)
   useEffect(() => {
@@ -424,6 +483,51 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
               value={state.timeBucket}
               onChange={(v) => set("timeBucket", v)}
             />
+          </ConfigSection>
+        )}
+
+        {/* Extra series (timeseries only) — plot more metrics on the same chart */}
+        {state.type === "timeseries" && (
+          <ConfigSection label="Compare with">
+            <div className="space-y-2">
+              {state.series.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <MeasurePicker
+                      measureType={s.measureType}
+                      measureProperty={s.measureProperty}
+                      propKeys={schema?.numericPropKeys ?? []}
+                      onMeasureTypeChange={(v) => dispatch({ type: "UPDATE_SERIES", index: i, patch: { measureType: v } })}
+                      onMeasurePropertyChange={(v) => dispatch({ type: "UPDATE_SERIES", index: i, patch: { measureProperty: v } })}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <EventFilter
+                      value={s.eventFilter}
+                      events={schema?.eventNames ?? []}
+                      onChange={(v) => dispatch({ type: "UPDATE_SERIES", index: i, patch: { eventFilter: v } })}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => dispatch({ type: "REMOVE_SERIES", index: i })}
+                    className="shrink-0 text-text-tertiary hover:text-text-primary transition-colors p-1"
+                    aria-label="Remove series"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              {state.series.length < 4 && (
+                <button
+                  type="button"
+                  onClick={() => dispatch({ type: "ADD_SERIES" })}
+                  className="text-xs text-accent hover:text-accent-hover transition-colors"
+                >
+                  + Add metric
+                </button>
+              )}
+            </div>
           </ConfigSection>
         )}
 
