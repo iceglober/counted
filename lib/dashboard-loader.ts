@@ -8,6 +8,7 @@ import type {
 import { mapQueryResultToInsightData } from "./query-transform";
 import { executeFunnelQuery } from "./funnel-query";
 import { executeRetentionQuery } from "./retention-query";
+import { executeTimeSeriesQuery } from "./timeseries-query";
 
 function computePreviousTimeRange(timeRange: TimeRange): TimeRange {
   if (timeRange.type === "relative") {
@@ -96,6 +97,14 @@ export async function loadDashboardData(
         );
         return { _retention: retentionData };
       }
+      if (insight.type === "timeseries") {
+        const tsData = await executeTimeSeriesQuery(
+          insight.projectId ?? projectId,
+          insight.query,
+          timeRange,
+        );
+        return { _timeseries: tsData };
+      }
       const built = buildQuery(insight.projectId ?? projectId, insight.query, timeRange);
       const result = await pool.query(built.sql, built.params);
       return result.rows;
@@ -129,6 +138,21 @@ export async function loadDashboardData(
         span: layout.span,
       height: layout.height,
         data: retentionData,
+        query: layout.query,
+        projectId: layout.projectId,
+      } satisfies Insight;
+    }
+
+    if (layout.type === "timeseries") {
+      const tsData = ((rawResult as Record<string, unknown>)?._timeseries ?? { labels: [], values: [] }) as import("./types").TimeSeriesData;
+      return {
+        id: layout.id,
+        type: layout.type as "timeseries",
+        title: layout.title,
+        span: layout.span,
+        height: layout.height,
+        summary: layout.summary,
+        data: tsData,
         query: layout.query,
         projectId: layout.projectId,
       } satisfies Insight;

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import type { Insight, InsightQuery, MetricData, TimeSeriesData, BreakdownItem, FunnelData, RetentionData, TimeRange } from "@/lib/types";
+import { useState, useCallback, useEffect, useRef } from "react";
+import type { Insight, InsightQuery, MetricData, TimeSeriesData, BreakdownItem, FunnelData, RetentionData, TimeRange, SummaryStat } from "@/lib/types";
 import { MetricCard } from "./metric-card";
 import { AreaChart } from "./area-chart";
 import { Breakdown } from "./breakdown";
@@ -33,7 +33,7 @@ function maxPerRow(width: number): number {
   return width >= 1024 ? 3 : width >= 600 ? 2 : 1;
 }
 
-function InsightRenderer({ insight }: { insight: Insight }) {
+function InsightRenderer({ insight, onSummaryChange }: { insight: Insight; onSummaryChange?: (stat: SummaryStat) => void }) {
   if (!insight.data) {
     return (
       <div className="w-full h-full bg-surface-1 border border-border rounded-lg p-5">
@@ -50,7 +50,15 @@ function InsightRenderer({ insight }: { insight: Insight }) {
     }
     case "timeseries": {
       const ts = insight.data as TimeSeriesData;
-      return <AreaChart title={insight.title} data={{ labels: ts?.labels ?? [], values: ts?.values ?? [] }} />;
+      return (
+        <AreaChart
+          title={insight.title}
+          data={{ labels: ts?.labels ?? [], values: ts?.values ?? [], series: ts?.series }}
+          bucket={insight.query?.timeBucket}
+          summary={insight.summary}
+          onSummaryChange={onSummaryChange}
+        />
+      );
     }
     case "breakdown":
       return <Breakdown title={insight.title} items={(insight.data as { items?: BreakdownItem[] })?.items ?? []} />;
@@ -167,6 +175,8 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
   const { width, containerRef, mounted } = useContainerWidth();
   const n = maxPerRow(width);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [removed, setRemoved] = useState<{ insight: Insight; index: number } | null>(null);
+  const removedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => setInsights(initialInsights), [initialInsights]);
   useEffect(() => setName(dashboardName), [dashboardName]);
@@ -201,6 +211,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         title: ins.title,
         span: ins.span,
         height: ins.height,
+        summary: ins.summary,
         query: ins.query ?? { measure: "count" as const },
         projectId: ins.projectId ?? projectId,
       })),
@@ -252,10 +263,31 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     }
   }
 
+  // Removal is immediate but forgiving: the insight is kept around briefly so
+  // an accidental click on the X can be undone from the snackbar.
   function removeInsight(insightId: string) {
+    const index = insights.findIndex((ins) => ins.id === insightId);
+    if (index === -1) return;
+    setRemoved({ insight: insights[index], index });
+    clearTimeout(removedTimer.current);
+    removedTimer.current = setTimeout(() => setRemoved(null), 6000);
     setInsights((prev) => {
       const updated = prev.filter((ins) => ins.id !== insightId);
-      persistLayout(updated).then(() => refreshInsights());
+      persistLayout(updated);
+      return updated;
+    });
+  }
+
+  function undoRemove() {
+    if (!removed) return;
+    const { insight, index } = removed;
+    clearTimeout(removedTimer.current);
+    setRemoved(null);
+    setInsights((prev) => {
+      if (prev.some((ins) => ins.id === insight.id)) return prev;
+      const updated = [...prev];
+      updated.splice(Math.min(index, updated.length), 0, insight);
+      persistLayout(updated);
       return updated;
     });
   }
@@ -314,6 +346,27 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     setInsights((prev) => {
       if (prev.find((i) => i.id === insightId)?.span === span) return prev;
       const updated = prev.map((ins) => (ins.id === insightId ? { ...ins, span } : ins));
+      persistLayout(updated);
+      return updated;
+    });
+  }
+
+  function setInsightSummary(insightId: string, summary: SummaryStat) {
+    setInsights((prev) => {
+      const updated = prev.map((ins) => (ins.id === insightId ? { ...ins, summary } : ins));
+      persistLayout(updated);
+      return updated;
+    });
+  }
+
+  // Dragging the bottom edge sets an explicit height (in grid rows) for the
+  // card; content reflows to the new room (denser or roomier, see breakdown).
+  function handleResizeStop(item: LayoutItem | null) {
+    if (!item) return;
+    setInsights((prev) => {
+      const ins = prev.find((i) => i.id === item.i);
+      if (!ins || ins.height === item.h) return prev;
+      const updated = prev.map((i) => (i.id === item.i ? { ...i, height: item.h } : i));
       persistLayout(updated);
       return updated;
     });
@@ -489,15 +542,19 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           layout={computeLayout(insights, compact, n, draggingId)}
           gridConfig={{ cols: COLS, rowHeight: compact ? COMPACT_ROW_HEIGHT : ROW_HEIGHT, margin: compact ? [8, 8] : [16, 16], containerPadding: [0, 0] }}
           dragConfig={{ enabled: !editingId, handle: ".drag-handle" }}
-          resizeConfig={{ enabled: false }}
+          resizeConfig={{ enabled: !editingId, handles: ["s"] }}
           onDragStart={(_l: Layout, oldItem: LayoutItem | null) => setDraggingId(oldItem?.i ?? null)}
           onDragStop={(l: Layout) => { setDraggingId(null); handleDragStop(l); }}
+          onResizeStop={(_l: Layout, _old: LayoutItem | null, newItem: LayoutItem | null) => handleResizeStop(newItem)}
         >
           {insights.map((insight) => (
             <div key={insight.id} data-insight-id={insight.id} className="h-full">
               <div className="relative group/insight h-full">
                   <div className="insight-card h-full overflow-hidden">
-                    <InsightRenderer insight={insight} />
+                    <InsightRenderer
+                      insight={insight}
+                      onSummaryChange={insight.type === "timeseries" ? (stat) => setInsightSummary(insight.id, stat) : undefined}
+                    />
                   </div>
                   <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover/insight:opacity-100 transition-all z-10">
                     <button
@@ -509,7 +566,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                     </button>
                     <div className="relative">
                       <ActionButton
-                        label="Resize"
+                        label="Width"
                         onClick={() => setSizeMenuFor(sizeMenuFor === insight.id ? null : insight.id)}
                         icon={<Scaling className="w-3 h-3" />}
                         className="p-1 rounded-full bg-surface-2 border border-border text-text-tertiary hover:text-accent hover:border-accent/40 shadow-sm transition-colors"
@@ -579,6 +636,21 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
           </div>
         );
       })()}
+
+      {/* Undo snackbar for insight removal */}
+      {removed && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-surface-2 border border-border rounded-md shadow-lg pl-3 pr-1.5 py-1.5 animate-rise">
+          <span className="text-xs text-text-secondary">
+            Removed &ldquo;{removed.insight.title || "Untitled insight"}&rdquo;
+          </span>
+          <button
+            onClick={undoRemove}
+            className="px-2 py-1 text-xs font-medium text-accent hover:bg-accent/10 rounded transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
 
       {insights.length === 0 && (
         <Onboarding

@@ -15,7 +15,14 @@ function InsightRenderer({ insight }: { insight: Insight }) {
     }
     case "timeseries": {
       const ts = insight.data as TimeSeriesData;
-      return <AreaChart title={insight.title} data={{ labels: ts?.labels ?? [], values: ts?.values ?? [] }} />;
+      return (
+        <AreaChart
+          title={insight.title}
+          data={{ labels: ts?.labels ?? [], values: ts?.values ?? [], series: ts?.series }}
+          bucket={insight.query?.timeBucket}
+          summary={insight.summary}
+        />
+      );
     }
     case "breakdown":
       return <Breakdown title={insight.title} items={(insight.data as { items?: BreakdownItem[] })?.items ?? []} />;

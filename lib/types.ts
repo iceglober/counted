@@ -8,8 +8,14 @@ export type MetricData = {
 
 export type TimeSeriesData = {
   labels: string[];
+  /** Primary series values (mirrors series[0] when multiple series are present). */
   values: number[];
+  /** All plotted series, in display order. Absent for legacy single-series data. */
+  series?: { label: string; values: number[] }[];
 };
+
+/** How a time-series card summarises its values in the header. */
+export type SummaryStat = "total" | "average" | "peak";
 
 export type BreakdownItem = { label: string; value: number };
 
@@ -38,6 +44,8 @@ export type Insight = {
   span: number;
   /** Height in grid rows. Undefined falls back to a per-type default. */
   height?: number;
+  /** Header summary for timeseries insights. Undefined = total. */
+  summary?: SummaryStat;
   data: MetricData | TimeSeriesData | { items: BreakdownItem[] } | FunnelData | RetentionData;
   query?: InsightQuery;
   projectId?: string;
@@ -62,12 +70,24 @@ export type PropFilter = {
   value: string | number | string[];
 };
 
+/** One extra line on a timeseries insight: its own measure and event filter. */
+export type SeriesQuery = {
+  label?: string;
+  measure: Measure;
+  eventFilter?: {
+    names?: string[];
+    properties?: PropFilter[];
+  };
+};
+
 export type InsightQuery = {
   measure: Measure;
   eventFilter?: {
     names?: string[];
     properties?: PropFilter[];
   };
+  /** Additional series plotted alongside the primary measure (timeseries only). */
+  series?: SeriesQuery[];
   groupBy?: GroupBy[];
   timeBucket?: "hour" | "day" | "week" | "month";
   orderBy?: { field: string; direction: "asc" | "desc" };
@@ -90,6 +110,8 @@ export type InsightLayout = {
   span: number;
   /** Height in grid rows. Undefined falls back to a per-type default. */
   height?: number;
+  /** Header summary for timeseries insights. Undefined = total. */
+  summary?: SummaryStat;
   query: InsightQuery;
   projectId?: string;
 };

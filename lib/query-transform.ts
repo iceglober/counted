@@ -1,6 +1,6 @@
 import type { InsightType, Insight, MetricData, TimeSeriesData, BreakdownItem } from "./types";
 
-function formatBucketLabel(bucket: string | Date): string {
+export function formatBucketLabel(bucket: string | Date): string {
   const d = bucket instanceof Date ? bucket : new Date(bucket);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
