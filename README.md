@@ -94,9 +94,9 @@ For development setup, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 | [`@counted/opencode`](packages/opencode) | OpenCode plugin | ~1KB |
 | [`@counted/gemini-cli`](packages/gemini-cli) | Gemini CLI agent hooks | ~1KB |
 | [`@counted/codex-cli`](packages/codex-cli) | Codex CLI agent hooks | ~1KB |
-| [`counted`](packages/python) | Python SDK | — |
-| [`counted`](packages/go) | Go SDK | — |
-| [`counted`](packages/rust) | Rust SDK | — |
+| [`counted`](packages/python) | Python SDK — *preview, not yet released* | — |
+| [`counted`](packages/go) | Go SDK — *preview, not yet released* | — |
+| [`counted-sdk`](packages/rust) | Rust SDK — *preview, not yet released* | — |
 | [`@counted/migrate`](packages/migrate) | Aptabase migration CLI | — |
 
 ## Migrating from Aptabase

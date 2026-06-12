@@ -112,7 +112,8 @@ counted.track("tool_use", { tool: "search", outcome: "hit" });
 counted.track("session_end", { duration_ms: elapsed });`}</CodeBlock>
             </div>
             <p className="mt-4 text-xs text-text-tertiary">
-              Python, Go, and Rust SDKs offer the same agent-ready API for non-JS harnesses.
+              Non-JS harness? The HTTP API is one POST per event — Python, Go, and Rust SDKs are
+              coming soon (+1 yours in the <a href="/docs#more-sdks" className="text-accent hover:text-accent-hover transition-colors">docs</a>).
             </p>
           </div>
         </section>

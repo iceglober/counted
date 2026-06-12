@@ -79,7 +79,10 @@ export const POSTS: PostMeta[] = [
     date: "2026-06-10",
     readingTime: "7 min",
     category: "Quickstart",
-    published: true,
+    // Pulled 2026-06-12: documents Python/Go/Rust SDKs that aren't released yet
+    // (policy: an SDK ships only once a live example exists). Re-publish
+    // per-language as each SDK earns its live example.
+    published: false,
   },
   {
     slug: "self-host-counted-in-5-minutes",

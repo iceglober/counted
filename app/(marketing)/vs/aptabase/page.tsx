@@ -33,7 +33,7 @@ const ROWS: Row[] = [
   { label: "Composable dashboards (custom insights)", counted: true, aptabase: false },
   { label: "Funnels", counted: true, aptabase: false },
   { label: "Agent-native SDKs (Claude Code, OpenCode, Codex, Gemini)", counted: true, aptabase: false },
-  { label: "Web & backend SDKs", counted: "JS, React, Python, Go, Rust", aptabase: "JS, Swift, Kotlin, +more" },
+  { label: "Web & backend SDKs", counted: "JS/TS + React (more soon)", aptabase: "JS, Swift, Kotlin, +more" },
   { label: "Mobile SDKs (Swift, Kotlin)", counted: "On the roadmap", aptabase: true },
   { label: "SDK size (web)", counted: "<3KB gzipped", aptabase: "~3KB" },
   { label: "Self-host (Docker)", counted: "Docker Compose", aptabase: true },

@@ -10,7 +10,8 @@ const SITE = "https://app.counted.dev";
 const CONTENT = `# Counted — privacy-first product analytics for AI agents
 
 > Counted (${SITE}) is privacy-first product analytics: no cookies, no
-> fingerprinting, no PII, sub-3KB SDKs for JS, React, Python, Go, and Rust.
+> fingerprinting, no PII, sub-3KB SDKs for JS/TS and React (more languages
+> coming soon; any language can use the one-POST HTTP API below).
 > This file tells a coding agent how to add event tracking to a codebase
 > end to end, including getting a project key with no human signup.
 
@@ -33,9 +34,9 @@ const CONTENT = `# Counted — privacy-first product analytics for AI agents
 ## Install
 - JS / TS (browser or Node):  npm install @counted/sdk
 - React:                       npm install @counted/react
-- Python:                      pip install counted
-- Go:                          go get github.com/iceglober/counted/packages/go
-- Rust:                        cargo add counted
+- Other languages (Python, Go, Rust, …): SDKs are coming soon — use the HTTP
+  wire contract below (one POST per event/batch). Do NOT pip/go get/cargo
+  install Counted packages; they are not released yet.
 
 ## Initialize + track
 JS / TS:
@@ -49,10 +50,9 @@ React:
     const { track } = useAnalytics();
     track("checkout_completed", { amount: 49, currency: "usd" });
 
-Python:
-    from counted import Analytics
-    counted = Analytics(project_key=os.environ["COUNTED_KEY"])
-    counted.track("signup", {"plan": "pro"})
+Any other language (no SDK yet — POST the wire contract below directly):
+    # e.g. Python with requests/httpx: POST /api/v0/event with the
+    # Project-Key header and the JSON body shown under "Wire contract".
 
 ## What to track
 The 5-15 highest-signal actions for THIS product. Prefer activation and business

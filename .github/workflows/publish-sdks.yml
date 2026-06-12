@@ -1,18 +1,15 @@
 name: Publish SDKs (PyPI / crates.io / Go)
 
-# Parallel to the npm release (changesets in ci.yml). Each language SDK publishes
-# itself when its manifest version changes on main. Every job is idempotent and
+# Parallel to the npm release (changesets in ci.yml). Every job is idempotent and
 # self-gating:
 #   - skips if the registry already has that version, and
 #   - skips (cleanly, not a failure) if the required secret isn't configured yet.
-# So adding the secrets later, then re-running via "Run workflow", ships them.
+#
+# MANUAL-ONLY by policy (2026-06-12): an SDK is released to a registry only once
+# it's running in a live example — JS/TS + React are the only released SDKs today;
+# Python/Go/Rust are in-repo previews marked "coming soon" on the site. When one
+# earns its live example, run this workflow by hand from the Actions tab.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "packages/python/**"
-      - "packages/rust/**"
-      - "packages/go/**"
   workflow_dispatch: {}
 
 jobs:
