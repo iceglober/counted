@@ -30,8 +30,6 @@
     "stripe:setup": "bun scripts/stripe-setup.ts",
     "indexnow": "bun scripts/indexnow.ts",
     "syndicate:devto": "bun scripts/syndicate-devto.ts",
-    "api:export": "bun fern/export-spec.ts",
-    "api:generate": "bun fern/export-spec.ts && npx -y fern-api generate",
     "changeset": "npx @changesets/cli",
     "version-packages": "npx @changesets/cli version",
     "release": "npx @changesets/cli publish"

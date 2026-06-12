@@ -75,24 +75,14 @@ cd packages/react && bun run build
 
 The Dockerfile handles this automatically. CI builds SDKs before typecheck.
 
-## API client (`@counted/api`) — Fern
+## API client (`@counted/api`)
 
-`lib/openapi.ts` is the single source of truth for the HTTP API. The typed
-management-API client is generated from it with Fern:
-
-```bash
-bun run api:export     # lib/openapi.ts -> fern/openapi/openapi.json (Fern's input)
-bun run api:generate   # export + `fern generate` -> packages/api/generated
-```
-
-- `fern/openapi/openapi.json` is committed; the **OpenAPI in sync** CI workflow
-  fails a PR if it drifts from `lib/openapi.ts` (run `bun run api:export` and commit).
-- **`fern generate` requires Fern auth** — run `fern login` locally, or set a
-  `FERN_TOKEN` repo secret for CI. (That's the one step that can't run unauthenticated.)
-- Once generated, `packages/api/src/index.ts` should re-export from `./generated`
-  (`export * from "../generated"`). Until then it carries hand-written types.
-- The human-readable reference at `/docs/api` and the agent summary at `/docs/llms.txt`
-  both render straight from `lib/openapi.ts`, so they never drift.
+`@counted/api` is a small **hand-written** typed client for the management API
+(used by e.g. `scripts/growth-readback.ts`). `lib/openapi.ts` is the source of
+truth for the HTTP API — served as OpenAPI 3.1 at `/api/v0/openapi.json`, rendered
+for humans at `/docs/api`, and summarized for agents at `/docs/llms.txt` (all of
+which render directly from it, so they never drift). When the API changes, update
+the client's types alongside `lib/openapi.ts` by hand.
 
 ## Environment variables
 
