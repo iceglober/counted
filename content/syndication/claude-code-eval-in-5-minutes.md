@@ -6,7 +6,7 @@ canonical_url: https://counted.dev/blog/claude-code-eval-in-5-minutes
 published: false
 ---
 
-You can't improve an agent you can't see. [Counted](https://counted.dev) captures what your AI coding agent actually does — tool calls, file edits, commands, outcomes — into a pre-built eval dashboard, privacy-safe by default. Here's the five-minute version for Claude Code.
+[Counted](https://counted.dev) captures what Claude Code actually does — tool calls, file edits, commands, outcomes — in a pre-built eval dashboard, privacy-safe by default. Five minutes to set up.
 
 ## 1. Create an agent project
 
