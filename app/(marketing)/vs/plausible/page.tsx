@@ -35,7 +35,7 @@ const ROWS: Row[] = [
   { label: "Funnels", counted: "Included (free)", plausible: "Business tier only" },
   { label: "Composable dashboards", counted: true, plausible: "Fixed dashboard" },
   { label: "Agent-native SDKs (Claude Code, OpenCode)", counted: true, plausible: false },
-  { label: "SDKs", counted: "JS, React, Python, Go, Rust", plausible: "Script tag + integrations" },
+  { label: "SDKs", counted: "JS/TS + React (more soon)", plausible: "Script tag + integrations" },
   { label: "Focus", counted: "Product analytics (events, funnels)", plausible: "Web analytics (pageviews)" },
 ];
 

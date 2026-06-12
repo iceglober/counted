@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "../(marketing)/site-chrome";
 import { CodeTabs } from "@/components/code-tabs";
+import { SdkVote } from "@/components/sdk-vote";
 
 export const metadata: Metadata = {
   title: "Documentation — Counted",
@@ -37,40 +38,6 @@ import { AnalyticsProvider, useAnalytics } from "@counted/react";
 // anywhere inside it
 const { track } = useAnalytics();
 track("signup", { plan: "pro" });`,
-  },
-  {
-    label: "Python",
-    lang: "python",
-    code: `pip install counted
-
-import counted
-
-counted.init("ck_your_key")
-counted.track("signup", {"plan": "pro"})`,
-  },
-  {
-    label: "Go",
-    lang: "go",
-    code: `go get github.com/iceglober/counted/packages/go
-
-import counted "github.com/iceglober/counted/packages/go"
-
-counted.Init(counted.Options{ProjectKey: "ck_your_key"})
-defer counted.DestroyGlobal() // flush on exit
-
-counted.TrackEvent("signup", counted.EventProperties{"plan": "pro"})`,
-  },
-  {
-    label: "Rust",
-    lang: "rust",
-    code: `# Cargo.toml — imported as \`counted\`
-counted-sdk = "0.1"
-
-use counted::Analytics;
-
-let analytics = Analytics::new("ck_your_key");
-analytics.track("signup", Some([("plan".into(), "pro".into())].into()));
-analytics.flush(); // or let it flush on drop`,
   },
   {
     label: "cURL",
@@ -128,11 +95,27 @@ export default function DocsPage() {
         <CodeTabs tabs={QUICKSTART} />
       </div>
 
+      <H2 id="more-sdks">More SDKs — coming soon</H2>
+      <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+        We release an SDK once it&apos;s running in a live example, not before. JS/TS and React are
+        what runs counted.dev today; these are next. <strong className="text-text-primary">+1 the
+        one you want</strong> and we&apos;ll prioritize by demand — your vote is just a Counted
+        event, naturally.
+      </p>
+      <div className="mt-4">
+        <SdkVote />
+      </div>
+      <p className="mt-3 text-xs text-text-tertiary">
+        Need another language today? The{" "}
+        <a href="/docs/api" className="text-accent hover:text-accent-hover transition-colors">HTTP API</a>{" "}
+        is one POST — see the cURL tab above.
+      </p>
+
       <H2>Next</H2>
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <NextLink href="/docs/api" title="API Reference →" blurb="Every endpoint: ingestion, projects, query, dashboards, alerts." />
         <NextLink href="/for/agents" title="Analytics for AI agents →" blurb="Native plugins for Claude Code, OpenCode, Codex, and Gemini CLI." />
-        <NextLink href="/blog/counted-in-any-language" title="SDK guides →" blurb="Per-language quickstarts and the flush gotcha." />
+        <NextLink href="/blog" title="Guides & tutorials →" blurb="Quickstarts and essays — Next.js, self-hosting, dashboards, and the privacy model." />
         <NextLink href="/blog/self-host-counted-in-5-minutes" title="Self-host →" blurb="Run Counted on your own infra with Docker Compose." />
       </div>
 

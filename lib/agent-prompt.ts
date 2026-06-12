@@ -7,7 +7,7 @@ export const AGENT_PROMPT = `You are adding privacy-first product analytics to t
 
 2. Decide what to measure. Given who the users are and how they get value, list the 5–15 highest-signal events worth capturing — the moments that show someone activated, succeeded, converted, or hit friction. Examples: signup, onboarding_completed, <core_feature>_used, purchase, invite_sent, a failed/erroring action. Prefer activation and business milestones over noisy low-level events. For each event note the name, where in the code it should fire, and 1–3 safe properties that describe it (e.g. plan, amount, source).
 
-3. Read the integration guide at https://app.counted.dev/docs/llms.txt for the exact SDK install command, the init snippet, and the event/property format for this project's language (JS, React, Python, Go, or Rust).
+3. Read the integration guide at https://app.counted.dev/docs/llms.txt for the exact SDK install command, the init snippet, and the event/property format. SDKs exist for JS/TS and React; for any other language use the plain HTTP wire contract in that guide (one POST per event — do not install Counted packages for other languages, they are not released yet).
 
 4. Get a project key — no signup required. Run:
      curl -X POST https://app.counted.dev/api/v0/provision
