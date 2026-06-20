@@ -134,6 +134,16 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
     published: true,
   },
+  {
+    slug: "nuxt-analytics-in-5-minutes",
+    title: "Add product analytics to your Nuxt 3 app in 5 minutes",
+    description:
+      "Drop @counted/sdk into any Nuxt 3 app as a client-side plugin — auto-track page views via router.afterEach, fire custom events anywhere. No cookies, under 3KB.",
+    date: "2026-08-12",
+    readingTime: "5 min",
+    category: "Quickstart",
+    published: true,
+  },
 ];
 
 export function getPost(slug: string): PostMeta | undefined {
