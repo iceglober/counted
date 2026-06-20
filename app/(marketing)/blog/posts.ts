@@ -125,6 +125,16 @@ export const POSTS: PostMeta[] = [
     published: true,
   },
   {
+    slug: "sveltekit-analytics-in-5-minutes",
+    title: "Add product analytics to your SvelteKit app in 5 minutes",
+    description:
+      "Drop @counted/sdk into any SvelteKit app, auto-track page views across routes, and fire custom events — no cookies, under 3KB gzipped.",
+    date: "2026-07-29",
+    readingTime: "5 min",
+    category: "Quickstart",
+    published: true,
+  },
+  {
     slug: "astro-analytics-in-5-minutes",
     title: "Add product analytics to your Astro site in 5 minutes",
     description:
