@@ -135,6 +135,16 @@ export const POSTS: PostMeta[] = [
     published: true,
   },
   {
+    slug: "astro-analytics-in-5-minutes",
+    title: "Add product analytics to your Astro site in 5 minutes",
+    description:
+      "Drop @counted/sdk into any Astro site — static, SSR, or hybrid — auto-track page views, and fire custom events. No cookies, under 3KB gzipped.",
+    date: "2026-08-05",
+    readingTime: "5 min",
+    category: "Quickstart",
+    published: true,
+  },
+  {
     slug: "nuxt-analytics-in-5-minutes",
     title: "Add product analytics to your Nuxt 3 app in 5 minutes",
     description:
