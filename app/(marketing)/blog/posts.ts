@@ -144,6 +144,16 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
     published: true,
   },
+  {
+    slug: "remix-analytics-in-5-minutes",
+    title: "Add product analytics to your Remix app in 5 minutes",
+    description:
+      "Drop @counted/react into any Remix v2 app, auto-track page views on every route, and fire custom events — no cookies, under 3KB.",
+    date: "2026-08-19",
+    readingTime: "5 min",
+    category: "Quickstart",
+    published: true,
+  },
 ];
 
 export function getPost(slug: string): PostMeta | undefined {
