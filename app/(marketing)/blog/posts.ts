@@ -154,6 +154,16 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
     published: true,
   },
+  {
+    slug: "angular-analytics-in-5-minutes",
+    title: "Add product analytics to your Angular app in 5 minutes",
+    description:
+      "Drop @counted/sdk into any Angular 17+ app, auto-track page views with the Router, and fire custom events from any component — no cookies, under 3KB.",
+    date: "2026-09-02",
+    readingTime: "5 min",
+    category: "Quickstart",
+    published: true,
+  },
 ];
 
 export function getPost(slug: string): PostMeta | undefined {
