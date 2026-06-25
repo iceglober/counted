@@ -27,7 +27,7 @@ jobs:
         run: bun scripts/smoke.ts
         env:
           SMOKE_APP_URL: https://app.counted.dev
-          SMOKE_MARKETING_URL: https://www.counted.dev
+          SMOKE_MARKETING_URL: https://counted.dev
           # Optional — set as repo secrets to unlock the ingestion + authenticated checks:
           SMOKE_CLIENT_KEY: ${{ secrets.SMOKE_CLIENT_KEY }}
           SMOKE_SESSION_COOKIE: ${{ secrets.SMOKE_SESSION_COOKIE }}
