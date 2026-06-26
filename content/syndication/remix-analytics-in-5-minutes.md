@@ -6,7 +6,8 @@ canonical_url: https://counted.dev/blog/remix-analytics-in-5-minutes
 published: false
 ---
 
-[Counted](https://counted.dev) drops into any Remix v2 app in a handful of lines — no cookie banner, no consent wall, no 50KB bundle. Here's the whole setup.
+`@counted/react` drops into any Remix v2 app in a handful of lines — no cookie banner,
+no consent wall, no 50KB bundle. Here's the whole setup.
 
 ## 1. Get a project key
 
