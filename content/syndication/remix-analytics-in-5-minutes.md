@@ -3,6 +3,7 @@ title: "Add product analytics to your Remix app in 5 minutes"
 description: "Drop @counted/react into any Remix v2 app, auto-track page views on every route, and fire custom events — no cookies, under 3KB."
 tags: remix, react, javascript, analytics, privacy
 canonical_url: https://counted.dev/blog/remix-analytics-in-5-minutes
+series: Analytics Quickstarts
 published: false
 ---
 
