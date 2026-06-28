@@ -25,7 +25,7 @@ export const POSTS: PostMeta[] = [
     slug: "what-ai-native-means",
     title: "What does it mean to be “AI-native”?",
     description:
-      "AI-native isn't a chatbot bolted into the corner of your app. It's treating the agent as a first-class actor in your product — including in how you measure it. A short argument for a new default.",
+      "AI-native isn’t a chatbot bolted into the corner of your app. It’s treating the agent as a first-class actor in your product — including in how you measure it. A short argument for a new default.",
     date: "2026-06-20",
     readingTime: "6 min",
     category: "Perspective",
@@ -35,7 +35,7 @@ export const POSTS: PostMeta[] = [
     slug: "privacy-first-why",
     title: "Privacy-first. Why?",
     description:
-      "Most analytics is built on surveillance you never needed. Privacy-first isn't a compliance checkbox for us — it's the founding bet. Here's the argument, and the business case behind it.",
+      "Most analytics is built on surveillance you never needed. Privacy-first isn’t a compliance checkbox for us — it’s the founding bet. Here’s the argument, and the business case behind it.",
     date: "2026-06-01",
     readingTime: "6 min",
     category: "Perspective",
@@ -43,7 +43,7 @@ export const POSTS: PostMeta[] = [
   },
   {
     slug: "no-cookies-how",
-    title: "Why we don't use cookies — and what we do instead",
+    title: "Why we don’t use cookies — and what we do instead",
     description:
       "No cookies, no localStorage id, no fingerprint. So how does Counted count anything? The ephemeral session model explained — including the honest tradeoffs of giving up identity.",
     date: "2026-06-03",
@@ -140,6 +140,16 @@ export const POSTS: PostMeta[] = [
     description:
       "Drop @counted/sdk into any Astro site — static, SSR, or hybrid — auto-track page views, and fire custom events. No cookies, under 3KB gzipped.",
     date: "2026-08-05",
+    readingTime: "5 min",
+    category: "Quickstart",
+    published: true,
+  },
+  {
+    slug: "nuxt-analytics-in-5-minutes",
+    title: "Add product analytics to your Nuxt 3 app in 5 minutes",
+    description:
+      "Drop @counted/sdk into any Nuxt 3 app as a client-side plugin — auto-track page views via router.afterEach, fire custom events anywhere. No cookies, under 3KB.",
+    date: "2026-08-12",
     readingTime: "5 min",
     category: "Quickstart",
     published: true,
