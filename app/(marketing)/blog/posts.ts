@@ -184,6 +184,16 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
     published: true,
   },
+  {
+    slug: "react-vite-analytics-in-5-minutes",
+    title: "Add product analytics to your React + Vite app in 5 minutes",
+    description:
+      "Drop @counted/react into any Vite React app, auto-track page views on every route, and fire custom events — no cookies, under 3KB.",
+    date: "2026-09-09",
+    readingTime: "5 min",
+    category: "Quickstart",
+    published: true,
+  },
 ];
 
 export function getPost(slug: string): PostMeta | undefined {
