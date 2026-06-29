@@ -164,6 +164,16 @@ export const POSTS: PostMeta[] = [
     category: "Quickstart",
     published: true,
   },
+  {
+    slug: "vue-analytics-in-5-minutes",
+    title: "Add product analytics to your Vue 3 app in 5 minutes",
+    description:
+      "Drop @counted/sdk into any Vue 3 + Vite app, auto-track page views via router.afterEach, and fire custom events from any component. No cookies, under 3KB gzipped.",
+    date: "2026-08-26",
+    readingTime: "5 min",
+    category: "Quickstart",
+    published: true,
+  },
 ];
 
 export function getPost(slug: string): PostMeta | undefined {
