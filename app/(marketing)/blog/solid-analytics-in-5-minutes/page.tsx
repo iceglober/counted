@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CodeBlock } from "@/components/code-block";
+import { CodeBlock } from "../../site-chrome";
 
 export const metadata: Metadata = {
   title: "Add product analytics to your SolidJS app in 5 minutes | Counted",
@@ -31,17 +31,17 @@ export default function SolidAnalyticsPost() {
         Create a project and copy its <code>ck_</code> client key — or provision
         one without signing up:
       </p>
-      <CodeBlock language="bash">{`curl -X POST https://app.counted.dev/api/v0/provision`}</CodeBlock>
+      <CodeBlock>{`curl -X POST https://app.counted.dev/api/v0/provision`}</CodeBlock>
       <p>
         Add it to your <code>.env</code>. SolidJS uses Vite, which exposes{" "}
         <code>VITE_</code>-prefixed vars to the browser bundle:
       </p>
-      <CodeBlock language="bash">{`# .env
+      <CodeBlock>{`# .env
 VITE_COUNTED_PROJECT_KEY=ck_your_project_key`}</CodeBlock>
       <p>Client keys are write-only — safe to ship in the browser.</p>
 
       <h2>2. Install</h2>
-      <CodeBlock language="bash">{`npm install @counted/sdk @solidjs/router`}</CodeBlock>
+      <CodeBlock>{`npm install @counted/sdk @solidjs/router`}</CodeBlock>
       <p>
         <code>@solidjs/router</code> is required for the page-view tracking in
         Step 4. If your project already uses it, skip the install.
@@ -52,7 +52,7 @@ VITE_COUNTED_PROJECT_KEY=ck_your_project_key`}</CodeBlock>
         Instantiate the SDK once and export the singleton. Any file in your app
         can import it — no React context needed.
       </p>
-      <CodeBlock language="typescript">{`// src/analytics.ts
+      <CodeBlock>{`// src/analytics.ts
 import { Analytics } from "@counted/sdk";
 
 export const analytics = new Analytics(
@@ -72,7 +72,7 @@ export const analytics = new Analytics(
         Create a small component and place it inside{" "}
         <code>{"<Router>"}</code> in your root:
       </p>
-      <CodeBlock language="tsx">{`// src/components/PageViews.tsx
+      <CodeBlock>{`// src/components/PageViews.tsx
 import { createEffect } from "solid-js";
 import { useLocation } from "@solidjs/router";
 import { analytics } from "../analytics";
@@ -84,7 +84,7 @@ export function PageViews() {
   });
   return null;
 }`}</CodeBlock>
-      <CodeBlock language="tsx">{`// src/App.tsx
+      <CodeBlock>{`// src/App.tsx
 import { Router, Route } from "@solidjs/router";
 import { PageViews } from "./components/PageViews";
 import { Home } from "./pages/Home";
@@ -109,7 +109,7 @@ export default function App() {
         Import the analytics singleton in any component. Properties are plain
         values — no user IDs, no PII.
       </p>
-      <CodeBlock language="tsx">{`// src/components/UpgradeButton.tsx
+      <CodeBlock>{`// src/components/UpgradeButton.tsx
 import { analytics } from "../analytics";
 
 export function UpgradeButton() {
