@@ -12,8 +12,7 @@ export default function Post() {
       <Lead>
         Most companies treat &ldquo;privacy-first&rdquo; as a compliance line — the box you tick so
         legal signs off. That&apos;s not why Counted is built this way. We think most analytics
-        collects far more than it needs to, and that collecting less makes the product better. Here&apos;s
-        the reasoning.
+        collects far more than it needs to, and that collecting less makes the product better.
       </Lead>
 
       <H2>Analytics inherited ad-tech&apos;s habits</H2>
@@ -59,9 +58,8 @@ export default function Post() {
         As a constraint, privacy reads like lost margin. As a design choice, it&apos;s something to
         charge for. A tool that holds no personal profiles can go into healthcare, finance, government,
         and the EU without a long review of what it does with personal data, because the answer is
-        nothing. There&apos;s no profile database to breach. The script is smaller because it isn&apos;t
-        fingerprinting. And not surveilling people earns a kind of trust a competitor built on ad-tech
-        can&apos;t match without rebuilding from the floor up.
+        nothing. There&apos;s no profile database to breach, and the script is smaller because it
+        isn&apos;t fingerprinting.
       </P>
 
       <H2>The case gets stronger with agents</H2>

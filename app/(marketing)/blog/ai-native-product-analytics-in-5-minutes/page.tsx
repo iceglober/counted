@@ -48,11 +48,10 @@ counted.track("signup", { plan: "free" });`}</CodeBlock>
         ends, it&apos;s gone. So you&apos;re counting <em>events and sessions</em>, not people.
       </P>
       <P>
-        That&apos;s the honest trade: you can&apos;t silently follow one human across devices and
-        weeks — which, without consent, you shouldn&apos;t be able to anyway. What you get back is a
-        number you can stand behind, GDPR/CCPA-friendly, and zero consent banners. For most product
+        The trade: you can&apos;t follow one human across devices and weeks. What you get back is a
+        number you can stand behind, GDPR/CCPA-friendly, with no consent banner. For most product
         questions (&quot;did this funnel improve?&quot;, &quot;which feature gets used?&quot;) that&apos;s
-        exactly the data you wanted.
+        the data you wanted.
       </P>
 
       <H2>The one gotcha: flush before a short-lived process exits</H2>
@@ -73,7 +72,7 @@ await counted.flush();   // don't lose the last batch`}</CodeBlock>
 
       <H2>Same SDK, your agents too</H2>
       <P>
-        Here&apos;s the agent part: an agent&apos;s actions are just events.{" "}
+        An agent&apos;s actions are just events.{" "}
         <code className="font-mono text-text-primary">track(&quot;tool_use&quot;, {`{ tool, outcome }`})</code>{" "}
         is the same shape as <code className="font-mono text-text-primary">track(&quot;signup&quot;, {`{ plan }`})</code>.
         So you instrument your product <em>and</em> your AI coding agents with one SDK and read both
@@ -89,7 +88,7 @@ await counted.flush();   // don't lose the last batch`}</CodeBlock>
 
       <P>
         That&apos;s it — instrumented and visible, no banner, no 50KB bundle, one event model for your
-        users and your agents. From here you build the dashboard you want.
+        users and your agents.
       </P>
     </PostLayout>
   );

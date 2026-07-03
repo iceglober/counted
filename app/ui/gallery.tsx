@@ -369,7 +369,7 @@ export function Gallery() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[["page_view", "12,481", "2m ago"], ["signup", "318", "9m ago"], ["cta_activate", "1,204", "just now"]].map((r) => (
+                {[["page_view", "12,481", "2m ago"], ["signup", "318", "9m ago"], ["cta_click", "1,204", "just now"]].map((r) => (
                   <TableRow key={r[0]}>
                     <TableCell className="font-mono text-text-primary">{r[0]}</TableCell>
                     <TableCell className="text-right tabular-nums">{r[1]}</TableCell>
