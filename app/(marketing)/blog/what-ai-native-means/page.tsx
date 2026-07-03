@@ -19,8 +19,7 @@ export default function Post() {
 
       <H2>The bolt-on test</H2>
       <P>
-        Here&apos;s a quick way to tell a bolt-on from the real thing: take the AI feature out and see
-        what breaks. Delete the &ldquo;Ask AI&rdquo; button, and if the product is otherwise the same,
+        Take the AI feature out and see what breaks. Delete the &ldquo;Ask AI&rdquo; button, and if the product is otherwise the same,
         the AI was a feature, not a foundation. That&apos;s fine — plenty of good software ships a
         useful assistant. It just isn&apos;t native, the way a phone mount doesn&apos;t make a car a
         smartphone.
@@ -79,13 +78,11 @@ track("tool_use", { tool: "edit_file", outcome: "success" });`}</CodeBlock>
         humans.
       </P>
       <P>
-        You don&apos;t need to know who to know how well. Completion rate, failure modes, regressions
-        between versions — those come from the shape of events, not from personal data riding inside
-        them. Agent analytics should be privacy-first for the same reason human analytics should be:
-        less risk, and usually all you needed.
+        Completion rate, failure modes, regressions between versions — none of that requires knowing
+        who anyone is. It comes from the shape of events, not from personal data riding inside them.
       </P>
 
-      <H2>So is your product AI-native?</H2>
+      <H2>The measurement test</H2>
       <P>
         Skip the chat box and ask the measurement version of the question. Can you pull up, right now,
         what your agents did this week, where they failed, and whether last week&apos;s change made them
@@ -93,13 +90,12 @@ track("tool_use", { tool: "edit_file", outcome: "success" });`}</CodeBlock>
         worker you can&apos;t see.
       </P>
       <P>
-        Counted is built on the bet that this is where things go: one event model for your users and
-        your agents, no cookies or PII on either side, the same dashboards over both. For the concrete
-        version, the{" "}
+        Counted is our bet on that: one event model for users and agents, no cookies or PII on either
+        side, the same dashboards over both. The{" "}
         <a href="/blog/claude-code-eval-in-5-minutes" className="text-accent hover:text-accent-hover transition-colors">
           five-minute Claude Code eval
         </a>{" "}
-        turns an agent&apos;s actions into a dashboard you can read.
+        is the concrete version.
       </P>
     </PostLayout>
   );

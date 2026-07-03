@@ -19,14 +19,9 @@ test("marketing home renders", async ({ page }) => {
   await expect(page.getByText(/counted/i).first()).toBeVisible();
 });
 
-test("landing renders one of the A/B CTA variants", async ({ page }) => {
+test("landing renders the try-live CTA", async ({ page }) => {
   await page.goto("/");
-  await expect(
-    page.getByText(/Give this to your coding agent|Drop in the SDK|Spin up a key|Get a live dashboard/),
-  ).toBeVisible();
-  // Assignment is sticky (shared experiment primitive: counted_exp_<name>).
-  const v = await page.evaluate(() => localStorage.getItem("counted_exp_cta"));
-  expect(["agent", "code", "command", "trylive"]).toContain(v);
+  await expect(page.getByText(/Get a live dashboard/)).toBeVisible();
 });
 
 test("agent docs are served at /docs/llms.txt", async ({ page }) => {

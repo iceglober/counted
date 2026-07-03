@@ -55,7 +55,7 @@ export default function VsAptabasePage() {
       <section className="px-6 pt-20 pb-10 max-w-3xl mx-auto text-center">
         <Eyebrow>Counted vs Aptabase</Eyebrow>
         <h1 className="mt-3 font-display text-[clamp(2rem,5vw,3rem)] tracking-tight leading-tight">
-          Same privacy stance.
+          No cookies here either.
           <br />
           <span className="text-accent">More to build with.</span>
         </h1>

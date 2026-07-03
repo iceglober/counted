@@ -20,7 +20,7 @@ export type AgentTool = {
 export const CLAUDE_CODE: AgentTool = {
   name: "Claude Code",
   lead:
-    "Counted captures what Claude Code actually does — tool calls, file edits, commands, outcomes — in a pre-built eval dashboard, privacy-safe by default. Five minutes to set up.",
+    "Every Claude Code session leaves a trail: tool calls, file edits, commands, outcomes. Counted turns that trail into a pre-built eval dashboard — no code contents leave your machine. Five minutes to set up.",
   installTitle: "Install the Claude Code plugin",
   install: [
     {
@@ -36,7 +36,7 @@ export const CLAUDE_CODE: AgentTool = {
 export const OPENCODE: AgentTool = {
   name: "OpenCode",
   lead:
-    "Counted captures what OpenCode actually does — tool calls, file edits, commands, outcomes — in a pre-built eval dashboard, privacy-safe by default. Five minutes to set up.",
+    "OpenCode plugins can see every tool call, file edit, and command outcome. Counted's plugin sends that to a pre-built eval dashboard — event shapes only, never code contents. Five minutes to set up.",
   installTitle: "Add the OpenCode plugin",
   install: [
     {

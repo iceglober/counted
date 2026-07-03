@@ -24,9 +24,6 @@ const ATTR_PARAMS = [
   "channel",
   "referrer_host",
   "landing_path",
-  "exp_hero", // homepage hero A/B variant, forwarded from the marketing CTA so
-              // the signup event attributes to the variant (same dimension as
-              // the marketing exp_hero super-property → one funnel breakdown).
 ] as const;
 
 function captureAttribution(): Record<string, string> {
