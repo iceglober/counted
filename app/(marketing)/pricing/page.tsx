@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Check } from "lucide-react";
 import { SiteNav, SiteFooter } from "../site-chrome";
+import { TrackedCTA } from "../track";
 
 export const metadata: Metadata = {
   title: "Pricing — Counted",
@@ -10,107 +9,92 @@ export const metadata: Metadata = {
   alternates: { canonical: "/pricing" },
 };
 
-const FREE_FEATURES = [
-  "100K events/month",
-  "3 projects",
-  "6-month retention",
-  "Composable dashboards",
-  "Breakdowns, time series & counts",
-  "Community support",
-];
-
-const PRO_FEATURES = [
-  "1M events/month",
-  "Unlimited projects",
-  "24-month retention",
-  "Full API access",
-  "Priority support",
-  "Custom accent colors",
-];
-
 export default function PricingPage() {
   return (
-    <div className="min-h-screen">
-      {/* Nav */}
+    <div>
       <SiteNav />
 
-      {/* Header */}
-      <section className="px-6 pt-20 pb-12 max-w-3xl mx-auto text-center">
-        <h1 className="font-display text-3xl tracking-tight">Simple pricing</h1>
-        <p className="mt-3 text-text-secondary">
-          Start free. Upgrade when you need more.
-        </p>
-      </section>
+      <div className="page">
+        <h1>Pricing</h1>
+        <p>Start free. Upgrade when you need more.</p>
 
-      {/* Plans */}
-      <section className="px-6 pb-20 max-w-3xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Free */}
-          <div className="bg-surface-1 border border-border rounded-lg p-6">
-            <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">Free</h2>
-            <div className="mt-3 flex items-baseline gap-1">
-              <span className="text-3xl font-semibold">$0</span>
-              <span className="text-text-tertiary text-sm">/month</span>
-            </div>
-            <p className="mt-2 text-sm text-text-tertiary">For side projects and evaluation.</p>
-            <ul className="mt-6 space-y-2.5">
-              {FREE_FEATURES.map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm text-text-secondary">
-                  <Check className="w-3.5 h-3.5 text-accent shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/login"
-              className="mt-8 block text-center px-4 py-2.5 border border-border text-text-secondary rounded-md text-sm hover:border-border-hover hover:text-text-primary transition-colors"
-            >
-              Get started
-            </Link>
-          </div>
+        <table>
+          <thead>
+            <tr>
+              <th style={{ width: "40%" }}>&nbsp;</th>
+              <th className="c">Free</th>
+              <th className="c">Pro</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Price</td>
+              <td className="c"><b>$0</b>/month</td>
+              <td className="c"><b>$12</b>/month, or $120/year (save $24)</td>
+            </tr>
+            <tr>
+              <td>Events per month</td>
+              <td className="c">100K</td>
+              <td className="c">1M</td>
+            </tr>
+            <tr>
+              <td>Projects</td>
+              <td className="c">3</td>
+              <td className="c">Unlimited</td>
+            </tr>
+            <tr>
+              <td>Retention</td>
+              <td className="c">6 months</td>
+              <td className="c">24 months</td>
+            </tr>
+            <tr>
+              <td>Composable dashboards</td>
+              <td className="c">Yes</td>
+              <td className="c">Yes</td>
+            </tr>
+            <tr>
+              <td>Breakdowns, time series, counts &amp; funnels</td>
+              <td className="c">Yes</td>
+              <td className="c">Yes</td>
+            </tr>
+            <tr>
+              <td>Full API access</td>
+              <td className="c">&mdash;</td>
+              <td className="c">Yes</td>
+            </tr>
+            <tr>
+              <td>Support</td>
+              <td className="c">Community</td>
+              <td className="c">Priority</td>
+            </tr>
+            <tr>
+              <td>&nbsp;</td>
+              <td className="c">
+                <TrackedCTA href="/login" location="pricing" label="get_started">
+                  Get started
+                </TrackedCTA>
+              </td>
+              <td className="c">
+                <TrackedCTA href="/login" location="pricing" label="start_free_pro">
+                  Start free
+                </TrackedCTA>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-          {/* Pro */}
-          <div className="bg-surface-1 border border-accent/30 rounded-lg p-6 relative">
-            <div className="absolute -top-3 left-6 px-2 py-0.5 bg-accent text-surface-0 text-xs font-medium rounded">
-              Early access
-            </div>
-            <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">Pro</h2>
-            <div className="mt-3 flex items-baseline gap-1">
-              <span className="text-3xl font-semibold">$12</span>
-              <span className="text-text-tertiary text-sm">/month</span>
-            </div>
-            <p className="mt-1 text-xs text-text-tertiary">or $120/year (save $24)</p>
-            <p className="mt-2 text-sm text-text-tertiary">For production apps and teams.</p>
-            <p className="mt-2 text-xs text-accent">Billing opens soon — start free and upgrade when it&apos;s live.</p>
-            <ul className="mt-6 space-y-2.5">
-              {PRO_FEATURES.map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm text-text-secondary">
-                  <Check className="w-3.5 h-3.5 text-accent shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/login"
-              className="mt-8 block text-center px-4 py-2.5 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover transition-colors"
-            >
-              Start free
-            </Link>
-          </div>
+        <div className="note">
+          <b>Pro is in early access.</b>{" "}Billing opens soon — start free and upgrade when
+          it&apos;s live.
         </div>
 
-        <p className="mt-8 text-center text-xs text-text-tertiary">
-          All plans include the full SDK and every insight type — breakdowns, time series, counts, and funnels.
-          Counted is fully open source — self-host anytime. No cookies, no consent banner.
-          <br />
-          Need more than 1M events/month?{" "}
-          <a href="mailto:hello@counted.dev" className="text-accent hover:text-accent-hover transition-colors">
-            Let&apos;s talk
-          </a>.
+        <p className="small muted">
+          All plans include the full SDK and every insight type. Counted is fully open source —
+          self-host anytime. No cookies, no consent banner. Need more than 1M events/month?{" "}
+          <a href="mailto:hello@counted.dev">Let&apos;s talk</a>.
         </p>
-      </section>
+      </div>
 
-      {/* Footer */}
       <SiteFooter />
     </div>
   );

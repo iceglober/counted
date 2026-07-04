@@ -1,97 +1,63 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
 import { LandingCTA } from "./landing-cta";
-import { Reveal } from "./reveal";
 import { SiteNav, SiteFooter } from "./site-chrome";
 import { Hero } from "./hero";
+import { TrackedCTA } from "./track";
 
 export default function Home() {
   return (
-    <div className="min-h-screen">
-      {/* Nav */}
+    <div>
       <SiteNav />
 
-      {/* Hero — live A/B test: privacy-lead vs agent-lead (see hero.tsx) */}
-      <Hero />
+      <div className="page">
+        <Hero />
 
-      {/* A/B-tested hero CTA — agent prompt / code-first / one-command / try-live */}
-      <Reveal>
+        <hr />
+
         <LandingCTA />
-      </Reveal>
 
-      {/* Value props */}
-      <Reveal>
-      <section className="px-6 py-16 border-t border-border">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div>
-            <h3 className="text-sm font-medium mb-2">Privacy by design</h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              No cookies, no IP storage, no fingerprinting. GDPR- and CCPA-friendly, with no consent
-              banner. You don&apos;t have to take our word for it — the code is open source.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium mb-2">Composable dashboards</h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              Build your own view. Add any insight — breakdowns, time series, counts, funnels.
-              Mix metrics from different events on one board, and rearrange anytime.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium mb-2">Lightweight SDK</h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              Under 3KB gzipped. Vanilla JS and React packages.
-              Tracks events, not users. Session IDs are ephemeral and in-memory only.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium mb-2">Agent-native too</h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              The same SDK instruments your AI coding agents — Claude Code, OpenCode, Codex, Gemini
-              CLI — into a pre-built eval dashboard.{" "}
-              <Link href="/for/agents" className="text-accent hover:text-accent-hover transition-colors">See agent analytics →</Link>
-            </p>
-          </div>
-        </div>
-      </section>
-      </Reveal>
+        <hr />
 
-      {/* Free tier callout */}
-      <Reveal>
-      <section className="px-6 py-16 border-t border-border">
-        <div className="max-w-xl mx-auto text-center">
-          <h2 className="text-2xl font-display tracking-tight">Free tier</h2>
-          <p className="mt-4 text-text-secondary">
-            Everything you need to ship — no credit card required.
-          </p>
-          <ul className="mt-6 space-y-2 text-sm text-text-secondary inline-block text-left">
-            {[
-              "100K events/month",
-              "3 projects",
-              "6-month retention",
-              "Composable dashboards",
-              "Breakdowns, time series & counts",
-              "Community support",
-            ].map((item) => (
-              <li key={item} className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5 text-accent shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
-          <div className="mt-8">
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center px-6 py-3 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover active:translate-y-px transition-[background-color,transform] duration-150"
-            >
-              Get started
-            </Link>
-          </div>
-        </div>
-      </section>
-      </Reveal>
+        <h2>Why Counted</h2>
+        <ul>
+          <li>
+            <b>Privacy by design.</b>{" "}No cookies, no IP storage, no fingerprinting. GDPR- and
+            CCPA-friendly, with no consent banner. You don&apos;t have to take our word for it —
+            the code is open source.
+          </li>
+          <li>
+            <b>Composable dashboards.</b>{" "}Build your own view. Add any insight — breakdowns,
+            time series, counts, funnels. Mix metrics from different events on one board, and
+            rearrange anytime.
+          </li>
+          <li>
+            <b>Lightweight SDK.</b>{" "}Under 3KB gzipped. Vanilla JS and React packages. Tracks
+            events, not users. Session IDs are ephemeral and in-memory only.
+          </li>
+          <li>
+            <b>Agent-native too.</b>{" "}The same SDK instruments your AI coding agents — Claude
+            Code, OpenCode, Codex, Gemini CLI — into a pre-built eval dashboard.{" "}
+            <Link href="/for/agents">See agent analytics &raquo;</Link>
+          </li>
+        </ul>
 
-      {/* Footer */}
+        <h2>Free tier</h2>
+        <p>Everything you need to ship — no credit card required.</p>
+        <ul>
+          <li>100K events/month</li>
+          <li>3 projects</li>
+          <li>6-month retention</li>
+          <li>Composable dashboards</li>
+          <li>Breakdowns, time series &amp; counts</li>
+          <li>Community support</li>
+        </ul>
+        <p>
+          <TrackedCTA href="/login" location="homepage_free_tier" label="get_started">
+            Get started
+          </TrackedCTA>
+        </p>
+      </div>
+
       <SiteFooter />
     </div>
   );
