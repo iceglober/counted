@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useProjects } from "@/components/dashboard/dashboard-shell";
 import { EditableText } from "@/components/editable-text";
-import { Plus, Copy, RotateCw, Hash, Globe, Smartphone, Tag, Trash2 } from "lucide-react";
+import { Copy, RotateCw, Hash, Globe, Smartphone, Tag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { IconButton } from "@/components/ui/icon-button";
 import { Button } from "@/components/ui/button";
@@ -117,53 +117,41 @@ export default function ProjectsPage() {
   return (
     <div className="flex-1 min-w-0">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold">Projects</h1>
-          <IconButton icon={<Plus />} label="New project" onClick={() => createProject()} />
-        </div>
-        <p className="text-sm text-text-secondary mt-0.5">
+      <div className="mb-4">
+        <h1 className="!mt-0 !mb-1">Projects</h1>
+        <p className="small muted mb-2">
           {allProjects.length} project{allProjects.length !== 1 ? "s" : ""}
         </p>
+        <Button size="sm" onClick={() => createProject()}>New project</Button>
       </div>
 
-      <div className="flex h-[calc(100vh-12rem)]">
-      {/* Left — project list */}
-      <div className="w-60 shrink-0 border-r border-border overflow-y-auto">
-        <div className="py-1">
-          {(allProjects.length > 0 ? allProjects : projects.map((p) => ({ ...p, apiKey: "", createdAt: "" }))).map((p) => (
-            <div
-              key={p.id}
-              onClick={() => setSelectedId(p.id)}
-              className={`px-4 py-2.5 text-sm transition-colors ${
-                p.id === selectedId
-                  ? "text-accent bg-accent/8"
-                  : "text-text-secondary hover:text-text-primary hover:bg-surface-2 cursor-pointer"
-              }`}
-            >
-              {p.id === selectedId ? (
-                <EditableText
-                  value={p.name}
-                  onCommit={(name) => renameProject(name, p.id)}
-                  className="text-sm"
-                />
-              ) : (
-                p.name
-              )}
-            </div>
-          ))}
-        </div>
+      <div className="flex gap-6 h-[calc(100vh-13rem)]">
+      {/* Left — project list, classic listbox */}
+      <div className="w-52 shrink-0 border border-border overflow-y-auto bg-surface-0">
+        {(allProjects.length > 0 ? allProjects : projects.map((p) => ({ ...p, apiKey: "", createdAt: "" }))).map((p) => (
+          <div
+            key={p.id}
+            onClick={() => setSelectedId(p.id)}
+            className={`px-3 py-1.5 text-sm cursor-pointer ${
+              p.id === selectedId
+                ? "bg-accent text-white"
+                : "text-text-primary hover:bg-surface-2"
+            }`}
+          >
+            {p.name}
+          </div>
+        ))}
       </div>
 
       {/* Right — project details */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="flex-1 overflow-y-auto pr-2">
         {detail ? (
           <div className="max-w-2xl space-y-6">
             <div>
               <EditableText
                 value={detail.name}
                 onCommit={(name) => renameProject(name)}
-                className="text-xl font-semibold"
+                className="text-lg font-bold"
               />
               <p className="text-xs text-text-tertiary mt-1">
                 Created {new Date(detail.createdAt).toLocaleDateString()}
@@ -172,7 +160,7 @@ export default function ProjectsPage() {
 
             {/* Client Key */}
             <div>
-              <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Client Key</h2>
+              <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1">Client Key</h2>
               <p className="text-xs text-text-tertiary mb-2">Public — use in your SDK. Can only ingest events.</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-sm font-mono text-text-primary bg-surface-2 px-3 py-2 rounded-md border border-border select-all">
@@ -188,7 +176,7 @@ export default function ProjectsPage() {
 
             {/* Server Key */}
             <div>
-              <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Server Key</h2>
+              <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1">Server Key</h2>
               <p className="text-xs text-text-tertiary mb-2">Private — never expose in client code. Full API access.</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-sm font-mono text-text-primary bg-surface-2 px-3 py-2 rounded-md border border-border select-all">
@@ -203,7 +191,7 @@ export default function ProjectsPage() {
 
             {/* Quick Start */}
             <div>
-              <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Quick Start</h2>
+              <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1">Quick Start</h2>
               <pre className="text-xs font-mono text-text-primary bg-surface-2 border border-border px-4 py-3 rounded-md overflow-x-auto">
 {`import { Analytics } from "@counted/sdk";
 
@@ -220,7 +208,7 @@ analytics.track("page_view", { path: "/" });`}
               <>
                 {schema.eventNames.length > 0 && (
                   <div>
-                    <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2 flex items-center gap-1.5">
+                    <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1 flex items-center gap-1.5">
                       <Hash className="w-3 h-3" />
                       Events
                     </h2>
@@ -237,13 +225,13 @@ analytics.track("page_view", { path: "/" });`}
 
                 {schema.propKeys.length > 0 && (
                   <div>
-                    <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2 flex items-center gap-1.5">
+                    <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1 flex items-center gap-1.5">
                       <Tag className="w-3 h-3" />
                       Custom Properties
                     </h2>
                     <div className="flex flex-wrap gap-1.5">
                       {schema.propKeys.map((k) => (
-                        <Badge key={k} variant="outline" className="font-mono">{k}</Badge>
+                        <Badge key={k} variant="outline" className="font-mono !rounded-none">{k}</Badge>
                       ))}
                     </div>
                   </div>
@@ -252,7 +240,7 @@ analytics.track("page_view", { path: "/" });`}
                 <div className="grid grid-cols-3 gap-4">
                   {schema.systemFields.osNames.length > 0 && (
                     <div>
-                      <h3 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2 flex items-center gap-1.5">
+                      <h3 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1 flex items-center gap-1.5">
                         <Smartphone className="w-3 h-3" />
                         Platforms
                       </h3>
@@ -265,7 +253,7 @@ analytics.track("page_view", { path: "/" });`}
                   )}
                   {schema.systemFields.locales.length > 0 && (
                     <div>
-                      <h3 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2 flex items-center gap-1.5">
+                      <h3 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1 flex items-center gap-1.5">
                         <Globe className="w-3 h-3" />
                         Locales
                       </h3>
@@ -278,7 +266,7 @@ analytics.track("page_view", { path: "/" });`}
                   )}
                   {schema.systemFields.appVersions.length > 0 && (
                     <div>
-                      <h3 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Versions</h3>
+                      <h3 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1">Versions</h3>
                       <div className="space-y-1">
                         {schema.systemFields.appVersions.map((v) => (
                           <div key={v} className="text-xs text-text-secondary font-mono">{v}</div>
@@ -292,7 +280,7 @@ analytics.track("page_view", { path: "/" });`}
 
             {/* Data Export */}
             <div>
-              <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-2">Export Data</h2>
+              <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1">Export Data</h2>
               <p className="text-xs text-text-tertiary mb-3">Download your event data. You own it.</p>
               <div className="flex gap-2">
                 <Button asChild variant="secondary" size="sm">
