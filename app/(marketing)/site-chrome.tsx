@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CountedLogo } from "@/components/icons";
 
 const GITHUB = "https://github.com/iceglober/counted";
 
@@ -19,7 +20,10 @@ export function SiteNav() {
     <div className="page">
       <nav className="sitenav">
         <b>
-          <Link href="/">Counted</Link>
+          <Link href="/" className="inline-flex items-baseline gap-1.5">
+            <CountedLogo className="w-3.5 h-3.5 self-center text-accent" />
+            Counted
+          </Link>
         </b>{" "}
         &middot; privacy-first product analytics
         <br />

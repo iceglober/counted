@@ -27,7 +27,7 @@ export function IconButton({ icon, label, tone = "accent", className, ...props }
         {...props}
         aria-label={label}
         className={cn(
-          "inline-flex size-8 items-center justify-center rounded-md border border-transparent text-text-tertiary transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+          "inline-flex size-8 items-center justify-center rounded-md border border-transparent text-text-tertiary transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
           hover,
           className,
         )}
