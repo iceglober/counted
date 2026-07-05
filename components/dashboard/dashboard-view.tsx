@@ -620,7 +620,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         if (!ins) return null;
         return (
           <div
-            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-6"
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-6"
             onClick={() => dismissConfigurator(editingId)}
           >
             <div className="w-full max-w-2xl my-6" onClick={(e) => e.stopPropagation()}>

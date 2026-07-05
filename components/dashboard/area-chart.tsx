@@ -13,10 +13,10 @@ function fmt(n: number): string {
 // Line colors per series; the first matches the classic single-series accent.
 const SERIES_COLORS = [
   "var(--color-accent)",
-  "#3FCF8E",
-  "#F5A623",
-  "#5AB8F5",
-  "#EF6461",
+  "#007700",
+  "#CC0000",
+  "#996600",
+  "#660099",
 ];
 
 const SUMMARY_OPTIONS: { value: SummaryStat; label: string }[] = [

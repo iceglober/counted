@@ -7,7 +7,7 @@ import { DocsSidebar } from "@/components/docs/docs-sidebar";
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-border bg-surface-0/80 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-border bg-surface-0">
         <div className="flex items-center justify-between px-6 h-14 max-w-7xl mx-auto">
           <div className="flex items-center gap-2.5">
             <Link href="/" className="flex items-center gap-2">

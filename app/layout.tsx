@@ -1,27 +1,7 @@
 import type { Metadata } from "next";
-import { Azeret_Mono, Outfit, JetBrains_Mono } from "next/font/google";
 import { CountedAnalytics } from "@/components/analytics";
 import { JsonLd, organizationLd, websiteLd } from "@/components/json-ld";
 import "./globals.css";
-
-const azeretMono = Azeret_Mono({
-  weight: ["500"],
-  subsets: ["latin"],
-  variable: "--font-brand",
-  display: "swap",
-});
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Counted — Privacy-first product analytics",
@@ -68,18 +48,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${azeretMono.variable} ${outfit.variable} ${jetbrainsMono.variable}`}
-    >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("theme"),a=localStorage.getItem("accent"),l=false;if(t==="light")l=true;else if(t==="auto"&&matchMedia("(prefers-color-scheme:light)").matches)l=true;if(l)document.documentElement.classList.add("light");if(a){var c=JSON.parse(a);document.documentElement.style.setProperty("--color-accent",l?c.lightColor:c.color);document.documentElement.style.setProperty("--color-accent-hover",l?c.lightHover:c.hover)}}catch(e){}`,
-          }}
-        />
-      </head>
+    <html lang="en" suppressHydrationWarning>
       <body className="font-sans">
         <JsonLd data={organizationLd} />
         <JsonLd data={websiteLd} />

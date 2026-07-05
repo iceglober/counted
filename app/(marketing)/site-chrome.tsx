@@ -2,6 +2,15 @@ import Link from "next/link";
 
 const GITHUB = "https://github.com/iceglober/counted";
 
+// A link that opens in a new tab, marked with the little ↗ (via .ext in CSS).
+export function NewTabLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener" className="ext">
+      {children}
+    </a>
+  );
+}
+
 // Shared nav + footer for every marketing surface (home, pricing, comparisons,
 // /for, blog) — plain text links, pipe-separated, in the .retro style.
 
@@ -14,9 +23,10 @@ export function SiteNav() {
         </b>{" "}
         &middot; privacy-first product analytics
         <br />
-        <Link href="/docs">Docs</Link> | <Link href="/pricing">Pricing</Link> |{" "}
+        <NewTabLink href="/docs">Docs</NewTabLink> | <Link href="/pricing">Pricing</Link> |{" "}
         <Link href="/vs">Compare</Link> | <Link href="/blog">Blog</Link> |{" "}
-        <a href={GITHUB}>GitHub</a> | <Link href="/login">Sign in</Link>
+        <NewTabLink href={GITHUB}>GitHub</NewTabLink> |{" "}
+        <NewTabLink href="/login">Sign in</NewTabLink>
       </nav>
     </div>
   );
@@ -27,9 +37,10 @@ export function SiteFooter() {
     <div className="page">
       <footer className="sitefooter">
         <p>
-          <Link href="/docs">Docs</Link> | <Link href="/blog">Blog</Link> |{" "}
+          <NewTabLink href="/docs">Docs</NewTabLink> | <Link href="/blog">Blog</Link> |{" "}
           <Link href="/pricing">Pricing</Link> | <Link href="/vs">Compare</Link> |{" "}
-          <Link href="/for/agents">For agents</Link> | <a href={GITHUB}>GitHub</a> |{" "}
+          <Link href="/for/agents">For agents</Link> |{" "}
+          <NewTabLink href={GITHUB}>GitHub</NewTabLink> |{" "}
           <Link href="/privacy">Privacy</Link> | <Link href="/terms">Terms</Link>
         </p>
         <p>

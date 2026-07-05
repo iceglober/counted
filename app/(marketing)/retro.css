@@ -124,6 +124,16 @@
 .retro .muted { color: #666; }
 .retro .small { font-size: 11px; }
 
+/* External / new-tab links get the little arrow */
+a.ext::after {
+  content: "\2197"; /* ↗ */
+  font-size: 9px;
+  vertical-align: super;
+  margin-left: 1px;
+  text-decoration: none;
+  display: inline-block;
+}
+
 /* Chrome */
 .retro .sitenav {
   border-bottom: 1px solid #999;
