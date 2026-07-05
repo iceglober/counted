@@ -7,32 +7,36 @@ import { DocsSidebar } from "@/components/docs/docs-sidebar";
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-border bg-surface-0">
-        <div className="flex items-center justify-between px-6 h-14 max-w-7xl mx-auto">
-          <div className="flex items-center gap-2.5">
-            <Link href="/" className="flex items-center gap-2">
-              <CountedLogo className="w-5 h-5 text-accent" />
-              <span className="font-display text-lg tracking-wide">Counted</span>
-            </Link>
-            <span className="text-text-tertiary">/</span>
-            <Link href="/docs" className="text-sm text-text-secondary hover:text-text-primary transition-colors">Docs</Link>
+      <header className="sticky top-0 z-30 border-b border-[#999] bg-surface-0">
+        <div className="flex items-center justify-between px-4 py-2 max-w-5xl mx-auto text-[12px]">
+          <div className="flex items-baseline gap-2">
+            <b className="text-[14px]">
+              <Link href="/" className="inline-flex items-center gap-1.5">
+                <CountedLogo className="w-4 h-4 text-accent" />
+                Counted
+              </Link>
+            </b>
+            <span>/</span>
+            <Link href="/docs">Docs</Link>
           </div>
-          <div className="flex items-center gap-5 text-sm">
-            <Link href="/pricing" className="hidden sm:block text-text-secondary hover:text-text-primary transition-colors">Pricing</Link>
-            <a href="https://github.com/iceglober/counted" className="text-text-secondary hover:text-text-primary transition-colors">GitHub</a>
-            <Link href="/login" className="text-accent hover:text-accent-hover transition-colors font-medium">Dashboard</Link>
+          <div className="flex items-center gap-2">
+            <Link href="/pricing" className="hidden sm:block">Pricing</Link>
+            <span className="hidden sm:block">|</span>
+            <a href="https://github.com/iceglober/counted" target="_blank" rel="noopener" className="ext">GitHub</a>
+            <span>|</span>
+            <a href="/login" target="_blank" rel="noopener" className="ext">Dashboard</a>
           </div>
         </div>
       </header>
 
-      <div className="flex max-w-7xl mx-auto">
-        <aside className="hidden md:block w-60 shrink-0 border-r border-border">
-          <div className="sticky top-14 max-h-[calc(100vh-3.5rem)] overflow-y-auto px-4 py-8">
+      <div className="flex max-w-5xl mx-auto">
+        <aside className="hidden md:block w-52 shrink-0 border-r border-[#ccc]">
+          <div className="sticky top-10 max-h-[calc(100vh-2.5rem)] overflow-y-auto px-4 py-6">
             <DocsSidebar />
           </div>
         </aside>
-        <main className="flex-1 min-w-0 px-6 py-10 md:px-10">
-          <div className="max-w-3xl">{children}</div>
+        <main className="flex-1 min-w-0">
+          <div className="page" style={{ margin: 0 }}>{children}</div>
         </main>
       </div>
     </div>

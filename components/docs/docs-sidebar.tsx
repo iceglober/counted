@@ -41,29 +41,22 @@ const NAV: { title: string; items: { label: string; href: string }[] }[] = [
 export function DocsSidebar() {
   const pathname = usePathname();
   return (
-    <nav className="space-y-6 text-sm">
+    <nav className="space-y-5 text-[12px]">
       {NAV.map((section) => (
         <div key={section.title}>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-2">
-            {section.title}
-          </div>
-          <ul className="space-y-0.5">
+          <b className="block text-[11px] uppercase text-[#666] mb-1">{section.title}</b>
+          <ul>
             {section.items.map((item) => {
               const base = item.href.split("#")[0];
               const isAnchor = item.href.includes("#");
               const active = pathname === base && !isAnchor;
               return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`block rounded px-2 py-1 transition-colors ${
-                      active
-                        ? "bg-accent/10 text-accent"
-                        : "text-text-secondary hover:text-text-primary hover:bg-surface-2/50"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
+                <li key={item.href} className="py-0.5">
+                  {active ? (
+                    <b>{item.label}</b>
+                  ) : (
+                    <Link href={item.href}>{item.label}</Link>
+                  )}
                 </li>
               );
             })}

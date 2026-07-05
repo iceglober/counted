@@ -51,7 +51,7 @@ track("signup", { plan: "pro" });`,
 
 function H2({ id, children }: { id?: string; children: React.ReactNode }) {
   return (
-    <h2 id={id} className="scroll-mt-20 mt-10 font-display text-lg md:text-xl tracking-tight">
+    <h2 id={id} className="scroll-mt-20">
       {children}
     </h2>
   );
@@ -70,7 +70,7 @@ export default function DocsPage() {
   return (
     <>
       <p className="text-xs font-medium uppercase tracking-[0.15em] text-accent">Getting started</p>
-      <h1 className="mt-2 font-display text-2xl md:text-3xl tracking-tight">Overview</h1>
+      <h1 className="">Overview</h1>
       <p className="mt-3 text-text-secondary leading-relaxed">
         Counted is privacy-first product analytics — no cookies, no fingerprinting, no PII. Send an
         event with an SDK or a single HTTP call, then read it on a dashboard. Three steps to your

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./retro.css";
 
 /* One plain, early-2000s theme everywhere: white background, black Verdana,
    blue links, gray borders, square corners, no shadows, no motion. The whole

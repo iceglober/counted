@@ -1,6 +1,7 @@
-/* Marketing-site look: plain, fast, early-2000s. Scoped under .retro so the
-   app dashboard and /docs keep the modern theme. Element selectors do the
-   work — pages should read as semantic HTML with almost no classes. */
+/* The site-wide look: plain, fast, early-2000s. Applied via .retro on <body>.
+   Element selectors do the work — prose pages should read as semantic HTML
+   with almost no classes. Prose spacing (p/ul margins, list bullets) is scoped
+   to .page containers so dense app UI and menus keep their own spacing. */
 
 .retro {
   color-scheme: light;
@@ -8,11 +9,6 @@
   color: #000;
   font: 13px/1.55 Verdana, Geneva, Tahoma, sans-serif;
   min-height: 100vh;
-}
-
-.retro * {
-  animation: none !important;
-  transition: none !important;
 }
 
 .retro .page {
@@ -48,11 +44,13 @@
   font-weight: bold;
   margin: 18px 0 6px;
 }
-.retro p { margin: 10px 0; }
-.retro ul, .retro ol { margin: 10px 0; padding-left: 26px; }
-.retro ul { list-style: disc outside; }
-.retro ol { list-style: decimal outside; }
-.retro li { margin: 5px 0; }
+
+/* Prose spacing — only inside .page containers */
+.retro .page p { margin: 10px 0; }
+.retro .page ul, .retro .page ol { margin: 10px 0; padding-left: 26px; }
+.retro .page ul { list-style: disc outside; }
+.retro .page ol { list-style: decimal outside; }
+.retro .page li { margin: 5px 0; }
 
 .retro hr {
   border: 0;
@@ -97,9 +95,8 @@
 .retro th { background: #e8e8e8; }
 .retro td.c, .retro th.c { text-align: center; }
 
-/* System-style buttons (real ones and link-buttons) */
-.retro .btn,
-.retro button {
+/* System-style link-buttons (real <button>s are styled by components/ui/button) */
+.retro .btn {
   display: inline-block;
   font: bold 12px Verdana, Geneva, Tahoma, sans-serif;
   color: #000;
@@ -110,9 +107,8 @@
   cursor: pointer;
 }
 .retro .btn:visited { color: #000; }
-.retro .btn:active,
-.retro button:active { border-style: inset; }
-.retro button:disabled { color: #888; cursor: default; }
+.retro .btn:active { border-style: inset; }
+.retro .btn:disabled, .retro .btn[aria-disabled="true"] { color: #888; cursor: default; }
 
 /* Bits */
 .retro .note {

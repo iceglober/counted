@@ -33,7 +33,7 @@ export function LandingCTA() {
       </p>
       {state !== "done" ? (
         <p>
-          <button onClick={provision} disabled={state === "loading"}>
+          <button className="btn" onClick={provision} disabled={state === "loading"}>
             {state === "loading" ? "Creating…" : "Get my key"}
           </button>
         </p>

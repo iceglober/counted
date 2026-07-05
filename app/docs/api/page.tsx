@@ -204,7 +204,7 @@ export default function ApiReferencePage() {
   return (
     <>
       <p className="text-xs font-medium uppercase tracking-[0.15em] text-accent">Reference</p>
-      <h1 className="mt-2 font-display text-2xl md:text-3xl tracking-tight">API Reference</h1>
+      <h1 className="">API Reference</h1>
       <p className="mt-3 text-text-secondary leading-relaxed">
         The complete Counted HTTP API. Base URL{" "}
         <code className="font-mono text-text-primary">{baseUrl}</code>. Ingestion uses a write-only
@@ -226,7 +226,7 @@ export default function ApiReferencePage() {
         const def = tagDefs.find((td) => td.name === t.name);
         return (
           <section key={t.name} id={`tag-${t.name}`} className="scroll-mt-20 mt-12">
-            <h2 className="font-display text-xl md:text-2xl tracking-tight">{t.name}</h2>
+            <h2 className="">{t.name}</h2>
             {def?.description && <p className="mt-1 text-sm text-text-tertiary">{def.description}</p>}
             {byTag[t.name].map(({ path, method, op }) => (
               <Endpoint key={`${method} ${path}`} path={path} method={method} op={op} />
