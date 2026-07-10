@@ -26,7 +26,7 @@ const NAV: { title: string; items: { label: string; href: string }[] }[] = [
     title: "Guides",
     items: [
       { label: "Analytics for agents", href: "/for/agents" },
-      { label: "Self-host", href: "/blog/self-host-counted-in-5-minutes" },
+      { label: "Self-host", href: "https://github.com/iceglober/counted#self-hosting" },
     ],
   },
   {

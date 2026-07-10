@@ -39,7 +39,7 @@ export default function ForAgentsPage() {
           <TrackedCTA href="/login" location="for_agents" label="start_free">
             Start free
           </TrackedCTA>{" "}
-          &nbsp;or&nbsp; <a href="/blog/claude-code-eval-in-5-minutes">track an eval in 5 min</a>
+          &nbsp;or&nbsp; <a href="/docs">read the docs</a>
         </p>
 
         <h2>What gets captured</h2>
@@ -72,7 +72,7 @@ export default function ForAgentsPage() {
 export COUNTED_AGENT_KEY="ck_your_project_key"`}</CodeBlock>
         <p className="small muted">
           Prefer OpenCode?{" "}
-          <a href="/blog/opencode-eval-in-5-minutes">
+          <a href="https://www.npmjs.com/package/@counted/opencode" target="_blank" rel="noopener" className="ext">
             <code>@counted/opencode</code> ships a native plugin too
           </a>
           . Other tools can use the zero-dependency core SDK directly.

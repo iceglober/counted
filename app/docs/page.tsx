@@ -115,8 +115,8 @@ export default function DocsPage() {
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <NextLink href="/docs/api" title="API Reference →" blurb="Every endpoint: ingestion, projects, query, dashboards, alerts." />
         <NextLink href="/for/agents" title="Analytics for AI agents →" blurb="Native plugins for Claude Code, OpenCode, Codex, and Gemini CLI." />
-        <NextLink href="/blog" title="Guides & tutorials →" blurb="Quickstarts and essays — Next.js, self-hosting, dashboards, and the privacy model." />
-        <NextLink href="/blog/self-host-counted-in-5-minutes" title="Self-host →" blurb="Run Counted on your own infra with Docker Compose." />
+        <NextLink href="/blog" title="Blog →" blurb="Guides and notes on the privacy model, agents, and self-hosting." />
+        <NextLink href="https://github.com/iceglober/counted#self-hosting" title="Self-host →" blurb="Run Counted on your own infra with Docker Compose." />
       </div>
 
       <p className="mt-10 text-sm text-text-tertiary">
