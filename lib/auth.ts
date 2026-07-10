@@ -27,6 +27,12 @@ export const auth = betterAuth({
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
+        // Dev shortcut: no email round-trip locally — the link prints to the
+        // server console; open it to sign in as any address. Never in prod.
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`\n[auth] Magic link for ${email}:\n${url}\n`);
+          return;
+        }
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {

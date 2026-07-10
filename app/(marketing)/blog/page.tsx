@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SiteNav, SiteFooter, Eyebrow } from "../site-chrome";
+import { SiteNav, SiteFooter } from "../site-chrome";
 import { visiblePosts } from "./posts";
 
 export const metadata: Metadata = {
@@ -25,51 +25,35 @@ function formatDate(iso: string): string {
 export default function BlogIndex() {
   const posts = visiblePosts();
   return (
-    <div className="min-h-screen">
+    <div>
       <SiteNav />
 
-      <section className="px-6 pt-20 pb-10 max-w-2xl mx-auto text-center">
-        <Eyebrow>Blog</Eyebrow>
-        <h1 className="mt-3 font-display text-3xl md:text-4xl tracking-tight">Working analytics in five minutes</h1>
-        <p className="mt-4 text-text-secondary leading-relaxed">
-          Short, copy-paste guides. Each one ends with a live dashboard.
+      <div className="page">
+        <h1>Blog</h1>
+        <p>
+          Short, copy-paste guides. Each one ends with a live dashboard — most get you to a
+          working result in five minutes.
         </p>
-      </section>
 
-      <section className="px-6 pb-20 max-w-2xl mx-auto">
         {posts.length === 0 ? (
-          <p className="text-center text-text-tertiary text-sm py-10 border-t border-border">
-            Posts coming soon.
-          </p>
+          <p className="muted">Posts coming soon.</p>
         ) : (
-        <div className="divide-y divide-border border-t border-border">
-          {posts.map((post) => (
-            <Link
-              key={post.slug}
-              href={`/blog/${post.slug}`}
-              className="group block py-6 transition-colors"
-            >
-              <div className="flex items-center gap-3 text-xs text-text-tertiary">
-                <span className="text-accent font-medium tracking-wide uppercase">{post.category}</span>
-                <span>·</span>
-                <span>{formatDate(post.date)}</span>
-                <span>·</span>
-                <span>{post.readingTime} read</span>
-                {!post.published && (
-                  <span className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-400">
-                    Draft
-                  </span>
-                )}
-              </div>
-              <h2 className="mt-2 font-display text-lg md:text-xl tracking-tight group-hover:text-accent transition-colors">
-                {post.title}
-              </h2>
-              <p className="mt-2 text-sm text-text-secondary leading-relaxed">{post.description}</p>
-            </Link>
-          ))}
-        </div>
+          posts.map((post) => (
+            <p key={post.slug}>
+              <Link href={`/blog/${post.slug}`}>
+                <b>{post.title}</b>
+              </Link>
+              {!post.published && <b> [draft]</b>}
+              <br />
+              <span className="small muted">
+                {formatDate(post.date)} &middot; {post.readingTime} read &middot; {post.category}
+              </span>
+              <br />
+              {post.description}
+            </p>
+          ))
         )}
-      </section>
+      </div>
 
       <SiteFooter />
     </div>

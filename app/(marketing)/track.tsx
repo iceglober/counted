@@ -37,18 +37,11 @@ export function TrackedCTA({
     if (href.startsWith("/login")) setResolved(appendAttribution(href));
   }, [href]);
 
-  const base =
-    variant === "primary"
-      ? "bg-accent text-surface-0 hover:bg-accent-hover"
-      : "border border-border text-text-secondary hover:border-border-hover hover:text-text-primary";
   return (
     <Link
       href={resolved}
       onClick={() => track("cta_click", { location, label, variant })}
-      className={
-        className ??
-        `inline-flex items-center justify-center px-6 py-3 rounded-md text-sm font-medium active:translate-y-px transition-[background-color,border-color,color,transform] duration-150 ${base}`
-      }
+      className={className ?? (variant === "primary" ? "btn" : undefined)}
     >
       {children}
     </Link>

@@ -19,8 +19,7 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded-md border border-border bg-surface-1 px-3 text-sm text-text-primary transition-colors data-[placeholder]:text-text-tertiary",
-        "hover:border-border-hover focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25",
+        "flex w-full items-center justify-between gap-2 border-2 border-surface-3 [border-style:inset] bg-surface-0 px-2 text-sm text-text-primary data-[placeholder]:text-text-tertiary",
         "disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 [&_svg]:size-4 [&_svg]:shrink-0",
         size === "sm" ? "h-8" : "h-9",
         className,

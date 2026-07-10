@@ -21,7 +21,7 @@ test("marketing home renders", async ({ page }) => {
 
 test("landing renders the try-live CTA", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText(/Get a live dashboard/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Get my key/ })).toBeVisible();
 });
 
 test("agent docs are served at /docs/llms.txt", async ({ page }) => {

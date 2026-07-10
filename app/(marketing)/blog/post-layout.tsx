@@ -5,8 +5,7 @@ import { TrackedCTA } from "../track";
 import { JsonLd, blogPostingLd } from "@/components/json-ld";
 import { PREVIEW, isLive, type PostMeta } from "./posts";
 
-// Shared chrome + prose primitives for blog posts, styled to match the
-// marketing site's tokens (font-display headings, text-secondary body).
+// Shared chrome + prose primitives for blog posts, in the plain .retro style.
 
 function formatDate(iso: string): string {
   // Avoid locale/timezone surprises in SSR — format the yyyy-mm-dd directly.
@@ -22,40 +21,40 @@ export function PostLayout({ meta, children }: { meta: PostMeta; children: React
   if (!live && !PREVIEW) notFound();
 
   return (
-    <div className="min-h-screen">
+    <div>
       {live && <JsonLd data={blogPostingLd(meta)} />}
-      {!live && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2 text-center text-xs text-amber-400">
-          {meta.published
-            ? `Scheduled preview — goes live ${formatDate(meta.date)}.`
-            : "Draft preview — not published."}
-        </div>
-      )}
       <SiteNav />
 
-      <article className="px-6 pt-16 pb-12 max-w-2xl mx-auto">
-        <Link href="/blog" className="text-xs text-text-tertiary hover:text-text-secondary transition-colors">
-          ← All posts
-        </Link>
-        <header className="mt-6">
-          <p className="text-xs font-medium tracking-[0.15em] uppercase text-accent">{meta.category}</p>
-          <h1 className="mt-3 font-display text-[clamp(1.9rem,4.5vw,2.6rem)] tracking-tight leading-tight">
-            {meta.title}
-          </h1>
-          <p className="mt-4 text-text-tertiary text-sm">
-            {formatDate(meta.date)} · {meta.readingTime} read
-          </p>
-        </header>
-
-        <div className="mt-10">{children}</div>
-
-        <div className="mt-12 pt-8 border-t border-border text-center">
-          <p className="text-text-secondary">Start free — 100K events/month, no credit card.</p>
-          <div className="mt-5">
-            <TrackedCTA href="/login" location={`blog:${meta.slug}`} label="create_project">Create a project</TrackedCTA>
+      <div className="page">
+        {!live && (
+          <div className="note">
+            {meta.published
+              ? `Scheduled preview — goes live ${formatDate(meta.date)}.`
+              : "Draft preview — not published."}
           </div>
-        </div>
-      </article>
+        )}
+
+        <p className="small">
+          <Link href="/blog">&laquo; All posts</Link>
+        </p>
+
+        <article>
+          <h1>{meta.title}</h1>
+          <p className="small muted">
+            {formatDate(meta.date)} &middot; {meta.readingTime} read &middot; {meta.category}
+          </p>
+
+          {children}
+
+          <hr />
+          <p>
+            Start free — 100K events/month, no credit card.{" "}
+            <TrackedCTA href="/login" location={`blog:${meta.slug}`} label="create_project">
+              Create a project
+            </TrackedCTA>
+          </p>
+        </article>
+      </div>
 
       <SiteFooter />
     </div>
@@ -63,25 +62,24 @@ export function PostLayout({ meta, children }: { meta: PostMeta; children: React
 }
 
 export function Lead({ children }: { children: React.ReactNode }) {
-  return <p className="text-lg text-text-secondary leading-relaxed">{children}</p>;
+  return <p>{children}</p>;
 }
 
 export function P({ children }: { children: React.ReactNode }) {
-  return <p className="mt-5 text-text-secondary leading-relaxed">{children}</p>;
+  return <p>{children}</p>;
 }
 
 export function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="mt-10 font-display text-xl md:text-2xl tracking-tight">{children}</h2>;
+  return <h2>{children}</h2>;
 }
 
 export function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
-    <div className="mt-8">
-      <h2 className="font-display text-lg md:text-xl tracking-tight flex items-baseline gap-3">
-        <span className="text-accent text-sm font-mono">{String(n).padStart(2, "0")}</span>
-        {title}
+    <div>
+      <h2>
+        {n}. {title}
       </h2>
-      <div className="mt-3">{children}</div>
+      {children}
     </div>
   );
 }

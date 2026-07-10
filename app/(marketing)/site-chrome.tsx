@@ -3,68 +3,71 @@ import { CountedLogo } from "@/components/icons";
 
 const GITHUB = "https://github.com/iceglober/counted";
 
+// A link that opens in a new tab, marked with the little ↗ (via .ext in CSS).
+export function NewTabLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener" className="ext">
+      {children}
+    </a>
+  );
+}
+
 // Shared nav + footer for every marketing surface (home, pricing, comparisons,
-// /for, blog) — one header/footer everywhere so the chrome stays consistent.
+// /for, blog) — plain text links, pipe-separated, in the .retro style.
 
 export function SiteNav() {
   return (
-    <nav className="flex items-center justify-between px-6 py-4 max-w-5xl mx-auto">
-      <Link href="/" className="flex items-center gap-2">
-        <CountedLogo className="w-5 h-5 text-accent" />
-        <span className="font-display text-lg tracking-wide">Counted</span>
-      </Link>
-      <div className="flex items-center gap-6 text-sm">
-        <Link href="/docs" className="text-text-secondary hover:text-text-primary transition-colors">Docs</Link>
-        <Link href="/pricing" className="text-text-secondary hover:text-text-primary transition-colors">Pricing</Link>
-        <Link href="/vs" className="text-text-secondary hover:text-text-primary transition-colors">Compare</Link>
-        <Link href="/blog" className="text-text-secondary hover:text-text-primary transition-colors">Blog</Link>
-        <a href={GITHUB} className="text-text-secondary hover:text-text-primary transition-colors">GitHub</a>
-        <Link href="/login" className="text-accent hover:text-accent-hover transition-colors font-medium">Sign in</Link>
-      </div>
-    </nav>
+    <div className="page">
+      <nav className="sitenav">
+        <b>
+          <Link href="/" className="inline-flex items-baseline gap-1.5">
+            <CountedLogo className="w-3.5 h-3.5 self-center text-accent" />
+            Counted
+          </Link>
+        </b>{" "}
+        &middot; privacy-first product analytics
+        <br />
+        <NewTabLink href="/docs">Docs</NewTabLink> | <Link href="/pricing">Pricing</Link> |{" "}
+        <Link href="/vs">Compare</Link> | <Link href="/blog">Blog</Link> |{" "}
+        <NewTabLink href={GITHUB}>GitHub</NewTabLink> |{" "}
+        <NewTabLink href="/login">Sign in</NewTabLink>
+      </nav>
+    </div>
   );
 }
 
 export function SiteFooter() {
   return (
-    <footer className="px-6 py-8 border-t border-border mt-8">
-      <div className="max-w-4xl mx-auto flex flex-col gap-4 text-xs text-text-tertiary">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CountedLogo className="w-3.5 h-3.5" />
-            <span>Counted</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/docs" className="hover:text-text-secondary transition-colors">Docs</Link>
-            <Link href="/blog" className="hover:text-text-secondary transition-colors">Blog</Link>
-            <Link href="/pricing" className="hover:text-text-secondary transition-colors">Pricing</Link>
-            <Link href="/vs" className="hover:text-text-secondary transition-colors">Compare</Link>
-            <Link href="/for/agents" className="hover:text-text-secondary transition-colors">For agents</Link>
-            <a href={GITHUB} className="hover:text-text-secondary transition-colors">GitHub</a>
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-text-tertiary/80">
-          <span>No cookies. No fingerprinting. No PII.</span>
-          <span className="flex items-center gap-4">
-            <Link href="/privacy" className="hover:text-text-secondary transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-text-secondary transition-colors">Terms</Link>
-            <span>© {new Date().getFullYear()} Iceglobe Enterprises LLC</span>
-          </span>
-        </div>
-      </div>
-    </footer>
+    <div className="page">
+      <footer className="sitefooter">
+        <p>
+          <NewTabLink href="/docs">Docs</NewTabLink> | <Link href="/blog">Blog</Link> |{" "}
+          <Link href="/pricing">Pricing</Link> | <Link href="/vs">Compare</Link> |{" "}
+          <Link href="/for/agents">For agents</Link> |{" "}
+          <NewTabLink href={GITHUB}>GitHub</NewTabLink> |{" "}
+          <Link href="/privacy">Privacy</Link> | <Link href="/terms">Terms</Link>
+        </p>
+        <p>
+          No cookies. No fingerprinting. No PII. &copy; {new Date().getFullYear()} Iceglobe
+          Enterprises LLC
+        </p>
+      </footer>
+    </div>
   );
 }
 
-// Reusable building blocks matching the existing marketing style.
+// Reusable building blocks. Kept API-compatible with the previous chrome so
+// pages and /docs don't need import changes.
 
 export function Eyebrow({ children }: { children: string }) {
-  return <p className="text-xs font-medium tracking-[0.15em] uppercase text-accent">{children}</p>;
+  return <p className="small muted" style={{ textTransform: "uppercase" }}>{children}</p>;
 }
 
 export function CodeBlock({ children }: { children: React.ReactNode }) {
+  // Plain classes so /docs (dark theme) still renders acceptably; inside
+  // .retro the element styles take over.
   return (
-    <pre className="text-left bg-surface-1 border border-accent/30 rounded-xl px-5 py-4 text-xs md:text-sm font-mono text-text-secondary overflow-x-auto leading-relaxed whitespace-pre">
+    <pre className="text-left text-xs md:text-sm font-mono overflow-x-auto whitespace-pre bg-surface-1 border border-border px-4 py-3 leading-relaxed">
       {children}
     </pre>
   );
@@ -72,22 +75,12 @@ export function CodeBlock({ children }: { children: React.ReactNode }) {
 
 export function PrimaryCTA({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link
-      href={href}
-      className="inline-flex items-center justify-center px-6 py-3 bg-accent text-surface-0 rounded-md text-sm font-medium hover:bg-accent-hover active:translate-y-px transition-[background-color,transform] duration-150"
-    >
+    <Link href={href} className="btn">
       {children}
     </Link>
   );
 }
 
 export function SecondaryCTA({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex items-center justify-center px-6 py-3 border border-border text-text-secondary rounded-md text-sm hover:border-border-hover hover:text-text-primary active:translate-y-px transition-[border-color,color,transform] duration-150"
-    >
-      {children}
-    </Link>
-  );
+  return <Link href={href}>{children}</Link>;
 }

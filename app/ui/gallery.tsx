@@ -71,7 +71,7 @@ export function Gallery() {
       <header className="border-b border-border px-12 py-8">
         <h1 className="font-display text-2xl tracking-tight">Counted UI</h1>
         <p className="text-sm text-text-secondary mt-1">
-          Component library — shadcn architecture, themed with Counted tokens. Iris accent = primary action.
+          Component library — shadcn architecture, themed with Counted tokens.
         </p>
       </header>
       <div className="px-12 py-10 max-w-6xl columns-1 gap-10 lg:columns-2">
