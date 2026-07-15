@@ -62,14 +62,14 @@ export function WelcomeFlow({
         <Check className="w-4 h-4" />
         {eventCount > 0
           ? `${eventCount} event${eventCount !== 1 ? "s" : ""} received — you're live.`
-          : "Project is live. Events will appear as your app runs."}
+          : "Project is live. Events appear as your app runs."}
       </div>
 
       {step === "name" ? (
         <>
           <h1 className="text-xl font-semibold">Name your project</h1>
           <p className="text-sm text-text-secondary mt-1 mb-4">
-            What should we call the app you just instrumented?
+            What should we call it?
           </p>
           <form onSubmit={saveName} className="flex flex-col gap-2">
             <Input
@@ -85,7 +85,7 @@ export function WelcomeFlow({
         <>
           <h1 className="text-xl font-semibold">Add your first dashboard</h1>
           <p className="text-sm text-text-secondary mt-1 mb-4">
-            Pick a starting point — you can rearrange and add insights anytime.
+            Pick a starting point. You can change everything later.
           </p>
           <div className="flex flex-col gap-2">
             {TEMPLATES.map((t) => (

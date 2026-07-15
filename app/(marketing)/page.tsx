@@ -22,13 +22,11 @@ export default function Home() {
         <ul>
           <li>
             <b>Privacy by design.</b>{" "}No cookies, no IP storage, no fingerprinting. GDPR- and
-            CCPA-friendly, with no consent banner. You don&apos;t have to take our word for it —
-            the code is open source.
+            CCPA-friendly, no consent banner. The code is open source.
           </li>
           <li>
-            <b>Composable dashboards.</b>{" "}Build your own view. Add any insight — breakdowns,
-            time series, counts, funnels. Mix metrics from different events on one board, and
-            rearrange anytime.
+            <b>Composable dashboards.</b>{" "}Breakdowns, time series, counts, funnels — mix them
+            on one board, rearrange anytime.
           </li>
           <li>
             <b>Lightweight SDK.</b>{" "}Under 3KB gzipped. Vanilla JS and React packages. Tracks
@@ -42,7 +40,7 @@ export default function Home() {
         </ul>
 
         <h2>Free tier</h2>
-        <p>Everything you need to ship — no credit card required.</p>
+        <p>No credit card.</p>
         <ul>
           <li>100K events/month</li>
           <li>3 projects</li>

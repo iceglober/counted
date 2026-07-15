@@ -5,7 +5,7 @@ import { TrackedCTA } from "../track";
 export const metadata: Metadata = {
   title: "Pricing — Counted",
   description:
-    "Counted pricing: a free tier with 100K events/month and no credit card, and Pro at $12/month for 1M events. Self-host any plan.",
+    "Free: 100K events/month, no credit card. Pro: $12/month for 1M events. Self-host any plan.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -89,8 +89,8 @@ export default function PricingPage() {
         </div>
 
         <p className="small muted">
-          All plans include the full SDK and every insight type. Counted is fully open source —
-          self-host anytime. No cookies, no consent banner. Need more than 1M events/month?{" "}
+          All plans include the full SDK and every insight type. Open source — self-host
+          anytime. No cookies, no consent banner. Need more than 1M events/month?{" "}
           <a href="mailto:hello@counted.dev">Let&apos;s talk</a>.
         </p>
       </div>

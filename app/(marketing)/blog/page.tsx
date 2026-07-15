@@ -6,7 +6,7 @@ import { visiblePosts } from "./posts";
 export const metadata: Metadata = {
   title: "Blog — Counted",
   description:
-    "Quickstarts, guides, and notes on privacy-first analytics, agent eval, and self-hosting. Most posts get you to a working result in five minutes.",
+    "Guides on privacy-first analytics, agent eval, and self-hosting. Most get you to a working result in five minutes.",
   alternates: { canonical: "/blog" },
   openGraph: {
     title: "Counted Blog",
@@ -31,12 +31,11 @@ export default function BlogIndex() {
       <div className="page">
         <h1>Blog</h1>
         <p>
-          Short, copy-paste guides. Each one ends with a live dashboard — most get you to a
-          working result in five minutes.
+          Short, copy-paste guides. Each ends at a live dashboard; most take five minutes.
         </p>
 
         {posts.length === 0 ? (
-          <p className="muted">Posts coming soon.</p>
+          <p className="muted">No posts yet.</p>
         ) : (
           posts.map((post) => (
             <p key={post.slug}>

@@ -29,7 +29,7 @@ export function LandingCTA() {
     <div>
       <h2>Try it now</h2>
       <p>
-        One click mints a project key and a live dashboard — no signup to start.
+        One click gets you a project key and a live dashboard. No signup.
       </p>
       {state !== "done" ? (
         <p>

@@ -56,7 +56,6 @@ export default function LoginPage() {
             <p className="text-sm text-text-secondary mt-2 leading-relaxed">
               We sent a sign-in link to{" "}
               <span className="text-text-primary font-medium">{sentEmail}</span>.
-              Click the link to continue.
             </p>
             <Button
               variant="link"
@@ -70,7 +69,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="animate-rise">
             <h1 className="text-xl font-semibold">Sign in to Counted</h1>
             <p className="text-sm text-text-secondary mt-2">
-              No password needed. We will send you a magic link.
+              No password. We email you a magic link.
             </p>
 
             <Field label="Email" htmlFor="login-email" className="mt-6">

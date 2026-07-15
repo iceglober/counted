@@ -25,7 +25,7 @@ export function SiteNav() {
             Counted
           </Link>
         </b>{" "}
-        &middot; privacy-first product analytics
+        &middot; Product analytics. No bloat, no banner.
         <br />
         <NewTabLink href="/docs">Docs</NewTabLink> | <Link href="/pricing">Pricing</Link> |{" "}
         <Link href="/vs">Compare</Link> | <Link href="/blog">Blog</Link> |{" "}
@@ -41,15 +41,8 @@ export function SiteFooter() {
     <div className="page">
       <footer className="sitefooter">
         <p>
-          <NewTabLink href="/docs">Docs</NewTabLink> | <Link href="/blog">Blog</Link> |{" "}
-          <Link href="/pricing">Pricing</Link> | <Link href="/vs">Compare</Link> |{" "}
-          <Link href="/for/agents">For agents</Link> |{" "}
-          <NewTabLink href={GITHUB}>GitHub</NewTabLink> |{" "}
-          <Link href="/privacy">Privacy</Link> | <Link href="/terms">Terms</Link>
-        </p>
-        <p>
-          No cookies. No fingerprinting. No PII. &copy; {new Date().getFullYear()} Iceglobe
-          Enterprises LLC
+          &copy; {new Date().getFullYear()} Iceglobe Enterprises LLC &middot;{" "}
+          <Link href="/privacy">Privacy</Link> &middot; <Link href="/terms">Terms</Link>
         </p>
       </footer>
     </div>

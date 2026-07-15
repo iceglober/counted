@@ -5,7 +5,7 @@ import { spec } from "@/lib/openapi";
 export const metadata: Metadata = {
   title: "API Reference — Counted",
   description:
-    "The full Counted HTTP API — ingestion, projects, query, dashboards, and alerts. Generated from the OpenAPI spec.",
+    "The Counted HTTP API — ingestion, projects, query, dashboards, alerts. Generated from the OpenAPI spec.",
   alternates: { canonical: "/docs/api" },
 };
 
@@ -206,9 +206,9 @@ export default function ApiReferencePage() {
       <p className="text-xs font-medium uppercase tracking-[0.15em] text-accent">Reference</p>
       <h1 className="">API Reference</h1>
       <p className="mt-3 text-text-secondary leading-relaxed">
-        The complete Counted HTTP API. Base URL{" "}
-        <code className="font-mono text-text-primary">{baseUrl}</code>. Ingestion uses a write-only
-        project key sent as the <code className="font-mono text-text-primary">project-key</code> header;
+        The Counted HTTP API. Base URL{" "}
+        <code className="font-mono text-text-primary">{baseUrl}</code>. Ingestion takes a write-only
+        project key in the <code className="font-mono text-text-primary">project-key</code> header;
         management endpoints use your signed-in session. Machine-readable spec:{" "}
         <a href="/api/v0/openapi.json" className="text-accent hover:text-accent-hover transition-colors">/api/v0/openapi.json</a>.
       </p>

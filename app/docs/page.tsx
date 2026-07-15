@@ -7,7 +7,7 @@ import { SdkVote } from "@/components/sdk-vote";
 export const metadata: Metadata = {
   title: "Documentation — Counted",
   description:
-    "Get started with Counted: install an SDK, send your first event, and explore the full API. Privacy-first product analytics — no cookies, no PII.",
+    "Install an SDK, send an event, read the API. Product analytics with no cookies, no PII.",
   alternates: { canonical: "/docs" },
 };
 
@@ -72,9 +72,8 @@ export default function DocsPage() {
       <p className="text-xs font-medium uppercase tracking-[0.15em] text-accent">Getting started</p>
       <h1 className="">Overview</h1>
       <p className="mt-3 text-text-secondary leading-relaxed">
-        Counted is privacy-first product analytics — no cookies, no fingerprinting, no PII. Send an
-        event with an SDK or a single HTTP call, then read it on a dashboard. Three steps to your
-        first event.
+        Counted is product analytics with no cookies, no fingerprinting, no PII. Send an event with
+        an SDK or one HTTP call. Read it on a dashboard.
       </p>
 
       <H2>Get a project key</H2>
@@ -88,8 +87,8 @@ export default function DocsPage() {
 
       <H2 id="quickstart">Quickstart</H2>
       <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-        Pick your stack. Properties are plain values — strings, numbers, booleans — with no field for
-        a user id or email, because Counted doesn&apos;t store them.
+        Pick your stack. Properties are plain values — strings, numbers, booleans. No field for a
+        user id or email; Counted doesn&apos;t store them.
       </p>
       <div className="mt-4">
         <CodeTabs tabs={QUICKSTART} />
@@ -97,10 +96,9 @@ export default function DocsPage() {
 
       <H2 id="more-sdks">More SDKs — coming soon</H2>
       <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-        We release an SDK once it&apos;s running in a live example, not before. JS/TS and React are
-        what runs counted.dev today; these are next. <strong className="text-text-primary">+1 the
-        one you want</strong> and we&apos;ll prioritize by demand — your vote is just a Counted
-        event, naturally.
+        We release an SDK once it runs in a live example. JS/TS and React run counted.dev today;
+        these are next. <strong className="text-text-primary">+1 the one you want</strong> and
+        we&apos;ll prioritize by demand. Each vote is a Counted event.
       </p>
       <div className="mt-4">
         <SdkVote />

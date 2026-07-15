@@ -181,8 +181,8 @@ analytics.track("page_view", { path: "/" });`}
               <Check className="w-5 h-5 text-accent" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">Events are flowing!</h2>
-              <p className="text-sm text-text-secondary">{eventCount} event{eventCount !== 1 ? "s" : ""} received. Now let's visualize them.</p>
+              <h2 className="text-lg font-semibold">Events are flowing</h2>
+              <p className="text-sm text-text-secondary">{eventCount} event{eventCount !== 1 ? "s" : ""} received.</p>
             </div>
           </div>
 
@@ -205,7 +205,7 @@ analytics.track("page_view", { path: "/" });`}
           </div>
           <div>
             <h2 className="text-lg font-semibold">You're all set</h2>
-            <p className="text-sm text-text-secondary">Add more insights, configure queries, and build your dashboard.</p>
+            <p className="text-sm text-text-secondary">Add more insights with the + button.</p>
           </div>
         </div>
       )}

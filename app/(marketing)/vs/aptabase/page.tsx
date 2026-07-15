@@ -5,7 +5,7 @@ import { TrackedCTA } from "../../track";
 export const metadata: Metadata = {
   title: "Counted vs Aptabase — privacy analytics with composable dashboards",
   description:
-    "A side-by-side comparison of Counted and Aptabase: composable dashboards, funnels, a larger free tier, and a migration CLI. Both are privacy-first and cookie-free.",
+    "Counted vs Aptabase: composable dashboards, funnels, a larger free tier, and a migration CLI. Both privacy-first and cookie-free.",
   alternates: { canonical: "/vs/aptabase" },
   openGraph: {
     title: "Counted vs Aptabase",
@@ -53,9 +53,8 @@ export default function VsAptabasePage() {
       <div className="page">
         <h1>Counted vs Aptabase</h1>
         <p>
-          Aptabase and Counted both reject cookies, fingerprinting, and PII. Counted adds
-          composable dashboards, funnels, a larger free tier — and a CLI to bring your history
-          over.
+          Both reject cookies, fingerprinting, and PII. Counted adds composable dashboards,
+          funnels, a larger free tier, and a CLI to bring your history over.
         </p>
         <p>
           <TrackedCTA href="/login" location="vs_aptabase" label="start_free">
@@ -83,8 +82,8 @@ export default function VsAptabasePage() {
           </tbody>
         </table>
         <p className="small muted">
-          Comparison reflects each product&apos;s publicly documented details at the time of
-          writing. Aptabase is open source and a good tool — verify current limits on their site.
+          Based on public docs at the time of writing. Check Aptabase&apos;s site for current
+          limits.
         </p>
 
         <h2 id="migrate">Migrate in two steps</h2>
