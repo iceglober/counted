@@ -46,9 +46,8 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
             <>
               <h1 className="text-xl font-semibold">Claim your live dashboard</h1>
               <p className="text-sm text-text-secondary mt-1 mb-5">
-                Your agent set up privacy-first analytics and events are already flowing.
-                Sign in or create an account — the project and its events attach to
-                whichever account you use. Already have one? Just sign in.
+                Your agent set this up and events are already flowing. Sign in or
+                create an account — the project attaches to whichever you use.
               </p>
               <ClaimLogin token={token} />
             </>
@@ -56,7 +55,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
             <>
               <h1 className="text-xl font-semibold">This link isn’t valid</h1>
               <p className="text-sm text-text-secondary mt-1">
-                It may have already been claimed or expired.{" "}
+                Already claimed, or expired.{" "}
                 <Link href="/dashboards" className="text-accent hover:text-accent-hover">Go to your dashboards</Link>.
               </p>
             </>

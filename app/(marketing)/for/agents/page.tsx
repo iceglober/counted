@@ -5,7 +5,7 @@ import { TrackedCTA } from "../../track";
 export const metadata: Metadata = {
   title: "Agent analytics & eval — Counted for AI coding agents",
   description:
-    "Track what your AI agents actually do: tool calls, file edits, commands, and outcomes — privacy-safe, in a pre-built eval dashboard. Native plugins for Claude Code and OpenCode, plus zero-dependency SDKs.",
+    "Track what your AI agents do: tool calls, file edits, commands, outcomes — privacy-safe, in a pre-built eval dashboard. Native plugins for Claude Code and OpenCode.",
   alternates: { canonical: "/for/agents" },
   openGraph: {
     title: "Counted for agents — privacy-first agent analytics",
@@ -31,9 +31,8 @@ export default function ForAgentsPage() {
       <div className="page">
         <h1>See what your agents actually do</h1>
         <p>
-          Counted is built for AI coding tools, with native plugins most analytics platforms
-          don&apos;t ship. Capture tool calls, file edits, commands, and outcomes in a pre-built
-          eval dashboard — privacy-safe, no PII, no code contents.
+          Native plugins for AI coding tools. Capture tool calls, file edits, commands, and
+          outcomes in a pre-built eval dashboard. No PII, no code contents.
         </p>
         <p>
           <TrackedCTA href="/login" location="for_agents" label="start_free">
@@ -62,8 +61,8 @@ export default function ForAgentsPage() {
 
         <h2>Install the Claude Code plugin</h2>
         <p>
-          Counted ships as a real Claude Code plugin. Add the marketplace, install, and set a
-          key — every session then streams privacy-safe events into your eval dashboard.
+          Add the marketplace, install, set a key. Every session streams privacy-safe events
+          into your eval dashboard.
         </p>
         <CodeBlock>{`/plugin marketplace add iceglober/counted
 /plugin install claude-code@counted
@@ -94,10 +93,10 @@ counted.track("session_end", { duration_ms: elapsed });`}</CodeBlock>
           coming soon (+1 yours in the <a href="/docs#more-sdks">docs</a>).
         </p>
 
-        <h2>Built on a pre-made eval template</h2>
+        <h2>Start from the eval template</h2>
         <p>
           New projects can start from the agent-eval dashboard template — tool usage, outcomes,
-          file edits, and commands, ready to read. Compose your own insights on top.
+          file edits, and commands. Compose your own insights on top.
         </p>
         <p>
           <TrackedCTA href="/login" location="for_agents" label="get_eval_dashboard">

@@ -28,7 +28,7 @@ export function ClaimLogin({ token }: { token: string }) {
   if (sent) {
     return (
       <p className="text-sm text-text-secondary">
-        Check your email for a magic link. Open it and the dashboard attaches to your account.
+        Check your email. Open the link and the dashboard attaches to your account.
       </p>
     );
   }

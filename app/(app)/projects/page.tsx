@@ -161,7 +161,7 @@ export default function ProjectsPage() {
             {/* Client Key */}
             <div>
               <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1">Client Key</h2>
-              <p className="text-xs text-text-tertiary mb-2">Public — use in your SDK. Can only ingest events.</p>
+              <p className="text-xs text-text-tertiary mb-2">Public. Goes in your SDK. Ingest only.</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-sm font-mono text-text-primary border border-border select-all !px-2.5 !py-2">
                   {detail.clientKey ?? detail.apiKey}
@@ -177,7 +177,7 @@ export default function ProjectsPage() {
             {/* Server Key */}
             <div>
               <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1">Server Key</h2>
-              <p className="text-xs text-text-tertiary mb-2">Private — never expose in client code. Full API access.</p>
+              <p className="text-xs text-text-tertiary mb-2">Private. Server-side only. Full API access.</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-sm font-mono text-text-primary border border-border select-all !px-2.5 !py-2">
                   {detail.serverKey ?? "Not generated yet"}

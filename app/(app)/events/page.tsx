@@ -70,7 +70,7 @@ export default function EventsPage() {
         </div>
       ) : events.length === 0 ? (
         <div className="text-center py-16 text-text-tertiary">
-          <p className="text-sm">No events yet for this project.</p>
+          <p className="text-sm">No events yet.</p>
         </div>
       ) : (
         <div className="rounded-lg border border-border">

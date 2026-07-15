@@ -5,7 +5,7 @@ import { TrackedCTA } from "../../track";
 export const metadata: Metadata = {
   title: "Counted vs Plausible — privacy-first product analytics, not just pageviews",
   description:
-    "Plausible is excellent privacy-first web analytics. Counted is privacy-first product analytics: same no-cookie stance, plus a free tier, funnels, and composable dashboards.",
+    "Plausible is privacy-first web analytics. Counted is privacy-first product analytics: same no-cookie stance, plus a free tier, funnels, and composable dashboards.",
   alternates: { canonical: "/vs/plausible" },
   openGraph: {
     title: "Counted vs Plausible",
@@ -51,10 +51,9 @@ export default function VsPlausiblePage() {
       <div className="page">
         <h1>Counted vs Plausible</h1>
         <p>
-          Plausible is excellent, privacy-first web analytics — no cookies, no banner,
-          beautifully simple. Counted shares that stance but goes further into product
-          analytics: a free tier, funnels included, composable dashboards you build yourself,
-          and native SDKs for AI coding agents.
+          Plausible is privacy-first web analytics — no cookies, no banner. Counted has the
+          same stance but does product analytics: a free tier, funnels included, composable
+          dashboards, and native SDKs for AI coding agents.
         </p>
         <p>
           <TrackedCTA href="/login" location="vs_plausible" label="start_free">
@@ -82,20 +81,19 @@ export default function VsPlausiblePage() {
           </tbody>
         </table>
         <p className="small muted">
-          Comparison reflects publicly documented details at the time of writing. Plausible is a
-          great, privacy-first tool — verify current specifics on their site.
+          Based on public docs at the time of writing. Check Plausible&apos;s site for current
+          specifics.
         </p>
 
         <h2 id="who">Which one fits</h2>
         <p>
-          <b>Use Plausible if</b>{" "}you mainly want clean, privacy-first <em>web</em> analytics —
-          traffic, sources, top pages — with the simplest possible setup.
+          <b>Use Plausible if</b>{" "}you want privacy-first <em>web</em> analytics — traffic,
+          sources, top pages — with the simplest setup.
         </p>
         <p>
           <b>Use Counted if</b>{" "}you want privacy-first <em>product</em> analytics: custom
-          events, funnels (free, even self-hosted), dashboards you compose yourself, polyglot
-          SDKs, and native instrumentation for AI coding agents — all with the same no-cookie,
-          no-PII stance.
+          events, funnels (free, even self-hosted), dashboards you compose yourself, and native
+          SDKs for AI coding agents. Same no-cookie, no-PII stance.
         </p>
         <p>
           <TrackedCTA href="/login" location="vs_plausible" label="start_free_who">

@@ -76,7 +76,7 @@ export function AgentSetup({ projectKey, projectId }: Props) {
         <div>
           <h2 className="text-sm font-semibold">Connect your coding agent</h2>
           <p className="text-xs text-text-tertiary mt-0.5">
-            Install the native plugin — agent sessions stream in privately (no code or prompts leave your machine).
+            Agent sessions stream in. No code or prompts leave your machine.
           </p>
         </div>
         <span className="flex items-center gap-1.5 text-xs text-text-tertiary">

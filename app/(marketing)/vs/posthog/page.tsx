@@ -5,7 +5,7 @@ import { TrackedCTA } from "../../track";
 export const metadata: Metadata = {
   title: "Counted vs PostHog — lightweight, privacy-first product analytics",
   description:
-    "PostHog is a powerful all-in-one platform. Counted is focused product analytics: under 3KB gzipped, private by default, funnels and composable dashboards — without the weight or config. An honest comparison.",
+    "PostHog is an all-in-one platform. Counted is focused product analytics: under 3KB gzipped, private by default, funnels and composable dashboards.",
   alternates: { canonical: "/vs/posthog" },
   openGraph: {
     title: "Counted vs PostHog",
@@ -51,10 +51,9 @@ export default function VsPosthogPage() {
       <div className="page">
         <h1>Counted vs PostHog</h1>
         <p>
-          PostHog is a powerful all-in-one platform — analytics, session replay, feature flags,
-          experiments, and more. If you want all of that, use it. Counted is narrower on
-          purpose: just product analytics, under 3KB gzipped, private by default, funnels and
-          composable dashboards — without the weight or the config.
+          PostHog is an all-in-one platform — analytics, session replay, feature flags,
+          experiments. If you want all of that, use it. Counted is just product analytics:
+          under 3KB gzipped, private by default, funnels and composable dashboards.
         </p>
         <p>
           <TrackedCTA href="/login" location="vs_posthog" label="start_free">
@@ -82,22 +81,21 @@ export default function VsPosthogPage() {
           </tbody>
         </table>
         <p className="small muted">
-          Comparison reflects publicly documented details at the time of writing. PostHog is a
-          powerful open-source platform with a generous free tier — verify current specifics on
-          their site.
+          Based on public docs at the time of writing. Check PostHog&apos;s site for current
+          specifics.
         </p>
 
         <h2 id="who">Which one fits</h2>
         <p>
           <b>Use PostHog if</b>{" "}you want one tool for analytics <em>and</em> session replay,
-          feature flags, experiments, surveys, and a data warehouse — and you&apos;re fine with
-          a heavier SDK and more configuration.
+          feature flags, experiments, surveys, and a data warehouse — and don&apos;t mind a
+          heavier SDK and more config.
         </p>
         <p>
-          <b>Use Counted if</b>{" "}you want focused product analytics that&apos;s private by
-          default (no cookies, no fingerprinting, no PII out of the box), ships in under 3KB
-          gzipped, self-hosts with Docker Compose, and natively instruments AI coding agents. No
-          platform to learn — just events and composable dashboards.
+          <b>Use Counted if</b>{" "}you want product analytics that&apos;s private by default
+          (no cookies, no fingerprinting, no PII), under 3KB gzipped, self-hosts with Docker
+          Compose, and natively instruments AI coding agents. Just events and composable
+          dashboards.
         </p>
         <p>
           <TrackedCTA href="/login" location="vs_posthog" label="start_free_who">

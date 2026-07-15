@@ -123,7 +123,7 @@ export function MetricCard({ title, data }: { title: string; data: MetricData })
         </div>
       ) : (
         <div className="mt-2.5">
-          <span className="text-xs text-text-tertiary">No prior data for comparison</span>
+          <span className="text-xs text-text-tertiary">No prior data</span>
         </div>
       )}
     </div>

@@ -148,7 +148,6 @@ export default function SettingsPage() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-xl font-semibold">General</h1>
-                <p className="text-sm text-text-tertiary mt-1">Account and application settings.</p>
               </div>
 
               <div>
@@ -179,7 +178,6 @@ export default function SettingsPage() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-xl font-semibold">Billing</h1>
-                <p className="text-sm text-text-tertiary mt-1">Manage your subscription.</p>
               </div>
 
               <div>
@@ -380,8 +378,7 @@ export default function SettingsPage() {
               {alertsList.length === 0 && !showNewAlert && (
                 <div className="bg-surface-1 border border-border rounded-lg p-8 text-center">
                   <Bell className="w-8 h-8 text-text-tertiary mx-auto mb-3" />
-                  <p className="text-sm text-text-secondary">No alerts configured yet.</p>
-                  <p className="text-xs text-text-tertiary mt-1">Create an alert to get notified when metrics change.</p>
+                  <p className="text-sm text-text-secondary">No alerts yet.</p>
                 </div>
               )}
 
