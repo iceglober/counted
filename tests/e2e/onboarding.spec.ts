@@ -32,7 +32,7 @@ test("guided onboarding: send first event, then create an insight", async ({ pag
   expect(eventResp.ok(), `event ingest -> ${eventResp.status()}`).toBeTruthy();
 
   // Flow advances to the "events are flowing" step.
-  await expect(page.getByRole("heading", { name: "Events are flowing!" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Events are flowing" })).toBeVisible();
 
   // Create the first insight -> the configurator opens (empty grid -> 1 insight).
   await page.getByRole("button", { name: /create your first insight/i }).click();
