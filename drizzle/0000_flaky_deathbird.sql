@@ -197,7 +197,6 @@ DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscrip
 CREATE INDEX IF NOT EXISTS "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_alerts_project" ON "alerts" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_alerts_enabled" ON "alerts" USING btree ("enabled");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "dashboards_project_slug" ON "dashboards" USING btree ("project_id","slug");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_events_project_time" ON "events" USING btree ("project_id","timestamp");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_events_project_name" ON "events" USING btree ("project_id","event_name","timestamp");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_events_session" ON "events" USING btree ("project_id","session_id");--> statement-breakpoint

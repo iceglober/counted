@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dashboards } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireSession, requireProjectAccess } from "@/lib/auth-guard";
+import { requireSession, requireProjectAccess, readJson } from "@/lib/auth-guard";
 import { createDefaultLayout } from "@/lib/default-dashboard";
 import { createAgentDashboardLayout } from "@/lib/agent-dashboard";
 
@@ -32,8 +32,12 @@ export async function POST(request: NextRequest) {
   const { session, error, status } = await requireSession();
   if (error) return NextResponse.json({ error }, { status });
 
-  const body = await request.json();
-  const { projectId, name, slug, layout, filters, isDefault, template } = body;
+  const parsed = await readJson<{
+    projectId?: string; name?: string; slug?: string; layout?: unknown;
+    filters?: unknown; isDefault?: boolean; template?: string;
+  }>(request);
+  if (!parsed.ok) return parsed.response;
+  const { projectId, name, slug, layout, filters, isDefault, template } = parsed.body;
 
   if (!slug) {
     return NextResponse.json({ error: "slug is required" }, { status: 400 });

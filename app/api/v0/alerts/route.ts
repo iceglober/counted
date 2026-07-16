@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { alerts } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireProjectAccess, requireSession } from "@/lib/auth-guard";
+import { requireProjectAccess, requireSession, readJson } from "@/lib/auth-guard";
 
 export async function GET(request: NextRequest) {
   const projectId = request.nextUrl.searchParams.get("projectId");
@@ -23,8 +23,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { projectId, name, metric, eventFilter, condition, threshold, window, channels, slackWebhookUrl } = body;
+  const parsed = await readJson<{
+    projectId?: string; name?: string; metric?: string; eventFilter?: string;
+    condition?: string; threshold?: number | string; window?: string;
+    channels?: string[]; slackWebhookUrl?: string;
+  }>(request);
+  if (!parsed.ok) return parsed.response;
+  const { projectId, name, metric, eventFilter, condition, threshold, window, channels, slackWebhookUrl } = parsed.body;
 
   if (!projectId || !name || !metric || !condition || threshold === undefined) {
     return NextResponse.json(
@@ -91,8 +96,12 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const body = await request.json();
-  const { id, enabled, name, threshold, condition, window, channels, slackWebhookUrl } = body;
+  const parsed = await readJson<{
+    id?: string; enabled?: boolean; name?: string; threshold?: number | string;
+    condition?: string; window?: string; channels?: string[]; slackWebhookUrl?: string;
+  }>(request);
+  if (!parsed.ok) return parsed.response;
+  const { id, enabled, name, threshold, condition, window, channels, slackWebhookUrl } = parsed.body;
 
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });

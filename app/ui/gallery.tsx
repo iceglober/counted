@@ -6,20 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectLabel, SelectGroup } from "@/components/ui/select";
-import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
 import { Tooltip } from "@/components/ui/tooltip";
 import {
   Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Switch } from "@/components/ui/switch";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster, toast } from "@/components/ui/sonner";
@@ -210,25 +201,6 @@ export function Gallery() {
           </Row>
         </Section>
 
-        <Section title="Separator" note="Hairline divider (horizontal or vertical).">
-          <Row label="Horizontal">
-            <div className="w-72">
-              <div className="text-sm text-text-secondary">Account</div>
-              <Separator className="my-3" />
-              <div className="text-sm text-text-secondary">Billing</div>
-            </div>
-          </Row>
-          <Row label="Vertical">
-            <div className="flex h-5 items-center gap-3 text-sm text-text-secondary">
-              <span>Docs</span>
-              <Separator orientation="vertical" />
-              <span>API</span>
-              <Separator orientation="vertical" />
-              <span>Status</span>
-            </div>
-          </Row>
-        </Section>
-
         <Section title="Select" note="Radix select — keyboard + typeahead, accent check on the chosen item.">
           <Row label="Measure">
             <div className="w-56">
@@ -245,23 +217,6 @@ export function Gallery() {
                 </SelectContent>
               </Select>
             </div>
-          </Row>
-        </Section>
-
-        <Section title="Dropdown menu" note="Context menus — dashboard/insight actions, with a destructive item.">
-          <Row label="Dashboard">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm"><Settings />Dashboard</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuLabel>Dashboard</DropdownMenuLabel>
-                <DropdownMenuItem><Share2 />Share publicly</DropdownMenuItem>
-                <DropdownMenuItem><Star />Set as default</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive"><Trash2 />Delete dashboard</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </Row>
         </Section>
 
@@ -294,67 +249,6 @@ export function Gallery() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </Row>
-        </Section>
-
-        <Section title="Popover" note="Floating panel — the card size picker.">
-          <Row label="Open">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="secondary" size="sm"><Scaling />Resize</Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-40 p-1">
-                {["Small", "Medium", "Full width"].map((s, i) => (
-                  <button
-                    key={s}
-                    className={`flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-surface-3 ${i === 1 ? "text-accent" : "text-text-secondary hover:text-text-primary"}`}
-                  >
-                    {s}
-                    {i === 1 && <Check className="size-3.5" />}
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
-          </Row>
-        </Section>
-
-        <Section title="Toggle group" note="Segmented control — the insight type-picker.">
-          <Row label="Insight type">
-            <ToggleGroup type="single" defaultValue="breakdown">
-              <ToggleGroupItem value="metric">Metric</ToggleGroupItem>
-              <ToggleGroupItem value="timeseries">Time series</ToggleGroupItem>
-              <ToggleGroupItem value="breakdown">Breakdown</ToggleGroupItem>
-              <ToggleGroupItem value="funnel">Funnel</ToggleGroupItem>
-              <ToggleGroupItem value="retention">Retention</ToggleGroupItem>
-            </ToggleGroup>
-          </Row>
-        </Section>
-
-        <Section title="Tabs" note="Section switcher — settings.">
-          <Row label="Settings">
-            <Tabs defaultValue="account" className="w-full">
-              <TabsList>
-                <TabsTrigger value="account">Account</TabsTrigger>
-                <TabsTrigger value="alerts">Alerts</TabsTrigger>
-                <TabsTrigger value="billing">Billing</TabsTrigger>
-              </TabsList>
-              <TabsContent value="account" className="text-sm text-text-secondary">Your profile and email.</TabsContent>
-              <TabsContent value="alerts" className="text-sm text-text-secondary">Threshold alerts and channels.</TabsContent>
-              <TabsContent value="billing" className="text-sm text-text-secondary">Plan and usage.</TabsContent>
-            </Tabs>
-          </Row>
-        </Section>
-
-        <Section title="Switch" note="On = iris track. Toggles for alerts and channels.">
-          <Row label="Alerts">
-            <div className="flex items-center gap-3">
-              <Switch defaultChecked id="sw1" />
-              <label htmlFor="sw1" className="text-sm text-text-secondary">Email alerts</label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch id="sw2" />
-              <label htmlFor="sw2" className="text-sm text-text-secondary">Slack</label>
-            </div>
           </Row>
         </Section>
 

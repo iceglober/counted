@@ -22,19 +22,9 @@ railway link        # links this repo
 railway add --plugin postgresql
 ```
 
-Then in the Railway dashboard, connect to the database and run:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS timescaledb;
-```
-
-The schema is pushed automatically on deploy via `bun run db:push` in the start command.
-
-After the first deploy, create the hypertable:
-
-```sql
-SELECT create_hypertable('events', 'timestamp');
-```
+The schema — including the TimescaleDB extension and the `events` hypertable — is
+created automatically on every deploy by the resilient migration step in the start
+command (`drizzle/0004_timescale.sql`). No manual `psql` is needed.
 
 ### 3. Set environment variables
 

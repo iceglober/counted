@@ -234,8 +234,7 @@ function setupContext(setup) {
 }
 
 // src/hook.ts
-var key = process.env.COUNTED_AGENT_KEY;
-if (!key) process.exit(0);
+var key = process.env.COUNTED_AGENT_KEY || process.env.CLAUDE_PLUGIN_OPTION_API_KEY;
 var killer = setTimeout(() => process.exit(0), 4e3);
 if (typeof killer.unref === "function") killer.unref();
 function langOf(filePath) {
@@ -281,7 +280,15 @@ async function main() {
   } catch {
     process.exit(0);
   }
-  const host = process.env.COUNTED_AGENT_HOST || "https://app.counted.dev";
+  if (!key) {
+    if (input.hook_event_name === "SessionStart") {
+      process.stderr.write(
+        "counted: no project key found (set the plugin's api_key, or COUNTED_AGENT_KEY) \u2014 analytics disabled\n"
+      );
+    }
+    return;
+  }
+  const host = process.env.COUNTED_AGENT_HOST || process.env.CLAUDE_PLUGIN_OPTION_HOST || "https://app.counted.dev";
   init({ projectKey: key, host, sessionId: input.session_id });
   const cwd = input.cwd || process.cwd();
   const setup = input.hook_event_name === "SessionStart" ? computeAndCacheSetup(cwd, input.session_id, input.model, input.permission_mode) : loadSetup(cwd, input.session_id, input.permission_mode);
@@ -290,10 +297,15 @@ async function main() {
     case "SessionStart":
       trackSessionStart({ model: input.model, mode: input.source });
       break;
-    case "PostToolUse": {
+    // PostToolUse fires only on tool success; PostToolUseFailure only on
+    // failure. Splitting the outcome across the two events is what makes the
+    // dashboard's tool-outcome breakdown meaningful (a single PostToolUse read
+    // reported success forever).
+    case "PostToolUse":
+    case "PostToolUseFailure": {
       const tool = input.tool_name || "unknown";
-      const ok = input.tool_response?.did_succeed;
-      trackToolUse({ tool, outcome: ok === false ? "error" : "success" });
+      const failed = input.hook_event_name === "PostToolUseFailure";
+      trackToolUse({ tool, outcome: failed ? "error" : "success" });
       const ti = input.tool_input || {};
       if ((tool === "Write" || tool === "Edit" || tool === "MultiEdit") && ti.file_path) {
         trackFileEdit({
@@ -302,7 +314,7 @@ async function main() {
           language: langOf(ti.file_path)
         });
       } else if (tool === "Bash" && ti.command) {
-        trackCommand({ command: cmdName(ti.command), exitCode: input.tool_response?.exit_code });
+        trackCommand({ command: cmdName(ti.command), exitCode: failed ? 1 : void 0 });
       }
       break;
     }

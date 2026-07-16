@@ -42,7 +42,10 @@ export default async function SharedDashboardPage({
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        <h1 className="text-xl font-semibold mb-8">{dashboard.name}</h1>
+        <div className="mb-8">
+          <h1 className="text-xl font-semibold">{dashboard.name}</h1>
+          <p className="text-xs text-text-tertiary mt-1">Last 30 days</p>
+        </div>
         <SharedDashboard insights={insights} />
       </div>
     </div>

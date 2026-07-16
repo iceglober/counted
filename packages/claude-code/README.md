@@ -1,35 +1,44 @@
 # @counted/claude-code
 
-Privacy-first analytics for Claude Code hooks. Track AI agent actions without exposing code or content.
+Privacy-first analytics for [Claude Code](https://claude.com/claude-code) —
+track what your agent sessions actually do (tool use, file edits, commands,
+session boundaries) without ever exposing code, content, or PII.
 
-## Install
+## Install (zero code)
+
+The fastest path is the Claude Code plugin. From inside Claude Code:
+
+```
+/plugin marketplace add iceglober/counted
+/plugin install claude-code@counted
+```
+
+When prompted, paste your project's **client** key (`ck_...`) — find it in your
+Counted project settings. That's it: every session streams privacy-safe events
+into your dashboard. Create the project with the **agent** dashboard template so
+the pre-built insights line up.
+
+You can also set the key via the environment instead of the plugin prompt:
 
 ```bash
-npm install @counted/claude-code @counted/sdk
+export COUNTED_AGENT_KEY="ck_your_project_client_key"
+# Optional — defaults to https://app.counted.dev
+export COUNTED_AGENT_HOST="https://app.counted.dev"
 ```
 
-## Usage
-
-```typescript
-import { init, trackToolUse, trackFileEdit, trackCommand, trackSessionStart, trackSessionEnd } from "@counted/claude-code";
-
-// Initialize once
-init({ projectKey: "ck_..." });
-
-// Track events
-trackSessionStart({ model: "claude-sonnet-4-6", mode: "agent" });
-trackToolUse({ tool: "Read", outcome: "success", durationMs: 120 });
-trackFileEdit({ filePath: "src/index.ts", action: "edit", language: "typescript" });
-trackCommand({ command: "npm test", exitCode: 0, durationMs: 5400 });
-trackSessionEnd({ durationMs: 180000, toolUseCount: 42, fileEditCount: 8 });
-```
+The hook is a **no-op until a key is configured** (a one-line notice prints on
+`SessionStart` if none is found), and it never blocks or breaks a session.
 
 ## What it tracks
 
-- **Tool use**: which tool was used, whether it succeeded, how long it took
-- **File edits**: which files were created/edited/deleted, what language
-- **Commands**: which commands were run, exit codes, duration
-- **Sessions**: start/end, model, mode, duration, counts
+| Claude Code hook | Counted event | Props |
+| --- | --- | --- |
+| `SessionStart` | `session_start` | `model`, `mode` |
+| `PostToolUse` (success) | `tool_use` | `tool`, `outcome: "success"` |
+| `PostToolUseFailure` | `tool_use` | `tool`, `outcome: "error"` |
+| `PostToolUse` (Write/Edit) | `file_edit` | `filePath` (repo-relative), `action`, `language` |
+| `PostToolUse` (Bash) | `command_run` | `command` (binary name only) |
+| `SessionEnd` | `session_end` | — |
 
 ## What it does NOT track
 
@@ -37,10 +46,6 @@ trackSessionEnd({ durationMs: 180000, toolUseCount: 42, fileEditCount: 8 });
 - Command arguments or output
 - Prompt text or AI responses
 - Any personally identifiable information
-
-## Session handling
-
-Sessions in agent contexts are different from browser sessions. The SDK is configured with `sessionTimeout: 0` — sessions never auto-reset. You control session boundaries explicitly via `trackSessionStart` / `trackSessionEnd`.
 
 ## Compare agent setups
 
@@ -55,7 +60,34 @@ agentic configuration ("setup A errors 2× more than setup B"):
 - `setupLabel` — optional human bucket; set `COUNTED_SETUP_LABEL="reviewer-v2"`.
 
 In Counted, add a breakdown insight grouped by `setupHash` (or `setupLabel`) over
-`tool_use` outcome, `command_run` exit codes, or `file_edit` volume.
+`tool_use` outcome, `command_run` volume, or `file_edit` volume.
+
+## Advanced — build your own hook
+
+Prefer to wire the events yourself (a custom hook script, or a different agent
+harness)? The package exports a small manual API over `@counted/sdk`:
+
+```bash
+npm install @counted/claude-code @counted/sdk
+```
+
+```typescript
+import { init, trackToolUse, trackFileEdit, trackCommand, trackSessionStart, trackSessionEnd } from "@counted/claude-code";
+
+// Initialize once
+init({ projectKey: "ck_..." });
+
+// Track events
+trackSessionStart({ model: "claude-sonnet-4-6", mode: "agent" });
+trackToolUse({ tool: "Read", outcome: "success" });
+trackFileEdit({ filePath: "src/index.ts", action: "edit", language: "typescript" });
+trackCommand({ command: "npm", exitCode: 0 });
+trackSessionEnd({});
+```
+
+Sessions in agent contexts differ from browser sessions: the SDK is configured
+with `sessionTimeout: 0` — sessions never auto-reset. You control session
+boundaries explicitly via `trackSessionStart` / `trackSessionEnd`.
 
 ## License
 

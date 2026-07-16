@@ -186,6 +186,11 @@ export const events = pgTable(
     locale: text("locale"),
     appVersion: text("app_version"),
     deviceModel: text("device_model"),
+    // ISO 3166-1 alpha-2 country code derived from Cloudflare's CF-IPCountry
+    // request header at ingest, then the request IP is discarded. Country-only,
+    // never an IP — same privacy posture as the rest of the pipeline. Null when
+    // absent (e.g. self-host without Cloudflare in front).
+    countryCode: text("country_code"),
     isDebug: boolean("is_debug").default(false),
     sdkVersion: text("sdk_version"),
     props: jsonb("props").notNull().default({}),

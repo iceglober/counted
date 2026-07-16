@@ -4,6 +4,8 @@ import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardTabs, type DashboardTabsRef } from "./dashboard-tabs";
 import { DashboardView } from "./dashboard-view";
+import { api } from "@/lib/client-api";
+import { toast } from "@/components/ui/sonner";
 import type { Insight } from "@/lib/types";
 
 type DashboardInfo = { id: string; name: string; isDefault?: boolean };
@@ -18,24 +20,39 @@ type Props = {
   projectKey?: string;
   shareToken?: string | null;
   compact?: boolean;
+  initialRangeCode?: string;
 };
 
-export function DashboardPage({ dashboards, activeDashboardId, activeDashboardName, isDefault: initialIsDefault, initialInsights, projectId, projectKey, shareToken, compact }: Props) {
+export function DashboardPage({ dashboards, activeDashboardId, activeDashboardName, isDefault: initialIsDefault, initialInsights, projectId, projectKey, shareToken, compact, initialRangeCode }: Props) {
   const tabsRef = useRef<DashboardTabsRef>(null);
   const router = useRouter();
   const [currentIsDefault, setCurrentIsDefault] = useState(initialIsDefault ?? false);
 
   useEffect(() => setCurrentIsDefault(initialIsDefault ?? false), [initialIsDefault]);
 
+  // Stripe checkout redirects back here with ?upgraded=true — confirm it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("upgraded") === "true") {
+      toast.success("You're on Pro — thanks for upgrading!");
+      url.searchParams.delete("upgraded");
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, []);
+
   async function setAsDefault() {
     if (!activeDashboardId) return;
-    await fetch(`/api/v0/dashboards/${activeDashboardId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isDefault: true }),
-    });
+    // Optimistic: flip locally, revert if the request fails.
     setCurrentIsDefault(true);
     tabsRef.current?.setDefault(activeDashboardId);
+    try {
+      await api(`/api/v0/dashboards/${activeDashboardId}`, { method: "PUT", body: { isDefault: true } });
+      toast.success("Set as default dashboard");
+    } catch {
+      setCurrentIsDefault(false);
+      router.refresh();
+    }
   }
 
   return (
@@ -55,6 +72,7 @@ export function DashboardPage({ dashboards, activeDashboardId, activeDashboardNa
         dashboardId={activeDashboardId}
         dashboardName={activeDashboardName}
         isDefault={currentIsDefault}
+        initialRangeCode={initialRangeCode}
         onDashboardRename={(name) => {
           if (activeDashboardId) tabsRef.current?.updateName(activeDashboardId, name);
         }}

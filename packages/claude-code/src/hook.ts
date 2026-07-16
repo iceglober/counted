@@ -4,9 +4,13 @@
 // hook event (SessionStart / PostToolUse / SessionEnd), passing the event JSON
 // on stdin; see hooks/hooks.json.
 //
-// Rules: no-op unless COUNTED_AGENT_KEY is set; never block or break a session
+// Rules: no-op unless a key is configured; never block or break a session
 // (errors swallowed, always exit 0, hard self-timeout); privacy-safe — tool
 // name + outcome only, file paths repo-relative, commands reduced to the binary.
+//
+// Key source: COUNTED_AGENT_KEY, or CLAUDE_PLUGIN_OPTION_API_KEY — Claude Code
+// exports a plugin's userConfig values to the hook process as
+// CLAUDE_PLUGIN_OPTION_<KEY> (the hooks.json "env" mapping is unsupported).
 import {
   init,
   trackSessionStart,
@@ -18,8 +22,7 @@ import {
 } from "./index";
 import { computeAndCacheSetup, loadSetup, setupContext } from "./setup";
 
-const key = process.env.COUNTED_AGENT_KEY;
-if (!key) process.exit(0); // not configured -> do nothing
+const key = process.env.COUNTED_AGENT_KEY || process.env.CLAUDE_PLUGIN_OPTION_API_KEY;
 
 const killer = setTimeout(() => process.exit(0), 4000);
 if (typeof killer.unref === "function") killer.unref();
@@ -58,7 +61,21 @@ async function main() {
     process.exit(0);
   }
 
-  const host = process.env.COUNTED_AGENT_HOST || "https://app.counted.dev";
+  if (!key) {
+    // Not configured -> do nothing. Surface it once, on SessionStart only, so the
+    // silent no-op is diagnosable without spamming every event.
+    if (input.hook_event_name === "SessionStart") {
+      process.stderr.write(
+        "counted: no project key found (set the plugin's api_key, or COUNTED_AGENT_KEY) — analytics disabled\n",
+      );
+    }
+    return;
+  }
+
+  const host =
+    process.env.COUNTED_AGENT_HOST ||
+    process.env.CLAUDE_PLUGIN_OPTION_HOST ||
+    "https://app.counted.dev";
   // The Claude session id becomes the Counted session id (sessionTimeout: 0),
   // so every event from one Claude session groups together.
   init({ projectKey: key!, host, sessionId: input.session_id });
@@ -77,10 +94,15 @@ async function main() {
     case "SessionStart":
       trackSessionStart({ model: input.model, mode: input.source });
       break;
-    case "PostToolUse": {
+    // PostToolUse fires only on tool success; PostToolUseFailure only on
+    // failure. Splitting the outcome across the two events is what makes the
+    // dashboard's tool-outcome breakdown meaningful (a single PostToolUse read
+    // reported success forever).
+    case "PostToolUse":
+    case "PostToolUseFailure": {
       const tool: string = input.tool_name || "unknown";
-      const ok = input.tool_response?.did_succeed;
-      trackToolUse({ tool, outcome: ok === false ? "error" : "success" });
+      const failed = input.hook_event_name === "PostToolUseFailure";
+      trackToolUse({ tool, outcome: failed ? "error" : "success" });
 
       const ti = input.tool_input || {};
       if ((tool === "Write" || tool === "Edit" || tool === "MultiEdit") && ti.file_path) {
@@ -90,7 +112,9 @@ async function main() {
           language: langOf(ti.file_path),
         });
       } else if (tool === "Bash" && ti.command) {
-        trackCommand({ command: cmdName(ti.command), exitCode: input.tool_response?.exit_code });
+        // On failure mark a nonzero exit; success leaves it unset (Claude Code
+        // does not surface a real exit code to the hook).
+        trackCommand({ command: cmdName(ti.command), exitCode: failed ? 1 : undefined });
       }
       break;
     }

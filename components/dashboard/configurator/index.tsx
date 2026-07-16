@@ -12,6 +12,7 @@ import { PropertyFilters } from "./property-filters";
 import { TimeBucketPicker } from "./time-bucket-picker";
 import { X, Pencil } from "lucide-react";
 import { LivePreview } from "./live-preview";
+import { toast } from "@/components/ui/sonner";
 
 const SYSTEM_GROUP_BY = [
   { value: "event_name", label: "Event name" },
@@ -174,7 +175,18 @@ function rowLabel(measureType: string, measureProperty: string, eventFilter: str
     : "Users";
 }
 
+const RETENTION_LABEL: Record<string, string> = { day: "Daily", week: "Weekly", month: "Monthly" };
+
 function autoTitle(state: ConfigState): string {
+  if (state.type === "funnel") {
+    const steps = state.funnelSteps.filter(Boolean);
+    return steps.length ? `Funnel: ${steps.join(" → ")}` : "Funnel";
+  }
+
+  if (state.type === "retention") {
+    return `${RETENTION_LABEL[state.retentionPeriod] ?? "Weekly"} session retention`;
+  }
+
   const measureLabel = CUSTOM_AGGS.has(state.measureType)
     ? `${state.measureType} of ${state.measureProperty || "..."}`
     : state.measureType === "count" ? "Events"
@@ -211,6 +223,63 @@ type ProjectSchema = {
   numericPropKeys: string[];
   systemFields: { osNames: string[]; locales: string[]; appVersions: string[] };
 };
+
+// ─── Funnel step combobox ────────────────────────────────────────────────────
+
+// Unlike a plain select, this lets the user type an event name that hasn't been
+// seen in the data yet (e.g. a step they're about to instrument), suggesting
+// known events as they type.
+function FunnelStepInput({
+  knownEvents,
+  existing,
+  onAdd,
+}: {
+  knownEvents: { name: string; count: number }[];
+  existing: string[];
+  onAdd: (name: string) => void;
+}) {
+  const [text, setText] = React.useState("");
+  const suggestions = knownEvents.filter(
+    (e) => !existing.includes(e.name) && e.name.toLowerCase().includes(text.toLowerCase()),
+  );
+  function add(name: string) {
+    const n = name.trim();
+    if (!n || existing.includes(n)) return;
+    onAdd(n);
+    setText("");
+  }
+  return (
+    <div>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            add(text);
+          }
+        }}
+        placeholder="Add step — type an event name…"
+        className="w-full px-2.5 py-1.5 text-xs bg-surface-2 border border-border rounded-md text-text-primary focus:outline-none focus:border-accent/60"
+      />
+      {text && suggestions.length > 0 && (
+        <div className="mt-1 max-h-32 overflow-y-auto border border-border rounded-md bg-surface-2">
+          {suggestions.map((e) => (
+            <button
+              key={e.name}
+              type="button"
+              onClick={() => add(e.name)}
+              className="w-full text-left px-2.5 py-1 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-3 flex justify-between"
+            >
+              <span>{e.name}</span>
+              <span className="text-text-tertiary">{e.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -270,10 +339,39 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
 
   const abortRef = useRef<AbortController | null>(null);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const pendingRef = useRef(false);
+  const flushedRef = useRef(false);
+  const flushRef = useRef<() => void>(() => {});
+  const dismissRef = useRef<() => void>(() => {});
 
   const query = buildQueryFromState(state);
   const isIncomplete = query === null;
   const displayTitle = state.title || autoTitle(state);
+
+  // Flush any pending debounced edit immediately (used when the editor closes so
+  // an edit made within the 800ms window isn't lost).
+  flushRef.current = () => {
+    if (flushedRef.current) return;
+    if (pendingRef.current && !isIncomplete && query) {
+      clearTimeout(persistTimerRef.current);
+      pendingRef.current = false;
+      flushedRef.current = true;
+      onConfigChange({
+        title: displayTitle,
+        type: state.type,
+        span: state.type === "metric" ? 1 : 2,
+        query,
+        projectId: state.projectId,
+      });
+    }
+  };
+
+  function handleDismiss() {
+    flushRef.current();
+    if (isIncomplete) toast("Insight discarded — the configuration was incomplete");
+    onDismiss();
+  }
+  dismissRef.current = handleDismiss;
 
   // Fetch schema when project changes
   useEffect(() => {
@@ -345,7 +443,9 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
     if (isIncomplete) return;
 
     clearTimeout(persistTimerRef.current);
+    pendingRef.current = true;
     persistTimerRef.current = setTimeout(() => {
+      pendingRef.current = false;
       onConfigChange({
         title: displayTitle,
         type: state.type,
@@ -358,14 +458,17 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
     return () => clearTimeout(persistTimerRef.current);
   }, [state, displayTitle, isIncomplete]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Escape key to dismiss
+  // Flush a pending edit if the editor unmounts (covers closing via the backdrop).
+  useEffect(() => () => flushRef.current(), []);
+
+  // Escape key to dismiss (flushing any pending edit first)
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onDismiss();
+      if (e.key === "Escape") dismissRef.current();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onDismiss]);
+  }, []);
 
   const set = useCallback((field: keyof ConfigState, value: unknown) => {
     dispatch({ type: "SET", field, value });
@@ -421,8 +524,8 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
           </ConfigSection>
         )}
 
-        {/* Event filter (not for retention) */}
-        {schema && schema.eventNames.length > 0 && state.type !== "retention" && (
+        {/* Event filter (not for funnel/retention — those pick their own steps) */}
+        {schema && schema.eventNames.length > 0 && state.type !== "retention" && state.type !== "funnel" && (
           <ConfigSection label="Event">
             <EventFilter
               value={state.eventFilter}
@@ -549,25 +652,28 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
         {state.type === "funnel" && schema && (
           <ConfigSection label="Steps (min 2)">
             <div className="space-y-1.5">
-              {state.funnelSteps.map((step, i) => (
-                <div key={i} className="flex items-center gap-1.5">
-                  <span className="text-xs text-text-tertiary w-4 tabular-nums">{i + 1}</span>
-                  <span className="flex-1 text-xs text-text-primary bg-surface-2 px-2.5 py-1.5 rounded-md border border-border">{step}</span>
-                  <button
-                    onClick={() => dispatch({ type: "REMOVE_FUNNEL_STEP", index: i })}
-                    className="p-1 text-text-tertiary hover:text-error transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              <Dropdown
-                value=""
-                options={schema.eventNames
-                  .filter((e) => !state.funnelSteps.includes(e.name))
-                  .map((e) => ({ value: e.name, label: e.name, detail: String(e.count) }))}
-                onChange={(v) => dispatch({ type: "ADD_FUNNEL_STEP", step: v })}
-                placeholder="Add step..."
+              {state.funnelSteps.map((step, i) => {
+                const seen = schema.eventNames.some((e) => e.name === step);
+                return (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <span className="text-xs text-text-tertiary w-4 tabular-nums">{i + 1}</span>
+                    <span className="flex-1 text-xs text-text-primary bg-surface-2 px-2.5 py-1.5 rounded-md border border-border flex items-center gap-1.5">
+                      <span>{step}</span>
+                      {!seen && <span className="text-[10px] text-text-tertiary">not seen yet</span>}
+                    </span>
+                    <button
+                      onClick={() => dispatch({ type: "REMOVE_FUNNEL_STEP", index: i })}
+                      className="p-1 text-text-tertiary hover:text-error transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
+              <FunnelStepInput
+                knownEvents={schema.eventNames}
+                existing={state.funnelSteps}
+                onAdd={(name) => dispatch({ type: "ADD_FUNNEL_STEP", step: name })}
               />
             </div>
           </ConfigSection>
@@ -603,6 +709,11 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
                 className="w-20 px-2.5 py-1.5 text-xs bg-surface-2 border border-border rounded-md text-text-primary focus:outline-none focus:border-accent/60"
               />
             </ConfigSection>
+            <p className="text-[11px] text-text-tertiary leading-relaxed">
+              Session retention is meaningful only with stable session IDs (agents and
+              servers that reuse one). Web session IDs are ephemeral and never recur, so
+              week-over-week retention is structurally near zero for web data.
+            </p>
           </>
         )}
 
@@ -629,6 +740,7 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
           loading={previewLoading}
           error={previewError}
           incomplete={isIncomplete}
+          previewUnavailable={state.type === "retention"}
           meta={previewMeta}
         />
       </div>
@@ -636,7 +748,7 @@ export function InsightConfigurator({ initialInsight, projects, projectId: dashb
       {/* Done */}
       <div className="border-t border-border px-5 py-2 flex justify-end">
         <button
-          onClick={onDismiss}
+          onClick={handleDismiss}
           className="px-3 py-1 text-xs text-accent hover:text-accent-hover transition-colors"
         >
           Done

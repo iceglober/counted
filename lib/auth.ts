@@ -27,9 +27,12 @@ export const auth = betterAuth({
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
-        // Dev shortcut: no email round-trip locally — the link prints to the
-        // server console; open it to sign in as any address. Never in prod.
-        if (process.env.NODE_ENV !== "production") {
+        // No email round-trip when running locally OR when no Resend key is
+        // configured (e.g. a keyless self-host): the link prints to the server
+        // console — open it to sign in. Cloud sets RESEND_API_KEY, so it always
+        // emails. Without this, keyless prod builds send "Bearer undefined" to
+        // Resend and 401, while the UI falsely reports "Check your email".
+        if (process.env.NODE_ENV !== "production" || !process.env.RESEND_API_KEY) {
           console.log(`\n[auth] Magic link for ${email}:\n${url}\n`);
           return;
         }
@@ -47,7 +50,11 @@ export const auth = betterAuth({
           }),
         });
         if (!res.ok) {
+          // Throw so better-auth surfaces the failure to the caller — the
+          // /login and claim pages then show a real error instead of a false
+          // "Check your email" success.
           console.error(`[auth] Failed to send magic link (${res.status})`);
+          throw new Error(`Failed to send magic link (${res.status})`);
         }
       },
     }),

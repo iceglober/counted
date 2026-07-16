@@ -7,6 +7,7 @@ type Props = {
   projectKey: string;
   projectId: string;
   host: string;
+  initialEventCount?: number;
   onInsightCreated: () => void;
 };
 
@@ -16,12 +17,14 @@ const STEPS = [
   { id: "insight", label: "Create an insight" },
 ];
 
-export function Onboarding({ projectKey, projectId, host, onInsightCreated }: Props) {
+export function Onboarding({ projectKey, projectId, host, initialEventCount = 0, onInsightCreated }: Props) {
   const [copied, setCopied] = useState(false);
   const [testSent, setTestSent] = useState(false);
   const [testSending, setTestSending] = useState(false);
-  const [eventCount, setEventCount] = useState(0);
-  const [step, setStep] = useState(0);
+  const [testError, setTestError] = useState<string | null>(null);
+  const [eventCount, setEventCount] = useState(initialEventCount);
+  // If events are already flowing, skip the install step.
+  const [step, setStep] = useState(initialEventCount > 0 ? 1 : 0);
 
   // Poll for events
   useEffect(() => {
@@ -60,8 +63,9 @@ export function Onboarding({ projectKey, projectId, host, onInsightCreated }: Pr
 
   async function sendTestEvent() {
     setTestSending(true);
+    setTestError(null);
     try {
-      await fetch(`${host}/api/v0/event`, {
+      const res = await fetch(`${host}/api/v0/event`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -75,10 +79,20 @@ export function Onboarding({ projectKey, projectId, host, onInsightCreated }: Pr
           props: { source: "onboarding" },
         }),
       });
+      if (!res.ok) {
+        let message = `HTTP ${res.status}`;
+        try {
+          const data = await res.json();
+          if (data?.error) message = data.error;
+        } catch {}
+        setTestError(`Couldn't send test event: ${message}`);
+        return;
+      }
+      // Don't fake the count — let the 3s poll confirm the event actually landed.
       setTestSent(true);
-      setStep(1);
-      setEventCount((c) => c + 1);
-    } catch {} finally {
+    } catch (err) {
+      setTestError(`Couldn't send test event: ${err instanceof Error ? err.message : "network error"}`);
+    } finally {
       setTestSending(false);
     }
   }
@@ -163,6 +177,12 @@ analytics.track("page_view", { path: "/" });`}
               {testSending ? "Sending..." : testSent ? "Sent!" : "Send a test event"}
             </button>
           </div>
+
+          {testError && (
+            <div className="px-3 py-2 bg-error/10 border border-error/20 rounded-md text-sm text-error">
+              {testError}
+            </div>
+          )}
 
           {eventCount > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 bg-accent/10 border border-accent/20 rounded-md text-sm text-accent">

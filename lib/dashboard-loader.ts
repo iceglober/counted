@@ -3,7 +3,7 @@ import { dashboards } from "./db/schema";
 import { eq, and } from "drizzle-orm";
 import { buildQuery } from "./query-engine";
 import type {
-  Insight, MetricData, InsightLayout, TimeRange,
+  Insight, InsightType, MetricData, InsightLayout, TimeRange,
 } from "./types";
 import { mapQueryResultToInsightData } from "./query-transform";
 import { executeFunnelQuery } from "./funnel-query";
@@ -38,7 +38,18 @@ function unitToMs(unit: string): number {
   }
 }
 
-function extractInsightLayouts(layout: Record<string, unknown>): InsightLayout[] {
+/** Per-type empty payload used when an insight's query fails to resolve. */
+function emptyData(type: InsightType): Insight["data"] {
+  switch (type) {
+    case "funnel": return { steps: [] };
+    case "retention": return { cohorts: [], periods: [] };
+    case "timeseries": return { labels: [], values: [] };
+    case "metric": return { value: "0", trend: 0, sparkline: [] };
+    default: return { items: [] };
+  }
+}
+
+export function extractInsightLayouts(layout: Record<string, unknown>): InsightLayout[] {
   // Flat layout: { insights: [...] }
   if (Array.isArray(layout.insights)) {
     return layout.insights;
@@ -78,97 +89,45 @@ export async function loadDashboardData(
     return { insights: [], dashboardId: dashboard.id };
   }
 
+  // Each executor returns the final, typed insight-data payload directly — no
+  // sentinel wrapping. A rejected settle falls back to emptyData(type) below.
   const results = await Promise.allSettled(
-    insightLayouts.map(async (insight) => {
+    insightLayouts.map(async (insight): Promise<Insight["data"]> => {
+      const insightProjectId = insight.projectId ?? projectId;
       if (insight.type === "funnel" && insight.query.funnelSteps?.length) {
-        const funnelData = await executeFunnelQuery(
-          insight.projectId ?? projectId,
-          insight.query.funnelSteps,
-          timeRange,
-        );
-        return { _funnel: funnelData };
+        return executeFunnelQuery(insightProjectId, insight.query.funnelSteps, timeRange);
       }
       if (insight.type === "retention") {
-        const retentionData = await executeRetentionQuery(
-          insight.projectId ?? projectId,
+        return executeRetentionQuery(
+          insightProjectId,
           timeRange,
           insight.query.retentionPeriod ?? "week",
           insight.query.retentionPeriods ?? 8,
         );
-        return { _retention: retentionData };
       }
       if (insight.type === "timeseries") {
-        const tsData = await executeTimeSeriesQuery(
-          insight.projectId ?? projectId,
-          insight.query,
-          timeRange,
-        );
-        return { _timeseries: tsData };
+        return executeTimeSeriesQuery(insightProjectId, insight.query, timeRange);
       }
-      const built = buildQuery(insight.projectId ?? projectId, insight.query, timeRange);
+      const built = buildQuery(insightProjectId, insight.query, timeRange);
       const result = await pool.query(built.sql, built.params);
-      return result.rows;
+      return mapQueryResultToInsightData(insight.type, result.rows);
     }),
   );
 
   const insights: Insight[] = insightLayouts.map((layout, i) => {
     const result = results[i];
-    const rawResult = result.status === "fulfilled" ? result.value : [];
-
-    if (layout.type === "funnel") {
-      const funnelData = ((rawResult as Record<string, unknown>)?._funnel ?? { steps: [] }) as import("./types").FunnelData;
-      return {
-        id: layout.id,
-        type: layout.type as "funnel",
-        title: layout.title,
-        span: layout.span,
-      height: layout.height,
-        data: funnelData,
-        query: layout.query,
-        projectId: layout.projectId,
-      } satisfies Insight;
-    }
-
-    if (layout.type === "retention") {
-      const retentionData = ((rawResult as Record<string, unknown>)?._retention ?? { cohorts: [], periods: [] }) as import("./types").RetentionData;
-      return {
-        id: layout.id,
-        type: layout.type as "retention",
-        title: layout.title,
-        span: layout.span,
-      height: layout.height,
-        data: retentionData,
-        query: layout.query,
-        projectId: layout.projectId,
-      } satisfies Insight;
-    }
-
-    if (layout.type === "timeseries") {
-      const tsData = ((rawResult as Record<string, unknown>)?._timeseries ?? { labels: [], values: [] }) as import("./types").TimeSeriesData;
-      return {
-        id: layout.id,
-        type: layout.type as "timeseries",
-        title: layout.title,
-        span: layout.span,
-        height: layout.height,
-        summary: layout.summary,
-        data: tsData,
-        query: layout.query,
-        projectId: layout.projectId,
-      } satisfies Insight;
-    }
-
-    const rows = rawResult as Record<string, unknown>[];
+    const data = result.status === "fulfilled" ? result.value : emptyData(layout.type);
     return {
       id: layout.id,
       type: layout.type,
       title: layout.title,
       span: layout.span,
       height: layout.height,
-      data: mapQueryResultToInsightData(layout.type, rows),
+      summary: layout.summary,
+      data,
       query: layout.query,
       projectId: layout.projectId,
-    };
+    } satisfies Insight;
   });
 
   // Enrich metric insights with sparkline and trend data

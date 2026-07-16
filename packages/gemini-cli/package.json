@@ -1,6 +1,6 @@
 {
   "name": "@counted/gemini-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Counted analytics hooks for Gemini CLI — track AI agent actions privately",
   "type": "module",
   "main": "dist/index.cjs",
@@ -18,6 +18,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
   "sideEffects": false,
@@ -28,7 +29,7 @@
     "directory": "packages/gemini-cli"
   },
   "peerDependencies": {
-    "@counted/sdk": "workspace:*"
+    "@counted/sdk": "^0.1.0"
   },
   "devDependencies": {
     "@counted/sdk": "workspace:*",

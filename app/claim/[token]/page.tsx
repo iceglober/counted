@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, pool } from "@/lib/db";
 import { projects, projectMembers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -13,6 +13,21 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
 
   const project = await db.query.projects.findFirst({ where: eq(projects.claimToken, token) });
   const session = await auth.api.getSession({ headers: await headers() });
+
+  // Only offer social sign-in when the provider is actually configured (same
+  // gating as /login) — otherwise the button 500s with "Provider not found".
+  const socialEnabled = !!process.env.GITHUB_CLIENT_ID || !!process.env.GOOGLE_CLIENT_ID;
+
+  // An unclaimed project carries a claimToken because it was agent-provisioned.
+  // Only claim the "already flowing" phrasing when events actually exist.
+  let eventCount = 0;
+  if (project) {
+    const { rows } = await pool.query<{ c: number }>(
+      "SELECT count(*)::int AS c FROM events WHERE project_id = $1",
+      [project.id],
+    );
+    eventCount = rows[0]?.c ?? 0;
+  }
 
   // Logged-in user + a valid unclaimed project → adopt it, then go to the dashboard.
   let claimed = false;
@@ -44,12 +59,13 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
         <div className="w-full max-w-sm">
           {valid ? (
             <>
-              <h1 className="text-xl font-semibold">Claim your live dashboard</h1>
+              <h1 className="text-xl font-semibold">Claim your project</h1>
               <p className="text-sm text-text-secondary mt-1 mb-5">
-                Your agent set this up and events are already flowing. Sign in or
-                create an account — the project attaches to whichever you use.
+                {eventCount > 0
+                  ? `Your agent set this up and ${eventCount.toLocaleString()} event${eventCount !== 1 ? "s are" : " is"} already flowing. Sign in and the project attaches to your account.`
+                  : "This project key is live. Sign in and the project attaches to your account."}
               </p>
-              <ClaimLogin token={token} />
+              <ClaimLogin token={token} socialEnabled={socialEnabled} />
             </>
           ) : (
             <>

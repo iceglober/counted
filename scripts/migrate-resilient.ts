@@ -28,11 +28,29 @@ if (files.length === 0) {
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 15_000 });
 
+// Journal table: record every file that applied with zero failures so later
+// boots skip it. This stops the runner from replaying non-idempotent baselines
+// (0001/0002) on every restart — which printed scary `[migrate] ✗` lines and
+// churned the dashboards index (dropping/re-creating with a window where a
+// stale unique constraint could be re-enforced). Per-statement resilience is
+// still used the first time a file is applied.
+await pool.query(
+  "CREATE TABLE IF NOT EXISTS _counted_migrations (file text primary key, applied_at timestamptz default now())",
+);
+const applied = new Set<string>(
+  (await pool.query("SELECT file FROM _counted_migrations")).rows.map((r: { file: string }) => r.file),
+);
+
 let ok = 0;
 let total = 0;
+let skipped = 0;
 const failures: { file: string; i: number; head: string; error: string }[] = [];
 
 for (const file of files) {
+  if (applied.has(file)) {
+    skipped++;
+    continue;
+  }
   const sql = readFileSync(`${dir}/${file}`, "utf8");
   const stmts = sql
     .split("--> statement-breakpoint")
@@ -40,6 +58,7 @@ for (const file of files) {
     .filter(Boolean);
 
   console.log(`[migrate] applying ${stmts.length} statements from ${file}`);
+  let fileFailed = false;
   for (let i = 0; i < stmts.length; i++) {
     const s = stmts[i];
     total++;
@@ -48,12 +67,21 @@ for (const file of files) {
       ok++;
     } catch (err) {
       const e = err as { code?: string; message?: string; detail?: string };
+      fileFailed = true;
       failures.push({ file, i, head: s.split("\n")[0].slice(0, 120), error: `${e.code ?? ""} ${e.message ?? err}`.trim() });
     }
   }
+  // Only mark the file done when every statement applied — a partially-applied
+  // file replays next boot (resilient per-statement) until it fully succeeds.
+  if (!fileFailed) {
+    await pool.query(
+      "INSERT INTO _counted_migrations (file) VALUES ($1) ON CONFLICT (file) DO NOTHING",
+      [file],
+    );
+  }
 }
 
-console.log(`[migrate] done: ${ok}/${total} ok, ${failures.length} failed`);
+console.log(`[migrate] done: ${ok}/${total} ok, ${failures.length} failed, ${skipped} already applied`);
 for (const f of failures) {
   console.log(`[migrate] ✗ ${f.file} stmt ${f.i}: ${f.head}`);
   console.log(`[migrate]   ${f.error}`);

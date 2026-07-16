@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { Insight, InsightQuery, MetricData, TimeSeriesData, BreakdownItem, FunnelData, RetentionData, TimeRange, SummaryStat } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import type { Insight, InsightQuery, MetricData, TimeSeriesData, BreakdownItem, FunnelData, RetentionData, SummaryStat } from "@/lib/types";
+import { api } from "@/lib/client-api";
+import { toast } from "@/components/ui/sonner";
+import { TIME_RANGES, rangeByCode, rangeByLabel } from "./time-ranges";
+import { ConfirmDialog } from "./confirm-dialog";
 import { MetricCard } from "./metric-card";
 import { AreaChart } from "./area-chart";
 import { Breakdown } from "./breakdown";
@@ -79,14 +84,7 @@ const SIZE_OPTIONS: { span: number; label: string }[] = [
   { span: 12, label: "Full" },
 ];
 
-const timeRanges = ["Last 24 hours", "Last 7 days", "Last 30 days", "Last 90 days"];
-
-const timeRangeMap: Record<string, TimeRange> = {
-  "Last 24 hours": { type: "relative", value: 24, unit: "hours" },
-  "Last 7 days": { type: "relative", value: 7, unit: "days" },
-  "Last 30 days": { type: "relative", value: 30, unit: "days" },
-  "Last 90 days": { type: "relative", value: 90, unit: "days" },
-};
+const timeRanges = TIME_RANGES.map((r) => r.label);
 
 // Even-width rows. Cards flow into rows of up to N (N by viewport); within a
 // row, pinned cards keep their width and the remaining width splits evenly among
@@ -153,56 +151,87 @@ type Props = {
   isDefault?: boolean;
   shareToken?: string | null;
   compact?: boolean;
+  initialRangeCode?: string;
   onDashboardRename?: (name: string) => void;
   onDashboardDelete?: () => void;
   onSetDefault?: () => void;
 };
 
-export function DashboardView({ initialInsights, projectId, projectKey, dashboardId, dashboardName = "Dashboard", isDefault, shareToken: initialShareToken, compact: initialCompact, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
+export function DashboardView({ initialInsights, projectId, projectKey, dashboardId, dashboardName = "Dashboard", isDefault, shareToken: initialShareToken, compact: initialCompact, initialRangeCode, onDashboardRename, onDashboardDelete, onSetDefault }: Props) {
+  const router = useRouter();
   const [insights, setInsights] = useState(initialInsights);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState(dashboardName);
-  const [timeRange, setTimeRange] = useState("Last 30 days");
+  const [timeRange, setTimeRange] = useState(() => rangeByCode(initialRangeCode).label);
   const [timeOpen, setTimeOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [titleEditing, setTitleEditing] = useState(false);
   const [shareToken, setShareToken] = useState(initialShareToken);
-  const [shareCopied, setShareCopied] = useState(false);
   const [compact, setCompact] = useState(initialCompact ?? false);
   const [sizeMenuFor, setSizeMenuFor] = useState<string | null>(null);
+  const [confirmDeleteDashboard, setConfirmDeleteDashboard] = useState(false);
+  // Whether the project has any recent events — decides the empty-state copy
+  // (SDK-install onboarding vs. a slim "add an insight" prompt).
+  const [eventCount, setEventCount] = useState<number | null>(null);
   const projects = useProjects();
   const { width, containerRef, mounted } = useContainerWidth();
   const n = maxPerRow(width);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [removed, setRemoved] = useState<{ insight: Insight; index: number } | null>(null);
   const removedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Latest insights + the most recent persist promise, so dismissing the
+  // configurator can await an in-flight save before refreshing (no snap-back).
+  const insightsRef = useRef(insights);
+  const persistPromiseRef = useRef<Promise<unknown> | undefined>(undefined);
+  const createdIdRef = useRef<string | null>(null);
 
+  useEffect(() => { insightsRef.current = insights; }, [insights]);
   useEffect(() => setInsights(initialInsights), [initialInsights]);
   useEffect(() => setName(dashboardName), [dashboardName]);
   useEffect(() => setCompact(initialCompact ?? false), [initialCompact]);
+  useEffect(() => { if (initialRangeCode) setTimeRange(rangeByCode(initialRangeCode).label); }, [initialRangeCode]);
+
+  // One-shot event-count probe, only when the dashboard is empty.
+  useEffect(() => {
+    if (!projectId || insights.length > 0) return;
+    let alive = true;
+    fetch("/api/v0/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, query: { measure: "count" }, timeRange: { type: "relative", value: 24, unit: "hours" } }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d) setEventCount(Number(d.data?.[0]?.value ?? 0)); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [projectId, insights.length]);
 
   async function renameDashboard(newName: string) {
+    const prevName = name;
     setName(newName);
     onDashboardRename?.(newName);
     if (!dashboardId) return;
-    await fetch(`/api/v0/dashboards/${dashboardId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName }),
-    });
+    try {
+      await api(`/api/v0/dashboards/${dashboardId}`, { method: "PUT", body: { name: newName } });
+    } catch {
+      setName(prevName);
+      onDashboardRename?.(prevName);
+    }
   }
 
   async function deleteDashboard() {
     if (!dashboardId) return;
-    const res = await fetch(`/api/v0/dashboards/${dashboardId}`, { method: "DELETE" });
-    if (res.ok || res.status === 204) {
+    try {
+      await api(`/api/v0/dashboards/${dashboardId}`, { method: "DELETE" });
+      toast.success("Dashboard deleted");
       onDashboardDelete?.();
+    } catch {
+      /* api() already surfaced the error */
     }
   }
 
   const persistLayout = useCallback(async (updated: Insight[], compactFlag = compact) => {
-    if (!dashboardId) return;
     const layout = {
       compact: compactFlag,
       insights: updated.map((ins) => ({
@@ -216,12 +245,32 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
         projectId: ins.projectId ?? projectId,
       })),
     };
-    await fetch(`/api/v0/dashboards/${dashboardId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ layout }),
-    });
-  }, [dashboardId, projectId, compact]);
+    // No dashboard yet (direct-signup / empty context): create one so the
+    // user's first insight is never silently dropped, then keep persisting to it.
+    let targetId = dashboardId ?? createdIdRef.current;
+    try {
+      if (!targetId) {
+        const created = await api<{ id: string }>("/api/v0/dashboards", {
+          method: "POST",
+          body: { projectId, slug: `dash-${Date.now()}`, name: "Default", layout },
+        });
+        targetId = created?.id ?? null;
+        createdIdRef.current = targetId;
+        if (targetId && typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          url.searchParams.set("dashboard", targetId);
+          window.history.replaceState(null, "", url.toString());
+          router.refresh();
+        }
+        return;
+      }
+      await api(`/api/v0/dashboards/${targetId}`, { method: "PUT", body: { layout } });
+    } catch {
+      // Persist failed — api() toasted; pull server truth back so the UI
+      // doesn't keep showing an unsaved optimistic state.
+      router.refresh();
+    }
+  }, [dashboardId, projectId, compact, router]);
 
   function toggleCompact() {
     setCompact((prev) => {
@@ -232,35 +281,40 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
     setMenuOpen(false);
   }
 
-  const refreshInsights = useCallback(async () => {
-    const res = await fetch("/api/v0/dashboard-data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, dashboardId, timeRange: timeRangeMap[timeRange] }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setInsights(data.insights);
-    }
-  }, [projectId, dashboardId, timeRange]);
-
-  async function handleTimeRangeChange(tr: string) {
-    setTimeRange(tr);
-    setTimeOpen(false);
-    setLoading(true);
+  // Single dashboard-data fetch used by both the time-range picker and the
+  // post-edit refresh, so error handling and shaping live in one place.
+  const refreshInsights = useCallback(async (label: string = timeRange, opts: { withLoading?: boolean } = {}) => {
+    if (opts.withLoading) setLoading(true);
     try {
       const res = await fetch("/api/v0/dashboard-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, dashboardId, timeRange: timeRangeMap[tr] }),
+        body: JSON.stringify({ projectId, dashboardId, timeRange: rangeByLabel(label).range }),
       });
       if (res.ok) {
         const data = await res.json();
         setInsights(data.insights);
+      } else {
+        toast.error("Couldn't refresh insights");
       }
+    } catch {
+      toast.error("Couldn't refresh insights");
     } finally {
-      setLoading(false);
+      if (opts.withLoading) setLoading(false);
     }
+  }, [projectId, dashboardId, timeRange]);
+
+  function handleTimeRangeChange(tr: string) {
+    setTimeRange(tr);
+    setTimeOpen(false);
+    // Persist the selection in the URL (without a full server round-trip) so it
+    // survives tab switches, navigation, and reloads (the server reads ?range=).
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("range", rangeByLabel(tr).code);
+      window.history.replaceState(null, "", url.toString());
+    }
+    refreshInsights(tr, { withLoading: true });
   }
 
   // Removal is immediate but forgiving: the insight is kept around briefly so
@@ -308,36 +362,43 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
   }
 
   function handleConfigChange(insightId: string, config: Partial<Insight> & { query: InsightQuery }) {
-    setInsights((prev) => {
-      const updated = prev.map((ins) => {
-        if (ins.id !== insightId) return ins;
-        const typeChanged = config.type && config.type !== ins.type;
-        const defaultData = config.type === "metric"
-          ? { value: "0", trend: 0, sparkline: [] }
-          : config.type === "timeseries"
-            ? { labels: [], values: [] }
-            : config.type === "funnel"
-              ? { steps: [] }
-              : config.type === "retention"
-                ? { cohorts: [], periods: [] }
-                : { items: [] };
-        return {
-          ...ins,
-          ...config,
-          data: typeChanged ? defaultData : ins.data,
-          // Preserve the user's width/height — the configurator always reports a
-          // default span, which would otherwise reset a resized card.
-          span: config.type === "metric" ? 4 : ins.span,
-          height: ins.height,
-        };
-      });
-      persistLayout(updated);
-      return updated;
+    const updated = insightsRef.current.map((ins) => {
+      if (ins.id !== insightId) return ins;
+      const typeChanged = config.type && config.type !== ins.type;
+      const defaultData = config.type === "metric"
+        ? { value: "0", trend: 0, sparkline: [] }
+        : config.type === "timeseries"
+          ? { labels: [], values: [] }
+          : config.type === "funnel"
+            ? { steps: [] }
+            : config.type === "retention"
+              ? { cohorts: [], periods: [] }
+              : { items: [] };
+      return {
+        ...ins,
+        ...config,
+        data: typeChanged ? defaultData : ins.data,
+        // Preserve the user's width/height — the configurator always reports a
+        // default span, which would otherwise reset a resized card.
+        span: config.type === "metric" ? 4 : ins.span,
+        height: ins.height,
+      };
     });
+    insightsRef.current = updated;
+    setInsights(updated);
+    // Capture the persist so dismissing can await it before refreshing.
+    persistPromiseRef.current = persistLayout(updated);
   }
 
-  function dismissConfigurator(insightId: string) {
+  async function dismissConfigurator(_insightId: string) {
     setEditingId(null);
+    // Let any in-flight save (including the configurator's flush-on-close)
+    // settle before refreshing, so fresh data doesn't overwrite an unsaved edit.
+    try {
+      await persistPromiseRef.current;
+    } catch {
+      /* persistLayout handles its own error surfacing */
+    }
     refreshInsights();
   }
 
@@ -420,15 +481,28 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                   <div className="absolute left-0 top-full mt-1 bg-surface-2 border border-border rounded-md shadow-lg z-50 py-1 min-w-[160px]">
                     <button
                       onClick={async () => {
-                        if (shareToken) {
-                          await fetch(`/api/v0/dashboards/${dashboardId}/share`, { method: "DELETE" });
-                          setShareToken(null);
-                        } else {
-                          const res = await fetch(`/api/v0/dashboards/${dashboardId}/share`, { method: "POST" });
-                          if (res.ok) {
-                            const { shareToken: token } = await res.json();
+                        try {
+                          if (shareToken) {
+                            await api(`/api/v0/dashboards/${dashboardId}/share`, { method: "DELETE" });
+                            setShareToken(null);
+                            toast.success("Public sharing disabled");
+                          } else {
+                            const { shareToken: token } = await api<{ shareToken: string }>(
+                              `/api/v0/dashboards/${dashboardId}/share`,
+                              { method: "POST" },
+                            );
                             setShareToken(token);
+                            // Copy the link immediately and confirm — no menu-reopen hunt.
+                            const url = `${window.location.origin}/share/${token}`;
+                            try {
+                              await navigator.clipboard.writeText(url);
+                              toast.success("Share link copied", { description: url });
+                            } catch {
+                              toast.success("Dashboard is public", { description: url });
+                            }
                           }
+                        } catch {
+                          /* api() surfaced the error */
                         }
                         setMenuOpen(false);
                       }}
@@ -439,16 +513,20 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                     </button>
                     {shareToken && (
                       <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/share/${shareToken}`);
-                          setShareCopied(true);
-                          setTimeout(() => setShareCopied(false), 2000);
+                        onClick={async () => {
+                          const url = `${window.location.origin}/share/${shareToken}`;
+                          try {
+                            await navigator.clipboard.writeText(url);
+                            toast.success("Share link copied", { description: url });
+                          } catch {
+                            toast.error("Couldn't copy — link: " + url);
+                          }
                           setMenuOpen(false);
                         }}
                         className="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-3 transition-colors flex items-center gap-1.5"
                       >
                         <Link2 className="w-3 h-3" />
-                        {shareCopied ? "Copied!" : "Copy share link"}
+                        Copy share link
                       </button>
                     )}
                     <button
@@ -469,7 +547,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                           Set as default
                         </button>
                         <button
-                          onClick={() => { setMenuOpen(false); deleteDashboard(); }}
+                          onClick={() => { setMenuOpen(false); setConfirmDeleteDashboard(true); }}
                           className="w-full text-left px-3 py-1.5 text-xs text-error hover:bg-error/10 transition-colors flex items-center gap-1.5"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -628,7 +706,7 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
                 initialInsight={ins}
                 projects={projects}
                 projectId={projectId}
-                timeRange={timeRangeMap[timeRange]}
+                timeRange={rangeByLabel(timeRange).range}
                 onConfigChange={(config) => handleConfigChange(editingId, config)}
                 onDismiss={() => dismissConfigurator(editingId)}
               />
@@ -653,13 +731,42 @@ export function DashboardView({ initialInsights, projectId, projectKey, dashboar
       )}
 
       {insights.length === 0 && (
-        <Onboarding
-          projectKey={projectKey ?? ""}
-          projectId={projectId}
-          host={typeof window !== "undefined" ? window.location.origin : ""}
-          onInsightCreated={addInsight}
-        />
+        eventCount && eventCount > 0 ? (
+          // Events already flow — no need to walk the SDK-install steps again.
+          <div className="max-w-2xl mx-auto py-16 text-center">
+            <div className="inline-flex items-center gap-2 text-sm text-accent mb-3">
+              <Check className="w-4 h-4" />
+              {eventCount.toLocaleString()} event{eventCount !== 1 ? "s" : ""} received in the last 24h
+            </div>
+            <p className="text-sm text-text-secondary mb-5">This dashboard is empty. Add your first insight to start visualizing your data.</p>
+            <button
+              onClick={addInsight}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm text-surface-0 bg-accent rounded-md hover:bg-accent-hover transition-colors font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Add an insight
+            </button>
+          </div>
+        ) : (
+          <Onboarding
+            projectKey={projectKey ?? ""}
+            projectId={projectId}
+            host={typeof window !== "undefined" ? window.location.origin : ""}
+            initialEventCount={eventCount ?? 0}
+            onInsightCreated={addInsight}
+          />
+        )
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteDashboard}
+        onOpenChange={setConfirmDeleteDashboard}
+        title={`Delete "${name}"?`}
+        description="This permanently removes the dashboard and its layout. Your event data is not affected."
+        confirmLabel="Delete dashboard"
+        destructive
+        onConfirm={deleteDashboard}
+      />
     </div>
   );
 }

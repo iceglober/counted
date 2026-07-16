@@ -5,15 +5,16 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { dashboards, projectMembers, projects } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
-import type { TimeRange } from "@/lib/types";
+import { eq } from "drizzle-orm";
+import { createDefaultLayout } from "@/lib/default-dashboard";
+import { rangeByCode } from "@/components/dashboard/time-ranges";
 
 export default async function DashboardsRoute({
   searchParams,
 }: {
-  searchParams: Promise<{ dashboard?: string }>;
+  searchParams: Promise<{ dashboard?: string; range?: string }>;
 }) {
-  const { dashboard: dashboardParam } = await searchParams;
+  const { dashboard: dashboardParam, range: rangeParam } = await searchParams;
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
@@ -24,7 +25,7 @@ export default async function DashboardsRoute({
   const projectIds = memberships.map((m) => m.projectId);
 
   // Dashboards are workspace-level — owned by the user, not a project.
-  const allDashboards = await db.query.dashboards.findMany({
+  let allDashboards = await db.query.dashboards.findMany({
     where: eq(dashboards.userId, session.user.id),
   });
 
@@ -32,7 +33,25 @@ export default async function DashboardsRoute({
     redirect("/projects");
   }
 
-  const timeRange: TimeRange = { type: "relative", value: 30, unit: "days" };
+  // Projects but no dashboards (e.g. a claimed project the user never gave a
+  // dashboard): bootstrap a default one so nothing lands on dashboardId=null.
+  if (allDashboards.length === 0 && projectIds.length > 0) {
+    const [created] = await db
+      .insert(dashboards)
+      .values({
+        userId: session.user.id,
+        projectId: projectIds[0],
+        name: "Default",
+        slug: "default",
+        layout: createDefaultLayout(),
+        isDefault: true,
+      })
+      .returning();
+    allDashboards = [created];
+  }
+
+  const activeRange = rangeByCode(rangeParam);
+  const timeRange = activeRange.range;
 
   // Find the active dashboard: by param, or default, or first available
   let activeDashboard = dashboardParam
@@ -75,6 +94,7 @@ export default async function DashboardsRoute({
       projectKey={activeProject?.clientKey ?? activeProject?.apiKey}
       shareToken={activeDashboard?.shareToken}
       compact={(activeDashboard?.layout as { compact?: boolean } | null)?.compact ?? false}
+      initialRangeCode={activeRange.code}
     />
   );
 }

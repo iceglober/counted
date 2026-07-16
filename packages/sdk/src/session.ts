@@ -1,32 +1,40 @@
 const DEFAULT_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
-let sessionId: string | null = null;
-let lastActivity = 0;
-let timeoutMs = DEFAULT_SESSION_TIMEOUT_MS;
-
 function generateSessionId(): string {
   const timestamp = Math.floor(Date.now() / 1000);
   const random = Math.random().toString(36).substring(2, 10);
   return `${timestamp}.${random}`;
 }
 
-export function configureSession(opts: { sessionId?: string; sessionTimeout?: number }) {
-  if (opts.sessionId) {
-    sessionId = opts.sessionId;
-    lastActivity = Date.now();
-  }
-  if (opts.sessionTimeout !== undefined) {
-    timeoutMs = opts.sessionTimeout;
-  }
-}
+/**
+ * Per-instance session state. Each Analytics instance owns its own Session so
+ * two instances never interleave events under one sessionId or clobber each
+ * other's timeout (previously these were module globals).
+ */
+export class Session {
+  private sessionId: string | null = null;
+  private lastActivity = 0;
+  private timeoutMs = DEFAULT_SESSION_TIMEOUT_MS;
 
-export function getSessionId(): string {
-  const now = Date.now();
-
-  if (!sessionId || (timeoutMs > 0 && now - lastActivity > timeoutMs)) {
-    sessionId = generateSessionId();
+  constructor(opts: { sessionId?: string; sessionTimeout?: number } = {}) {
+    if (opts.sessionId) {
+      this.sessionId = opts.sessionId;
+      this.lastActivity = Date.now();
+    }
+    if (opts.sessionTimeout !== undefined) {
+      this.timeoutMs = opts.sessionTimeout;
+    }
   }
 
-  lastActivity = now;
-  return sessionId;
+  /** Returns the current session id, rolling it over after the idle timeout. */
+  getSessionId(): string {
+    const now = Date.now();
+
+    if (!this.sessionId || (this.timeoutMs > 0 && now - this.lastActivity > this.timeoutMs)) {
+      this.sessionId = generateSessionId();
+    }
+
+    this.lastActivity = now;
+    return this.sessionId;
+  }
 }

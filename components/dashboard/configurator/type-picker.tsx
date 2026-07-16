@@ -7,7 +7,8 @@ const TYPES: { value: InsightType; label: string }[] = [
   { value: "timeseries", label: "Time series" },
   { value: "breakdown", label: "Breakdown" },
   { value: "funnel", label: "Funnel" },
-  { value: "retention", label: "Retention" },
+  // "Session" retention — it tracks session IDs, not persistent users.
+  { value: "retention", label: "Session retention" },
 ];
 
 type Props = {

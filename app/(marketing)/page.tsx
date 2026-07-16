@@ -46,7 +46,7 @@ export default function Home() {
           <li>3 projects</li>
           <li>6-month retention</li>
           <li>Composable dashboards</li>
-          <li>Breakdowns, time series &amp; counts</li>
+          <li>Breakdowns, time series, counts &amp; funnels</li>
           <li>Community support</li>
         </ul>
         <p>

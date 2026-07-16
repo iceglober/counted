@@ -72,9 +72,18 @@ outcome, `command_run`, or `file_edit` to compare setups.
 
 ## Advanced
 
-The package also exports the low-level helpers (`init`, `track`, `trackToolUse`,
-…) if you want to emit events from your own OpenCode plugin instead of using
-`CountedPlugin` directly.
+The package root exports **only** `CountedPlugin` — OpenCode's loader calls every
+function a plugin module exports as a plugin, so the helper API is shipped from a
+separate subpath. If you want to emit events from your own OpenCode plugin instead
+of using `CountedPlugin` directly, import the low-level helpers from
+`@counted/opencode/api`:
+
+```ts
+import { init, track, trackToolUse } from "@counted/opencode/api";
+
+init({ projectKey: "ck_...", sessionId: mySessionId });
+trackToolUse({ tool: "search", outcome: "success" });
+```
 
 ## License
 

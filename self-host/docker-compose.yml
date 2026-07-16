@@ -10,13 +10,20 @@ services:
       DATABASE_URL: postgres://counted:${POSTGRES_PASSWORD:-counted}@db:5432/counted
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BASE_URL:-http://localhost:3000}
-      NEXT_PUBLIC_BETTER_AUTH_URL: ${BASE_URL:-http://localhost:3000}
       TRUSTED_ORIGINS: ${BASE_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM: ${RESEND_FROM:-}
+      CRON_SECRET: ${CRON_SECRET:-}
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      # bun is always present in the image; wget/curl are not guaranteed.
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     restart: unless-stopped
 
   db:
@@ -33,6 +40,26 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  # Alert evaluation scheduler. The evaluate endpoint is protected by CRON_SECRET
+  # and has no built-in scheduler, so without this alerts never fire on self-host.
+  # No-op unless CRON_SECRET is set (the endpoint 401s an empty Bearer, harmless).
+  cron:
+    image: curlimages/curl:8.11.1
+    depends_on:
+      app:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET:-}" \
+            http://app:3000/api/v0/alerts/evaluate || true
+          sleep 300
+        done
     restart: unless-stopped
 
 volumes:

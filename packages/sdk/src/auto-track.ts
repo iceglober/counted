@@ -1,4 +1,4 @@
-import { Analytics } from "./analytics";
+import type { Analytics } from "./analytics";
 import type { EventProperties } from "./types";
 
 /** Build page-view props, omitting empty values (props can't hold undefined). */

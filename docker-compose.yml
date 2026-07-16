@@ -1,3 +1,4 @@
+# Dev database only — for self-hosting Counted see self-host/ (full app + db + cron).
 services:
   db:
     image: timescale/timescaledb:2.27.1-pg17
