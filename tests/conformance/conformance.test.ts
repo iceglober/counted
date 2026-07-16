@@ -101,7 +101,9 @@ for (const d of DRIVERS) {
       for (const e of events) {
         expect(e.sessionId).toBe("conf-sess"); // explicit session honored verbatim
         expect(typeof e.timestamp).toBe("string");
-        expect(e.systemProps?.sdkVersion).toBe(d.sdkVersion);
+        // Assert the SDK identifies itself with the right name prefix; the exact
+        // version varies by build (source run = 0.0.0-dev, released dist = real).
+        expect(e.systemProps?.sdkVersion?.startsWith(d.sdkVersion.split("/")[0] + "/")).toBe(true);
         expect(typeof e.props).toBe("object");
       }
       // Props round-trip with the right event.
@@ -139,7 +141,7 @@ for (const d of DRIVERS) {
       const events = server.events();
       expect(events).toHaveLength(1);
       expect(events[0].eventName).toBe("onexit");
-      expect(events[0].systemProps?.sdkVersion).toBe(d.sdkVersion);
+      expect(events[0].systemProps?.sdkVersion?.startsWith(d.sdkVersion.split("/")[0] + "/")).toBe(true);
     }, TEST_TIMEOUT);
   });
 }

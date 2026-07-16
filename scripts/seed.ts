@@ -385,7 +385,17 @@ async function seed() {
     createdAt: new Date(),
     updatedAt: new Date(),
   }).onConflictDoNothing();
-  console.log("User: test@counted.dev\n");
+  // Pro plan so the fixture isn't constrained by the free 3-project cap — the
+  // suite creates several projects across tests. (The cap is still enforced for
+  // real free users; nothing here asserts free-tier behavior.)
+  await db.insert(schema.subscriptions).values({
+    id: "seed_sub_1",
+    userId,
+    stripeCustomerId: "cus_seed_test",
+    plan: "pro",
+    status: "active",
+  }).onConflictDoNothing();
+  console.log("User: test@counted.dev (pro)\n");
 
   const projectIds: string[] = [];
 
