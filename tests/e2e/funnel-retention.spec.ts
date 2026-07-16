@@ -25,8 +25,8 @@ test("build a funnel, then convert it to retention", async ({ page }) => {
   );
   expect(funnelPut.ok(), `funnel PUT should succeed, got ${funnelPut.status()}`).toBeTruthy();
 
-  // Convert to Retention — always a valid query, so it persists too.
-  await page.getByRole("button", { name: "Retention", exact: true }).click();
+  // Convert to Session retention — always a valid query, so it persists too.
+  await page.getByRole("button", { name: "Session retention", exact: true }).click();
   await page.getByRole("button", { name: "Month", exact: true }).click();
   const retentionPut = await page.waitForResponse(
     (r) => r.url().includes("/api/v0/dashboards/") && r.request().method() === "PUT",
