@@ -42,7 +42,8 @@ export function SiteFooter() {
       <footer className="sitefooter">
         <p>
           &copy; {new Date().getFullYear()} Iceglobe Enterprises LLC &middot;{" "}
-          <Link href="/privacy">Privacy</Link> &middot; <Link href="/terms">Terms</Link>
+          <Link href="/about">About</Link> &middot; <Link href="/contact">Contact</Link>{" "}
+          &middot; <Link href="/privacy">Privacy</Link> &middot; <Link href="/terms">Terms</Link>
         </p>
       </footer>
     </div>

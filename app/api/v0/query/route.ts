@@ -3,7 +3,7 @@ import { buildQuery } from "@/lib/query-engine";
 import { executeFunnelQuery } from "@/lib/funnel-query";
 import { executeTimeSeriesQuery } from "@/lib/timeseries-query";
 import { pool } from "@/lib/db";
-import { requireProjectAccess, readJson } from "@/lib/auth-guard";
+import { requireProjectAccess, readJson, unauthorized } from "@/lib/auth-guard";
 import type { InsightQuery, TimeRange } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
 
   const access = await requireProjectAccess(projectId, { allowServerKey: true });
   if (access.error) {
+    if (access.status === 401) return unauthorized(access.error);
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 

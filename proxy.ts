@@ -31,6 +31,8 @@ const MARKETING_PATHS = new Set([
   "/pricing",
   "/privacy",
   "/terms",
+  "/about",
+  "/contact",
   "/sitemap.xml",
   "/robots.txt",
   "/feed.xml",
@@ -40,10 +42,25 @@ const MARKETING_PATHS = new Set([
   "/twitter-image",
   "/og", // dynamic per-page share image (/og?title=…)
   "/b20e16eae7e00b584fa5cd18edd37866.txt", // IndexNow key file
+  // Agent-discovery surfaces (served on the apex so agents that probe
+  // counted.dev find them without a redirect to the app host).
+  "/openapi.json",
+  "/llms.txt",
+  "/llms-full.txt",
+  "/llms.md",
+  "/index.md",
+  "/pricing.md",
+  "/auth.md",
 ]);
 
-// Marketing content also lives under these prefixes (comparisons, /for, blog, docs).
-const MARKETING_PREFIXES = ["/vs", "/for/", "/blog", "/docs"];
+// Marketing content also lives under these prefixes (comparisons, /for, blog,
+// docs) and the agent well-known directory.
+const MARKETING_PREFIXES = ["/vs", "/for/", "/blog", "/docs", "/.well-known"];
+
+// Agent-discovery paths that should also carry HTTP Link headers / markdown
+// negotiation (subset of the marketing allowlist).
+const AGENT_LINK_HEADER =
+  '</sitemap.xml>; rel="sitemap", </index.md>; rel="alternate"; type="text/markdown", </openapi.json>; rel="service-desc"; type="application/json", </.well-known/api-catalog>; rel="describedby"';
 
 function isMarketingPath(pathname: string): boolean {
   if (MARKETING_PATHS.has(pathname)) return true;
@@ -86,6 +103,19 @@ export function proxy(request: NextRequest) {
     if (!isMarketingPath(pathname) && !pathname.startsWith("/_next") && !pathname.startsWith("/icon")) {
       return NextResponse.redirect(new URL(pathname + request.nextUrl.search, `https://${APP_HOST}`));
     }
+    // Cold-arrival markdown: an agent that GETs / with Accept: text/markdown
+    // gets the markdown twin instead of the HTML homepage.
+    const accept = request.headers.get("accept") ?? "";
+    if (pathname === "/" && accept.includes("text/markdown")) {
+      const res = NextResponse.rewrite(new URL("/index.md", request.url));
+      res.headers.set("Vary", "Accept");
+      return res;
+    }
+    // Advertise sitemap, markdown alternate, and API descriptions (RFC 8288).
+    const res = NextResponse.next();
+    res.headers.set("Link", AGENT_LINK_HEADER);
+    res.headers.set("Vary", "Accept, Accept-Encoding");
+    return res;
   }
 
   // App domain: redirect / to /dashboards
