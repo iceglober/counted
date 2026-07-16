@@ -1,4 +1,4 @@
-DROP INDEX "dashboards_project_slug";--> statement-breakpoint
+DROP INDEX IF EXISTS "dashboards_project_slug";--> statement-breakpoint
 ALTER TABLE "dashboards" ALTER COLUMN "project_id" DROP NOT NULL;--> statement-breakpoint
 ALTER TABLE "dashboards" ADD COLUMN "user_id" text;--> statement-breakpoint
 ALTER TABLE "dashboards" ADD CONSTRAINT "dashboards_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

@@ -1,86 +1,158 @@
-// ../sdk/dist/chunk-J5N32OJR.js
-var i = null;
-var n = 0;
-var o = 18e5;
-function u() {
-  let t = Math.floor(Date.now() / 1e3), e = Math.random().toString(36).substring(2, 10);
-  return `${t}.${e}`;
+// ../sdk/dist/chunk-YBVLU2GX.js
+function a() {
+  let t = { path: window.location.pathname }, { search: r2 } = window.location;
+  return r2 && (t.search = r2), document.referrer && (t.referrer = document.referrer), document.title && (t.title = document.title), t;
 }
-function a(t) {
-  t.sessionId && (i = t.sessionId, n = Date.now()), t.sessionTimeout !== void 0 && (o = t.sessionTimeout);
-}
-function l() {
-  let t = Date.now();
-  return (!i || o > 0 && t - n > o) && (i = u()), n = t, i;
-}
-var p = "counted/0.0.1";
-function c() {
-  let t = { osName: null, osVersion: null, locale: null, appVersion: null, deviceModel: null, sdkVersion: p, isDebug: false };
-  if (typeof globalThis.navigator < "u") {
-    let e = globalThis.navigator.userAgent;
-    if (e.includes("Mac OS X")) {
-      t.osName = "macOS";
-      let s = e.match(/Mac OS X (\d+[._]\d+[._]?\d*)/);
-      s && (t.osVersion = s[1].replace(/_/g, "."));
-    } else if (e.includes("Windows")) {
-      t.osName = "Windows";
-      let s = e.match(/Windows NT (\d+\.\d+)/);
-      s && (t.osVersion = s[1]);
-    } else if (e.includes("Linux")) t.osName = "Linux";
-    else if (e.includes("Android")) {
-      t.osName = "Android";
-      let s = e.match(/Android (\d+[\.\d]*)/);
-      s && (t.osVersion = s[1]);
-    } else if (e.includes("iPhone") || e.includes("iPad")) {
-      t.osName = "iOS";
-      let s = e.match(/OS (\d+[_\d]*)/);
-      s && (t.osVersion = s[1].replace(/_/g, "."));
-    }
-    t.locale = globalThis.navigator.language ?? null;
+function s(t) {
+  if (typeof window > "u") return () => {
+  };
+  let r2 = window.location.href;
+  function o() {
+    let e = window.location.href;
+    e !== r2 && (r2 = e, t.track("page_view", a()));
   }
-  return typeof process < "u" && process.versions?.node && (t.osName = process.platform, t.osVersion = process.version), t;
+  t.track("page_view", a());
+  let i2 = history.pushState.bind(history), n = history.replaceState.bind(history);
+  return history.pushState = function(...e) {
+    i2(...e), o();
+  }, history.replaceState = function(...e) {
+    n(...e), o();
+  }, window.addEventListener("popstate", o), () => {
+    history.pushState = i2, history.replaceState = n, window.removeEventListener("popstate", o);
+  };
 }
-function h(t, e) {
+
+// ../sdk/dist/chunk-MHINEWW6.js
+function y() {
+  let n = Math.floor(Date.now() / 1e3), e = Math.random().toString(36).substring(2, 10);
+  return `${n}.${e}`;
+}
+var r = class {
+  sessionId = null;
+  lastActivity = 0;
+  timeoutMs = 18e5;
+  constructor(e = {}) {
+    e.sessionId && (this.sessionId = e.sessionId, this.lastActivity = Date.now()), e.sessionTimeout !== void 0 && (this.timeoutMs = e.sessionTimeout);
+  }
+  getSessionId() {
+    let e = Date.now();
+    return (!this.sessionId || this.timeoutMs > 0 && e - this.lastActivity > this.timeoutMs) && (this.sessionId = y()), this.lastActivity = e, this.sessionId;
+  }
+};
+var S = "0.1.1";
+var T = `counted/${S}`;
+var E = { darwin: "macOS", win32: "Windows", linux: "Linux" };
+function d(n) {
+  let e = { osName: null, osVersion: null, locale: null, appVersion: n ?? null, deviceModel: null, sdkVersion: T, isDebug: false };
+  if (typeof globalThis.navigator < "u" && globalThis.navigator.userAgent) {
+    let s2 = globalThis.navigator.userAgent;
+    if (s2.includes("Mac OS X")) {
+      e.osName = "macOS";
+      let t = s2.match(/Mac OS X (\d+[._]\d+[._]?\d*)/);
+      t && (e.osVersion = t[1].replace(/_/g, "."));
+    } else if (s2.includes("Windows")) {
+      e.osName = "Windows";
+      let t = s2.match(/Windows NT (\d+\.\d+)/);
+      t && (e.osVersion = t[1]);
+    } else if (s2.includes("Linux")) e.osName = "Linux";
+    else if (s2.includes("Android")) {
+      e.osName = "Android";
+      let t = s2.match(/Android (\d+[\.\d]*)/);
+      t && (e.osVersion = t[1]);
+    } else if (s2.includes("iPhone") || s2.includes("iPad")) {
+      e.osName = "iOS";
+      let t = s2.match(/OS (\d+[_\d]*)/);
+      t && (e.osVersion = t[1].replace(/_/g, "."));
+    }
+    e.locale = globalThis.navigator.language ?? null;
+  }
+  if (typeof process < "u" && process.versions?.node) {
+    e.osName = E[process.platform] ?? process.platform;
+    let s2 = process.getBuiltinModule;
+    if (typeof s2 == "function") try {
+      let t = s2("os");
+      e.osVersion = t?.release?.() ?? null;
+    } catch {
+      e.osVersion = null;
+    }
+    else e.osVersion = null;
+  }
+  return e;
+}
+var f = /* @__PURE__ */ new Set();
+function p(n, e) {
   if (typeof globalThis.navigator?.sendBeacon == "function") {
-    let s = new Blob([JSON.stringify(e)], { type: "application/json" });
-    return globalThis.navigator.sendBeacon(t, s);
+    let s2 = new Blob([JSON.stringify(e)], { type: "application/json" });
+    return globalThis.navigator.sendBeacon(n, s2);
   }
   return false;
 }
-async function d(t, e, s) {
+async function m(n, e, s2, t = {}) {
   try {
-    return (await fetch(t, { method: "POST", headers: { "Content-Type": "application/json", "Project-Key": s }, body: JSON.stringify(e.length === 1 ? e[0] : e), keepalive: true })).ok;
-  } catch {
-    return false;
+    let i2 = await fetch(n, { method: "POST", headers: { "Content-Type": "application/json", "Project-Key": s2 }, body: JSON.stringify(e.length === 1 ? e[0] : e), keepalive: true });
+    if (!i2.ok) {
+      let o = "";
+      try {
+        o = (await i2.text()).slice(0, 500);
+      } catch {
+      }
+      (i2.status === 401 || i2.status === 403 || !f.has(i2.status)) && (f.add(i2.status), console.warn(`[counted] event ingestion failed (HTTP ${i2.status})${o ? `: ${o}` : ""}`));
+      let u2;
+      if (i2.status === 429) {
+        let h = i2.headers.get("Retry-After"), a2 = h ? Number(h) : NaN;
+        Number.isFinite(a2) && a2 >= 0 && (u2 = a2);
+      }
+      return { ok: false, status: i2.status, retryAfter: u2 };
+    }
+    return t.debug && console.log(`[counted] flushed ${e.length} event(s)`), { ok: true, status: i2.status };
+  } catch (i2) {
+    return t.debug && console.warn("[counted] network error during flush", i2), { ok: false, status: 0 };
   }
 }
-var m = "https://app.counted.dev";
-var v = 3e4;
+var w = "https://app.counted.dev";
+var _ = 3e4;
 var g = 50;
-var f = class {
+var v = 1e3;
+function l(n) {
+  let e = {};
+  for (let s2 of Object.keys(n)) n[s2] !== void 0 && (e[s2] = n[s2]);
+  return e;
+}
+var b = class {
   projectKey;
   host;
   flushInterval;
   maxBatchSize;
+  appVersion;
+  debug;
   buffer = [];
   timer = null;
   enabled = true;
   context;
+  session;
+  pausedUntil = 0;
+  autoTrackCleanup = null;
+  onVisibilityChange = null;
+  onBeforeExit = null;
   constructor(e) {
-    this.projectKey = e.projectKey, this.host = e.host ?? m, this.flushInterval = e.flushInterval ?? v, this.maxBatchSize = e.maxBatchSize ?? g, this.context = { ...e.context ?? {} }, a({ sessionId: e.sessionId, sessionTimeout: e.sessionTimeout }), this.startTimer(), this.registerUnloadHandler();
+    this.projectKey = e.projectKey, this.host = e.host ?? w, this.flushInterval = e.flushInterval ?? _, this.maxBatchSize = Math.min(e.maxBatchSize ?? g, g), this.appVersion = e.appVersion, this.debug = e.debug ?? false, this.context = l({ ...e.context ?? {} }), this.session = new r({ sessionId: e.sessionId, sessionTimeout: e.sessionTimeout }), this.validateKey(), this.startTimer(), this.registerUnloadHandler(), e.autoTrack && typeof window < "u" && (this.autoTrackCleanup = s(this));
   }
   register(e) {
-    this.context = { ...this.context, ...e };
+    this.context = l({ ...this.context, ...e });
   }
-  track(e, s) {
+  track(e, s2) {
     if (!this.enabled) return;
-    let r = { timestamp: (/* @__PURE__ */ new Date()).toISOString(), sessionId: l(), eventName: e, systemProps: c(), props: { ...this.context, ...s ?? {} } };
-    this.buffer.push(r), this.buffer.length >= this.maxBatchSize && this.flush();
+    let t = { timestamp: (/* @__PURE__ */ new Date()).toISOString(), sessionId: this.session.getSessionId(), eventName: e, systemProps: d(this.appVersion), props: l({ ...this.context, ...s2 ?? {} }) };
+    this.buffer.push(t), this.debug && console.log(`[counted] track "${e}"`, t.props), this.buffer.length >= this.maxBatchSize && this.flush();
   }
   async flush() {
-    if (this.buffer.length === 0) return;
-    let e = this.buffer.splice(0, this.maxBatchSize), s = `${this.host}/api/v0/event`;
-    await d(s, e, this.projectKey);
+    if (this.buffer.length !== 0 && !(this.pausedUntil > Date.now())) for (; this.buffer.length > 0; ) {
+      let e = this.buffer.splice(0, this.maxBatchSize), s2 = `${this.host}/api/v0/event`, t = await m(s2, e, this.projectKey, { debug: this.debug });
+      if (!t.ok) {
+        this.buffer = e.concat(this.buffer), this.buffer.length > v && this.buffer.splice(0, this.buffer.length - v), t.status === 429 && t.retryAfter !== void 0 && (this.pausedUntil = Date.now() + t.retryAfter * 1e3);
+        return;
+      }
+    }
   }
   disable() {
     this.enabled = false, this.buffer = [], this.stopTimer();
@@ -88,58 +160,74 @@ var f = class {
   enable() {
     this.enabled = true, this.startTimer();
   }
-  destroy() {
-    this.stopTimer(), this.flush();
+  async destroy() {
+    this.stopTimer(), this.removeUnloadHandlers(), this.autoTrackCleanup && (this.autoTrackCleanup(), this.autoTrackCleanup = null), await this.flush();
+  }
+  validateKey() {
+    let e = this.projectKey;
+    (!e || !e.startsWith("ck_") && !e.startsWith("A-US-")) && console.warn('[counted] projectKey looks invalid \u2014 expected a client key starting with "ck_" (or legacy "A-US-"). Events will likely be rejected.');
   }
   startTimer() {
-    this.timer || (this.timer = setInterval(() => this.flush(), this.flushInterval), typeof this.timer == "object" && "unref" in this.timer && this.timer.unref());
+    this.timer || (this.timer = setInterval(() => {
+      this.flush();
+    }, this.flushInterval), typeof this.timer == "object" && "unref" in this.timer && this.timer.unref());
   }
   stopTimer() {
     this.timer && (clearInterval(this.timer), this.timer = null);
   }
+  beaconFlush() {
+    if (this.buffer.length === 0) return;
+    let e = `${this.host}/api/v0/event?key=${encodeURIComponent(this.projectKey)}`, s2 = this.buffer;
+    this.buffer = [];
+    for (let t = 0; t < s2.length; t += this.maxBatchSize) {
+      let i2 = s2.slice(t, t + this.maxBatchSize);
+      p(e, i2) || fetch(e, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(i2), keepalive: true }).catch(() => {
+      });
+    }
+  }
   registerUnloadHandler() {
-    typeof globalThis.document < "u" && globalThis.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden" && this.buffer.length > 0) {
-        let e = `${this.host}/api/v0/event`;
-        h(e, this.buffer), this.buffer = [];
-      }
-    }), typeof globalThis.process < "u" && globalThis.process.on && globalThis.process.on("beforeExit", () => {
+    typeof globalThis.document < "u" && (this.onVisibilityChange = () => {
+      globalThis.document.visibilityState === "hidden" && this.beaconFlush();
+    }, globalThis.addEventListener("visibilitychange", this.onVisibilityChange)), typeof globalThis.process < "u" && globalThis.process.on && (this.onBeforeExit = () => {
       this.flush();
-    });
+    }, globalThis.process.on("beforeExit", this.onBeforeExit));
+  }
+  removeUnloadHandlers() {
+    this.onVisibilityChange && typeof globalThis.removeEventListener == "function" && (globalThis.removeEventListener("visibilitychange", this.onVisibilityChange), this.onVisibilityChange = null), this.onBeforeExit && typeof globalThis.process < "u" && globalThis.process.off && (globalThis.process.off("beforeExit", this.onBeforeExit), this.onBeforeExit = null);
   }
 };
 
 // ../sdk/dist/index.js
-function i2(n2) {
-  if (n2 != null) {
-    if (Array.isArray(n2)) return n2.map(i2);
-    if (typeof n2 == "object") {
-      let t = n2, r = {};
+function i(n) {
+  if (n != null) {
+    if (Array.isArray(n)) return n.map(i);
+    if (typeof n == "object") {
+      let t = n, r2 = {};
       for (let e of Object.keys(t).sort()) {
-        let o2 = i2(t[e]);
-        o2 !== void 0 && (r[e] = o2);
+        let o = i(t[e]);
+        o !== void 0 && (r2[e] = o);
       }
-      return r;
+      return r2;
     }
-    return n2;
+    return n;
   }
 }
-function u2(n2) {
-  let t = 2166136261, r = 3266489909;
-  for (let e = 0; e < n2.length; e++) {
-    let o2 = n2.charCodeAt(e);
-    t = Math.imul(t ^ o2, 16777619) >>> 0, r = Math.imul(r ^ o2, 2246822507) >>> 0;
+function u(n) {
+  let t = 2166136261, r2 = 3266489909;
+  for (let e = 0; e < n.length; e++) {
+    let o = n.charCodeAt(e);
+    t = Math.imul(t ^ o, 16777619) >>> 0, r2 = Math.imul(r2 ^ o, 2246822507) >>> 0;
   }
-  return (t >>> 0).toString(16).padStart(8, "0") + (r >>> 0).toString(16).padStart(8, "0");
+  return (t >>> 0).toString(16).padStart(8, "0") + (r2 >>> 0).toString(16).padStart(8, "0");
 }
-function p2(n2) {
-  return { setupHash: u2(JSON.stringify(i2(n2))), setupHashVersion: 1 };
+function p2(n) {
+  return { setupHash: u(JSON.stringify(i(n))), setupHashVersion: 1 };
 }
 
 // src/index.ts
 var analytics = null;
 function init(options) {
-  analytics = new f({
+  analytics = new b({
     projectKey: options.projectKey,
     host: options.host,
     sessionId: options.sessionId,
@@ -183,8 +271,8 @@ function gatherInputs(cwd, model, permissionMode) {
   const agents = {};
   try {
     for (const f2 of readdirSync(join(cwd, ".claude", "agents")).sort()) {
-      const c2 = readSafe(join(cwd, ".claude", "agents", f2));
-      if (c2) agents[f2] = c2;
+      const c = readSafe(join(cwd, ".claude", "agents", f2));
+      if (c) agents[f2] = c;
     }
   } catch {
   }

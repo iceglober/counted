@@ -28,7 +28,7 @@ const has = (bin: string) => Bun.which(bin) !== null;
 const DRIVERS: Driver[] = [
   {
     name: "js",
-    sdkVersion: "counted/0.0.1",
+    sdkVersion: "counted/0.1.1",
     available: has("bun"),
     cmd: (s) => ["bun", driver("js-driver.ts"), s],
   },
