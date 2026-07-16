@@ -1,6 +1,6 @@
 {
   "name": "@counted/opencode",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Counted analytics plugin for OpenCode — track AI agent actions privately",
   "type": "module",
   "main": "dist/index.cjs",

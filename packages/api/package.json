@@ -1,6 +1,6 @@
 {
   "name": "@counted/api",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Typed client for the Counted management API",
   "type": "module",
   "main": "dist/index.cjs",
@@ -13,9 +13,12 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
+    "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
   "sideEffects": false,

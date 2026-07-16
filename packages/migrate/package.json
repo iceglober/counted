@@ -1,14 +1,17 @@
 {
   "name": "@counted/migrate",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Migration CLI — import historical events from Aptabase into Counted",
   "type": "module",
   "bin": {
     "counted-migrate": "dist/cli.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
+    "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
   "license": "MIT",
