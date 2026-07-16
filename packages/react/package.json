@@ -1,6 +1,6 @@
 {
   "name": "@counted/react",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "React hooks for @counted/sdk",
   "type": "module",
   "main": "dist/index.cjs",
@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
   "sideEffects": false,
