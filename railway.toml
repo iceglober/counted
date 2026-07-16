@@ -1,6 +1,11 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+# Deploy on every push to the tracked branch. Config-as-code overrides the
+# dashboard's watch-path filter, which had been silently marking every
+# git-triggered deploy SKIPPED (a stale build ran in prod for ~3 weeks in
+# 2026-06). "**" matches all files, so a matching change always triggers.
+watchPatterns = ["**"]
 
 [deploy]
 # Run migrations inside the main container at startup: it has the internal

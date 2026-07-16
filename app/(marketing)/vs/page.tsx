@@ -35,6 +35,12 @@ const COMPARISONS = [
     blurb:
       "Same no-cookie stance, but product analytics: funnels and composable dashboards.",
   },
+  {
+    href: "/vs/counter",
+    name: "Counted vs Counter.dev",
+    blurb:
+      "Both privacy-first, one letter apart. counter.dev counts visits; Counted does product analytics — events, funnels, dashboards.",
+  },
 ];
 
 export default function ComparePage() {
