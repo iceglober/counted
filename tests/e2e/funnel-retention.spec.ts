@@ -12,11 +12,12 @@ test("build a funnel, then convert it to retention", async ({ page }) => {
   // Switch the insight type to Funnel — reveals the steps picker (needs schema).
   await page.getByRole("button", { name: "Funnel", exact: true }).click();
 
-  // Add two funnel steps. The "Add step..." dropdown closes after each pick.
-  await page.getByRole("button", { name: /add step/i }).click();
-  await page.getByRole("button", { name: /^page_view/ }).click();
-  await page.getByRole("button", { name: /add step/i }).click();
-  await page.getByRole("button", { name: /^button_click/ }).click();
+  // Add two funnel steps via the combobox: type an event name and press Enter.
+  const stepInput = page.getByPlaceholder(/add step/i);
+  await stepInput.fill("page_view");
+  await stepInput.press("Enter");
+  await stepInput.fill("sign_up");
+  await stepInput.press("Enter");
 
   // Two steps make the funnel query valid -> layout auto-persists.
   const funnelPut = await page.waitForResponse(
