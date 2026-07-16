@@ -19,7 +19,13 @@ export const organizationLd = {
   url: SITE,
   logo: `${SITE}/opengraph-image`,
   description: "Privacy-first product analytics with funnels and composable dashboards. No cookies, no fingerprinting, no PII.",
-  sameAs: ["https://github.com/iceglober/counted"],
+  // Profiles that corroborate the "Counted" entity, so search engines don't
+  // conflate it with counter.dev / count.co / Countly. Add X, LinkedIn, and
+  // Crunchbase here once those profiles exist (off-site brand task).
+  sameAs: [
+    "https://github.com/iceglober/counted",
+    "https://www.npmjs.com/package/@counted/sdk",
+  ],
 };
 
 export const websiteLd = {
@@ -28,6 +34,39 @@ export const websiteLd = {
   name: "Counted",
   url: SITE,
 };
+
+// SoftwareApplication entity — the schema search engines use to give an
+// analytics tool a distinct identity (and a shot at a rich result). Prices
+// mirror the pricing page; keep them in sync.
+export const softwareApplicationLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Counted",
+  applicationCategory: "BusinessApplication",
+  applicationSubCategory: "Product Analytics",
+  operatingSystem: "Web",
+  url: SITE,
+  description: "Privacy-first product analytics: custom events, funnels, and composable dashboards. No cookies, no PII, under 3KB gzipped. Instruments AI coding agents with the same SDK.",
+  offers: [
+    { "@type": "Offer", price: "0", priceCurrency: "USD", name: "Free" },
+    { "@type": "Offer", price: "12", priceCurrency: "USD", name: "Pro" },
+  ],
+  publisher: { "@type": "Organization", name: "Counted", url: SITE },
+};
+
+// FAQPage entity — powers a rich result / featured snippet. Used on /vs/counter
+// to answer the "is Counted the same as counter.dev?" confusion query.
+export function faqPageLd(faqs: { q: string; a: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+}
 
 export function blogPostingLd(post: { title: string; description: string; date: string; slug: string }) {
   const url = `${SITE}/blog/${post.slug}`;

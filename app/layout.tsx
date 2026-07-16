@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { CountedAnalytics } from "@/components/analytics";
-import { JsonLd, organizationLd, websiteLd } from "@/components/json-ld";
+import { JsonLd, organizationLd, websiteLd, softwareApplicationLd } from "@/components/json-ld";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -52,6 +52,7 @@ export default function RootLayout({
       <body className="font-sans retro">
         <JsonLd data={organizationLd} />
         <JsonLd data={websiteLd} />
+        <JsonLd data={softwareApplicationLd} />
         <CountedAnalytics />
         {children}
       </body>
