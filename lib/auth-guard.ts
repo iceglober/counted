@@ -5,6 +5,22 @@ import { projectMembers, projects } from "./db/schema";
 import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 
+// A 401 that tells an agent where to learn the auth requirements (RFC 9728 /
+// WorkOS auth.md), so it can authenticate from one request instead of hunting
+// for the well-known document. Use on API read endpoints when the guard 401s.
+export function unauthorized(error = "Unauthorized") {
+  return NextResponse.json(
+    { error },
+    {
+      status: 401,
+      headers: {
+        "WWW-Authenticate":
+          'Bearer resource_metadata="https://counted.dev/.well-known/oauth-protected-resource"',
+      },
+    },
+  );
+}
+
 export async function requireSession() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {

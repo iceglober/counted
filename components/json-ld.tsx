@@ -16,9 +16,20 @@ export const organizationLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Counted",
+  legalName: "Iceglobe Enterprises LLC",
   url: SITE,
   logo: `${SITE}/opengraph-image`,
   description: "Privacy-first product analytics with funnels and composable dashboards. No cookies, no fingerprinting, no PII.",
+  contactPoint: {
+    "@type": "ContactPoint",
+    email: "hello@counted.dev",
+    contactType: "customer support",
+    url: `${SITE}/contact`,
+  },
+  address: {
+    "@type": "PostalAddress",
+    addressCountry: "US",
+  },
   // Profiles that corroborate the "Counted" entity, so search engines don't
   // conflate it with counter.dev / count.co / Countly. Add X, LinkedIn, and
   // Crunchbase here once those profiles exist (off-site brand task).
@@ -33,7 +44,42 @@ export const websiteLd = {
   "@type": "WebSite",
   name: "Counted",
   url: SITE,
+  // Which parts of the page an assistant should read aloud.
+  speakable: {
+    "@type": "SpeakableSpecification",
+    cssSelector: ["h1", ".page > p:first-of-type"],
+  },
 };
+
+// A Service entity for the offering — lets assistants answer "what does Counted
+// do / cost" beyond the bare Organization.
+export const serviceLd = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Counted",
+  serviceType: "Product analytics",
+  description:
+    "Privacy-first product analytics: custom events, funnels, and composable dashboards with no cookies or PII. Agent-native.",
+  provider: { "@type": "Organization", name: "Counted", url: SITE },
+  areaServed: "Worldwide",
+  offers: [
+    { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Pro", price: "12", priceCurrency: "USD" },
+  ],
+};
+
+export function breadcrumbLd(items: { name: string; url: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((it, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: it.name,
+      item: it.url,
+    })),
+  };
+}
 
 // SoftwareApplication entity — the schema search engines use to give an
 // analytics tool a distinct identity (and a shot at a rich result). Prices

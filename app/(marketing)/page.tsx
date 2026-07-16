@@ -1,12 +1,51 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { LandingCTA } from "./landing-cta";
 import { SiteNav, SiteFooter } from "./site-chrome";
 import { Hero } from "./hero";
 import { TrackedCTA } from "./track";
+import { JsonLd, serviceLd, faqPageLd, breadcrumbLd } from "@/components/json-ld";
+import { AgentView } from "./agent-view";
 
-export default function Home() {
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+    types: { "text/markdown": "/index.md" },
+  },
+};
+
+const HOMEPAGE_FAQ = [
+  {
+    q: "What is Counted?",
+    a: "Counted is privacy-first product analytics — custom events, funnels, and composable dashboards with no cookies, no fingerprinting, and no PII. The same SDK also instruments AI coding agents.",
+  },
+  {
+    q: "Does Counted use cookies?",
+    a: "No. Sessions are ephemeral (in-memory, ~30 minutes) and never written to a cookie or storage, so Counted is GDPR/CCPA-friendly with no consent banner.",
+  },
+  {
+    q: "How much does Counted cost?",
+    a: "Free for 100,000 events/month with no credit card; Pro is $12/month for 1,000,000 events. It's open source and self-hostable.",
+  },
+  {
+    q: "Can an agent use Counted without a signup?",
+    a: "Yes. POST https://app.counted.dev/api/v0/provision returns a write-only client key and a claim link with no human in the loop.",
+  },
+];
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const { mode } = await searchParams;
+  if (mode === "agent") return <AgentView />;
+
   return (
     <div>
+      <JsonLd data={serviceLd} />
+      <JsonLd data={faqPageLd(HOMEPAGE_FAQ.map((f) => ({ q: f.q, a: f.a })))} />
+      <JsonLd data={breadcrumbLd([{ name: "Counted", url: "https://counted.dev" }])} />
       <SiteNav />
 
       <div className="page">
