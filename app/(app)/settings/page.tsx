@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { toast } from "@/components/ui/sonner";
+import { api } from "@/lib/client-api";
 
 const TABS = [
   { id: "general", label: "General" },
@@ -35,7 +36,9 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState("—");
   const [plan, setPlan] = useState("free");
+  const [billingEnabled, setBillingEnabled] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
+  const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
   const projects = useProjects();
   const [alertsList, setAlertsList] = useState<Alert[]>([]);
   const [alertProjectId, setAlertProjectId] = useState("");
@@ -59,7 +62,18 @@ export default function SettingsPage() {
 
     fetch("/api/billing/status").then((r) => r.json()).then((data) => {
       if (data.plan) setPlan(data.plan);
+      setBillingEnabled(!!data.billingEnabled);
     });
+
+    // Usage bar. The endpoint may not exist yet — fail quietly if so.
+    fetch("/api/v0/usage")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && typeof data.used === "number" && typeof data.limit === "number") {
+          setUsage({ used: data.used, limit: data.limit });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -80,35 +94,42 @@ export default function SettingsPage() {
 
   async function createAlert() {
     if (!alertProjectId || !newAlert.name || !newAlert.threshold) return;
-    const res = await fetch("/api/v0/alerts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        projectId: alertProjectId,
-        ...newAlert,
-        eventFilter: newAlert.eventFilter || undefined,
-        slackWebhookUrl: newAlert.slackWebhookUrl || undefined,
-      }),
-    });
-    if (res.ok) {
+    try {
+      await api("/api/v0/alerts", {
+        method: "POST",
+        body: {
+          projectId: alertProjectId,
+          ...newAlert,
+          eventFilter: newAlert.eventFilter || undefined,
+          slackWebhookUrl: newAlert.slackWebhookUrl || undefined,
+        },
+      });
       setShowNewAlert(false);
       setNewAlert({ name: "", metric: "count", eventFilter: "", condition: "above", threshold: "100", window: "1h", channels: ["email"], slackWebhookUrl: "" });
+      toast.success("Alert created");
       loadAlerts(alertProjectId);
+    } catch {
+      /* api() surfaced the error */
     }
   }
 
   async function toggleAlert(id: string, enabled: boolean) {
-    await fetch("/api/v0/alerts", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, enabled }),
-    });
-    loadAlerts(alertProjectId);
+    try {
+      await api("/api/v0/alerts", { method: "PATCH", body: { id, enabled } });
+      loadAlerts(alertProjectId);
+    } catch {
+      /* api() surfaced the error */
+    }
   }
 
   async function deleteAlert(id: string) {
-    await fetch(`/api/v0/alerts?id=${id}`, { method: "DELETE" });
-    loadAlerts(alertProjectId);
+    try {
+      await api(`/api/v0/alerts?id=${id}`, { method: "DELETE" });
+      toast.success("Alert deleted");
+      loadAlerts(alertProjectId);
+    } catch {
+      /* api() surfaced the error */
+    }
   }
 
   if (!mounted) return null;
@@ -190,26 +211,32 @@ export default function SettingsPage() {
                     </span>
                   </div>
                   {plan === "free" ? (
-                    <Button
-                      disabled={billingLoading}
-                      onClick={async () => {
-                        setBillingLoading(true);
-                        try {
-                          const res = await fetch("/api/billing/checkout", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ interval: "monthly" }),
-                          });
-                          const data = await res.json().catch(() => ({}));
-                          if (data.url) window.location.href = data.url;
-                          else toast.error(data.error ?? "Checkout failed");
-                        } finally {
-                          setBillingLoading(false);
-                        }
-                      }}
-                    >
-                      {billingLoading ? "Loading..." : "Upgrade to Pro — $12/mo"}
-                    </Button>
+                    billingEnabled ? (
+                      <Button
+                        disabled={billingLoading}
+                        onClick={async () => {
+                          setBillingLoading(true);
+                          try {
+                            const res = await fetch("/api/billing/checkout", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ interval: "monthly" }),
+                            });
+                            const data = await res.json().catch(() => ({}));
+                            if (data.url) window.location.href = data.url;
+                            else toast.error(data.error ?? "Checkout failed");
+                          } catch {
+                            toast.error("Checkout failed");
+                          } finally {
+                            setBillingLoading(false);
+                          }
+                        }}
+                      >
+                        {billingLoading ? "Loading..." : "Upgrade to Pro — $12/mo"}
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-text-tertiary">Pro is in early access — billing opens soon</span>
+                    )
                   ) : (
                     <Button
                       variant="secondary"
@@ -217,9 +244,10 @@ export default function SettingsPage() {
                       onClick={async () => {
                         setBillingLoading(true);
                         try {
-                          const res = await fetch("/api/billing/portal", { method: "POST" });
-                          const { url } = await res.json();
+                          const { url } = await api<{ url?: string }>("/api/billing/portal", { method: "POST" });
                           if (url) window.location.href = url;
+                        } catch {
+                          /* api() surfaced the error */
                         } finally {
                           setBillingLoading(false);
                         }
@@ -230,6 +258,28 @@ export default function SettingsPage() {
                   )}
                 </div>
               </div>
+
+              {usage && (
+                <div>
+                  <h2 className="text-xs text-text-tertiary uppercase tracking-wider font-medium mb-3">Usage this month</h2>
+                  <div className="bg-surface-1 border border-border rounded-lg p-4">
+                    <div className="flex items-center justify-between text-sm mb-2">
+                      <span className="text-text-secondary tabular-nums">
+                        {usage.used.toLocaleString()} / {usage.limit.toLocaleString()} events
+                      </span>
+                      <span className="text-xs text-text-tertiary tabular-nums">
+                        {Math.min(100, Math.round((usage.used / Math.max(1, usage.limit)) * 100))}%
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-surface-2 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${usage.used >= usage.limit ? "bg-error" : "bg-accent"}`}
+                        style={{ width: `${Math.min(100, (usage.used / Math.max(1, usage.limit)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -8,6 +8,7 @@ const SYSTEM_COLUMNS = new Set([
   "device_model",
   "event_name",
   "session_id",
+  "country_code",
 ]);
 
 const VALID_OPERATORS = new Set(["eq", "neq", "contains", "gt", "lt", "in"]);
@@ -18,8 +19,14 @@ const VALID_ORDER_DIRECTIONS = new Set(["asc", "desc"]);
 
 function measureToSql(measure: Measure, params: unknown[]): string {
   if (measure === "count") return "COUNT(*)";
-  if (measure === "unique_sessions") return "COUNT(DISTINCT session_id)";
-  if (measure === "unique_users") return "COUNT(DISTINCT session_id)";
+  // 'unique_users' is kept as an accepted API alias for backwards compatibility,
+  // but it compiles to the exact same COUNT(DISTINCT session_id) as
+  // 'unique_sessions'. Counted's session ids are ephemeral (~30 min, no
+  // cross-visit identity), so counting them as "users" would overstate uniques —
+  // one code path, one truth: it's distinct sessions.
+  if (measure === "unique_sessions" || measure === "unique_users") {
+    return "COUNT(DISTINCT session_id)";
+  }
 
   if (!VALID_AGGREGATIONS.has(measure.aggregation)) {
     throw new Error(`Invalid aggregation: ${measure.aggregation}`);

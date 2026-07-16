@@ -47,17 +47,16 @@ export async function POST(request: NextRequest) {
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.BETTER_AUTH_URL}/dashboard?upgraded=true`,
+      success_url: `${process.env.BETTER_AUTH_URL}/dashboards?upgraded=true`,
       cancel_url: `${process.env.BETTER_AUTH_URL}/pricing`,
       metadata: { userId: session!.user.id },
     });
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (e) {
-    // Always return JSON (the client does res.json()); surface the Stripe/DB
-    // error message so misconfig is debuggable instead of a bare 500.
+    // Log the real Stripe/DB error for debugging, but return a generic message
+    // to the client — raw provider errors shouldn't leak to end users.
     logError("billing_checkout", e);
-    const message = e instanceof Error ? e.message : "Checkout failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
   }
 }

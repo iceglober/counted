@@ -1,33 +1,13 @@
-export type TimeRange =
-  | { type: "relative"; value: number; unit: "hours" | "days" | "weeks" | "months" }
-  | { type: "absolute"; start: string; end: string };
+export type {
+  Measure,
+  GroupBy,
+  PropFilter,
+  SeriesQuery,
+  InsightQuery,
+  TimeRange,
+} from "./types";
 
-export type PropFilter = {
-  field: string;
-  operator: "eq" | "neq" | "contains" | "gt" | "lt" | "in";
-  value: string | number | string[];
-};
-
-export type Measure =
-  | "count"
-  | "unique_sessions"
-  | "unique_users"
-  | { property: string; aggregation: "sum" | "avg" | "min" | "max" };
-
-export type InsightQuery = {
-  measure: Measure;
-  eventFilter?: {
-    names?: string[];
-    properties?: PropFilter[];
-  };
-  groupBy?: { type: "property" | "system" | "time"; key: string }[];
-  timeBucket?: "hour" | "day" | "week" | "month";
-  orderBy?: { field: string; direction: "asc" | "desc" };
-  limit?: number;
-  funnelSteps?: string[];
-  retentionPeriod?: "day" | "week" | "month";
-  retentionPeriods?: number;
-};
+import type { InsightQuery, TimeRange } from "./types";
 
 export type Project = {
   id: string;

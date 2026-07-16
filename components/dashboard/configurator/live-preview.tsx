@@ -13,14 +13,27 @@ type Props = {
   loading: boolean;
   error: string | null;
   incomplete: boolean;
+  /** Preview can't be computed live (e.g. retention) — say so instead of "no events". */
+  previewUnavailable?: boolean;
   meta?: { totalEvents: number; executionMs: number };
 };
 
-export function LivePreview({ type, data, loading, error, incomplete, meta }: Props) {
+export function LivePreview({ type, data, loading, error, incomplete, previewUnavailable, meta }: Props) {
+  // Retention (and other server-only shapes) can't be previewed live.
+  if (previewUnavailable) {
+    return (
+      <div className="py-6 text-center text-xs text-text-tertiary">
+        Preview appears after you save
+      </div>
+    );
+  }
+
   if (incomplete) {
     return (
       <div className="py-6 text-center text-xs text-text-tertiary">
-        Complete the configuration to see results
+        {type === "funnel"
+          ? "Add at least 2 steps to build a funnel."
+          : "Complete the configuration to see results"}
       </div>
     );
   }

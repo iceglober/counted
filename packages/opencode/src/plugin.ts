@@ -10,12 +10,13 @@
 import {
   init,
   trackSessionStart,
+  trackSessionEnd,
   trackToolUse,
   trackFileEdit,
   trackCommand,
   getAnalytics,
   destroy,
-} from "./index";
+} from "./api";
 import { setupFingerprint } from "@counted/sdk";
 
 // Minimal structural types — the authoritative ones live in @opencode-ai/plugin.
@@ -23,14 +24,19 @@ type Hooks = Record<string, (...args: any[]) => any>;
 type PluginInput = { directory?: string; worktree?: string; [k: string]: unknown };
 
 let initialized = false;
-let sessionStarted = false;
-let setupRegistered = false;
+// Counted session id currently configured on the SDK. OpenCode can drive many
+// sessions through one server process, so we re-key the SDK to each OpenCode
+// session id rather than collapsing everything into one process-lifetime session.
+let currentSessionId: string | undefined;
+// The setup fingerprint context is registered once, then re-applied whenever we
+// re-init the SDK for a new session id (a fresh Analytics loses registered ctx).
+let setupCtx: Record<string, string | number> | undefined;
 
 // Hash a deliberate, versioned slice of the OpenCode config: model, agent/prompt
 // definitions, tools/permissions, and sampling params. Register it as context so
 // every event carries the setup fingerprint (only the digest leaves the machine).
 function registerSetup(config: Record<string, any> | undefined) {
-  if (setupRegistered || !config) return;
+  if (setupCtx || !config) return;
   if (!ensureInit()) return;
   const projection = {
     model: config.model,
@@ -49,8 +55,8 @@ function registerSetup(config: Record<string, any> | undefined) {
   if (typeof config.model === "string") ctx.model = config.model;
   const label = process.env.COUNTED_SETUP_LABEL;
   if (label) ctx.setupLabel = label;
+  setupCtx = ctx;
   getAnalytics()?.register(ctx);
-  setupRegistered = true;
 }
 
 function ensureInit(): boolean {
@@ -60,6 +66,32 @@ function ensureInit(): boolean {
   if (!key) return false; // not configured -> no-op
   init({ projectKey: key, host: process.env.COUNTED_AGENT_HOST || "https://app.counted.dev" });
   return true;
+}
+
+// Re-key the SDK to an OpenCode session id so events group per session. Flushes
+// the outgoing session first and re-applies the setup context to the fresh
+// instance. Returns true when the session id actually changed (a new session).
+function ensureSession(sessionId: string | undefined): boolean {
+  if (!sessionId || sessionId === currentSessionId) return false;
+  const key = process.env.COUNTED_AGENT_KEY;
+  if (!key) return false;
+  getAnalytics()?.flush();
+  init({ projectKey: key, host: process.env.COUNTED_AGENT_HOST || "https://app.counted.dev", sessionId });
+  initialized = true;
+  currentSessionId = sessionId;
+  if (setupCtx) getAnalytics()?.register(setupCtx);
+  return true;
+}
+
+// OpenCode session events carry the session object under a few shapes depending
+// on version; pull the id defensively without leaking anything else.
+function sessionIdOf(event: any): string | undefined {
+  return (
+    event?.properties?.info?.id ??
+    event?.properties?.sessionID ??
+    event?.properties?.sessionId ??
+    event?.properties?.id
+  );
 }
 
 function langOf(filePath: string): string | undefined {
@@ -89,32 +121,64 @@ export const CountedPlugin = async (input: PluginInput): Promise<Hooks> => {
   const cwd = input.directory || input.worktree;
   ensureInit();
 
+  // OpenCode tool hooks are (input, output): input carries { tool, sessionID,
+  // callID } and the tool arguments live on output.args. Capture args in the
+  // before-hook keyed by callID so the after-hook can attribute file/command
+  // detail (output.args may not survive to `after` in every version).
+  const pendingArgs = new Map<string, any>();
+
   return {
     // OpenCode hands the plugin the merged config — fingerprint the setup once.
     config: async (config: Record<string, any>) => {
       registerSetup(config);
     },
 
-    // Session lifecycle comes through the generic event stream.
+    // Session lifecycle comes through the generic event stream. Each OpenCode
+    // session becomes its own Counted session.
     event: async ({ event }: { event: { type?: string } }) => {
       if (!ensureInit()) return;
-      if (event?.type === "session.created" && !sessionStarted) {
-        sessionStarted = true;
+      const type = event?.type;
+      if (type === "session.created") {
+        ensureSession(sessionIdOf(event));
         trackSessionStart({ mode: "agent" });
-      } else if (event?.type === "session.idle") {
+      } else if (type === "session.deleted") {
+        ensureSession(sessionIdOf(event));
+        trackSessionEnd({});
+        await getAnalytics()?.flush();
+      } else if (type === "session.idle") {
         // De-facto end-of-turn — a good moment to flush buffered events.
         await getAnalytics()?.flush();
       }
     },
 
+    // Capture tool arguments before execution, keyed by callID.
+    "tool.execute.before": async (
+      hookInput: { tool?: string; sessionID?: string; callID?: string },
+      output: { args?: any },
+    ) => {
+      if (!ensureInit()) return;
+      if (hookInput?.callID && output?.args !== undefined) {
+        pendingArgs.set(hookInput.callID, output.args);
+      }
+    },
+
     // Fires after each successful tool call. (OpenCode surfaces failures on the
     // event stream, not here, so a delivered after-hook means success.)
-    "tool.execute.after": async (toolInput: { tool?: string; args?: any }) => {
+    "tool.execute.after": async (
+      hookInput: { tool?: string; sessionID?: string; callID?: string },
+      output: { args?: any },
+    ) => {
       if (!ensureInit()) return;
-      const tool = toolInput?.tool || "unknown";
+      // Key events to the tool's session even if session.created was missed.
+      ensureSession(hookInput?.sessionID);
+
+      const tool = hookInput?.tool || "unknown";
       trackToolUse({ tool, outcome: "success" });
 
-      const args = toolInput?.args || {};
+      const callID = hookInput?.callID;
+      const args = output?.args ?? (callID ? pendingArgs.get(callID) : undefined) ?? {};
+      if (callID) pendingArgs.delete(callID);
+
       if ((tool === "edit" || tool === "write") && args.filePath) {
         trackFileEdit({
           filePath: relPath(args.filePath, cwd),

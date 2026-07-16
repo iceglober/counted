@@ -1,19 +1,29 @@
 import type { SystemProps } from "./types";
 
-const SDK_VERSION = "counted/0.0.1";
+// Injected at build time by tsup (`define`). Falls back when running from
+// source (e.g. tests), where the identifier is left undeclared.
+declare const __SDK_VERSION__: string | undefined;
+const VERSION = typeof __SDK_VERSION__ !== "undefined" ? __SDK_VERSION__ : "0.0.0-dev";
+const SDK_VERSION = `counted/${VERSION}`;
 
-export function detectSystemProps(): SystemProps {
+const NODE_PLATFORM_NAMES: Record<string, string> = {
+  darwin: "macOS",
+  win32: "Windows",
+  linux: "Linux",
+};
+
+export function detectSystemProps(appVersion?: string): SystemProps {
   const props: SystemProps = {
     osName: null,
     osVersion: null,
     locale: null,
-    appVersion: null,
+    appVersion: appVersion ?? null,
     deviceModel: null,
     sdkVersion: SDK_VERSION,
     isDebug: false,
   };
 
-  if (typeof globalThis.navigator !== "undefined") {
+  if (typeof globalThis.navigator !== "undefined" && globalThis.navigator.userAgent) {
     const ua = globalThis.navigator.userAgent;
 
     if (ua.includes("Mac OS X")) {
@@ -40,8 +50,21 @@ export function detectSystemProps(): SystemProps {
   }
 
   if (typeof process !== "undefined" && process.versions?.node) {
-    props.osName = process.platform;
-    props.osVersion = process.version;
+    // Map to the same display names the browser branch uses.
+    props.osName = NODE_PLATFORM_NAMES[process.platform] ?? process.platform;
+
+    // osVersion is the OS kernel release, not the Node runtime version.
+    const getBuiltin = (process as { getBuiltinModule?: (m: string) => unknown }).getBuiltinModule;
+    if (typeof getBuiltin === "function") {
+      try {
+        const os = getBuiltin("os") as { release?: () => string } | undefined;
+        props.osVersion = os?.release?.() ?? null;
+      } catch {
+        props.osVersion = null;
+      }
+    } else {
+      props.osVersion = null;
+    }
   }
 
   return props;

@@ -7,7 +7,6 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/counted-hook.mjs\"",
-            "env": { "COUNTED_AGENT_KEY": "${user_config.api_key}", "COUNTED_AGENT_HOST": "${user_config.host}" },
             "timeout": 10
           }
         ]
@@ -20,7 +19,19 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/counted-hook.mjs\"",
-            "env": { "COUNTED_AGENT_KEY": "${user_config.api_key}", "COUNTED_AGENT_HOST": "${user_config.host}" },
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/counted-hook.mjs\"",
             "async": true,
             "timeout": 10
           }
@@ -34,7 +45,6 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/counted-hook.mjs\"",
-            "env": { "COUNTED_AGENT_KEY": "${user_config.api_key}", "COUNTED_AGENT_HOST": "${user_config.host}" },
             "timeout": 10
           }
         ]

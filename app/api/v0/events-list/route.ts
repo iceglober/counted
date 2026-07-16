@@ -1,24 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pool } from "@/lib/db";
+import { pool, db } from "@/lib/db";
 import { requireSession } from "@/lib/auth-guard";
-import { db } from "@/lib/db";
-import { projectMembers } from "@/lib/db/schema";
+import { projectMembers, projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 
 export async function GET(request: NextRequest) {
-  const { session, error, status } = await requireSession();
-  if (error) return NextResponse.json({ error }, { status });
+  const requested = request.nextUrl.searchParams.getAll("projectId");
 
-  const projectIds = request.nextUrl.searchParams.getAll("projectId");
+  // Resolve the caller's authorized project ids up front — either from their
+  // session membership or a server key (sk_) Bearer token. Any requested
+  // projectIds are then intersected with these, so an authenticated caller can
+  // never read the raw event stream of a project they don't belong to.
+  let allowedIds: string[];
 
-  // If no projectIds specified, get all the user's projects
-  let ids = projectIds;
-  if (ids.length === 0) {
+  const authz = (await headers()).get("authorization") ?? "";
+  if (authz.startsWith("Bearer sk_")) {
+    const key = authz.slice("Bearer ".length).trim();
+    const project = await db.query.projects.findFirst({
+      where: eq(projects.serverKey, key),
+    });
+    if (!project) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    allowedIds = [project.id];
+  } else {
+    const { session, error, status } = await requireSession();
+    if (error) return NextResponse.json({ error }, { status });
     const memberships = await db.query.projectMembers.findMany({
       where: eq(projectMembers.userId, session!.user.id),
     });
-    ids = memberships.map((m) => m.projectId);
+    allowedIds = memberships.map((m) => m.projectId);
   }
+
+  const allowed = new Set(allowedIds);
+  const ids = requested.length > 0
+    ? requested.filter((id) => allowed.has(id))
+    : allowedIds;
 
   if (ids.length === 0) {
     return NextResponse.json([]);

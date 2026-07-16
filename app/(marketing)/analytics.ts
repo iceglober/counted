@@ -1,4 +1,11 @@
-import { Analytics } from "@counted/sdk";
+import {
+  MAX_VAL,
+  UTM_KEYS,
+  type Attribution,
+  readStoredAttribution,
+  persistAttribution,
+  lazyAnalytics,
+} from "@/lib/attribution";
 
 // Counted dogfooding its own marketing site. Lazily creates the client browser
 // SDK from NEXT_PUBLIC_COUNTED_PROJECT_KEY (no-op if unset). Only call from
@@ -8,15 +15,11 @@ import { Analytics } from "@counted/sdk";
 // On first creation it captures first-touch attribution (UTM tags + referrer)
 // and registers it as super-properties, so every marketing event — page_view,
 // cta_click, etc. — carries source/medium/campaign/channel. That's the read
-// side of the Growth dashboard (source → conversion).
+// side of the Growth dashboard (source → conversion). First-touch is scoped to
+// the visit (sessionStorage) — nothing persists across visits, per the
+// privacy-first, never-persist policy.
 
-let instance: Analytics | null = null;
-let tried = false;
-
-const ATTR_KEY = "counted_attr_v1";
-const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const;
-
-export type Attribution = Record<string, string>;
+export type { Attribution };
 
 // Group a referrer host into a coarse channel for the source dimension.
 function channelFromHost(host: string): string {
@@ -39,7 +42,7 @@ function computeAttribution(): Attribution {
     const params = new URLSearchParams(window.location.search);
     for (const k of UTM_KEYS) {
       const v = params.get(k);
-      if (v) attr[k] = v.slice(0, 120);
+      if (v) attr[k] = v.slice(0, MAX_VAL);
     }
 
     let refHost = "";
@@ -59,24 +62,21 @@ function computeAttribution(): Attribution {
   return attr;
 }
 
-// First-touch: persist the first attribution we ever see for this browser and
-// keep it stable across pages and later visits.
+// First-touch: remember the first attribution we see this visit and keep it
+// stable across pages within the visit (sessionStorage). Nothing survives the
+// visit — the cross-origin /login handoff carries attribution via URL params.
 export function getAttribution(): Attribution {
   if (typeof window === "undefined") return {};
-  try {
-    const stored = localStorage.getItem(ATTR_KEY);
-    if (stored) return JSON.parse(stored) as Attribution;
-    const attr = computeAttribution();
-    localStorage.setItem(ATTR_KEY, JSON.stringify(attr));
-    return attr;
-  } catch {
-    return computeAttribution();
-  }
+  const stored = readStoredAttribution();
+  if (stored) return stored;
+  const attr = computeAttribution();
+  persistAttribution(attr);
+  return attr;
 }
 
 // Append first-touch attribution to an outbound link as explicit URL params.
 // Used on the login CTA so attribution survives the cross-origin hop to the app
-// (counted.dev → app.counted.dev), where localStorage isn't shared. URL params,
+// (counted.dev → app.counted.dev), where storage isn't shared. URL params,
 // never a cross-site cookie — per the privacy-first philosophy (AGENTS.md).
 export function appendAttribution(href: string): string {
   if (typeof window === "undefined") return href;
@@ -92,25 +92,9 @@ export function appendAttribution(href: string): string {
   }
 }
 
-function client(): Analytics | null {
-  if (tried) return instance;
-  tried = true;
-  const key = process.env.NEXT_PUBLIC_COUNTED_PROJECT_KEY;
-  const host = process.env.NEXT_PUBLIC_COUNTED_HOST ?? "https://app.counted.dev";
-  if (key) {
-    instance = new Analytics({ projectKey: key, host });
-    try {
-      instance.register(getAttribution());
-    } catch {
-      /* attribution is best-effort */
-    }
-  }
-  return instance;
-}
-
 export function track(event: string, props?: Record<string, string | number | boolean>) {
   try {
-    client()?.track(event, props);
+    lazyAnalytics(getAttribution)?.track(event, props);
   } catch {
     /* analytics must never break the page */
   }

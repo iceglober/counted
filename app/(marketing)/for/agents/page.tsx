@@ -54,7 +54,7 @@ export default function ForAgentsPage() {
             <b>Commands.</b>{" "}Commands run, recorded by binary name — no arguments, no secrets.
           </li>
           <li>
-            <b>Outcomes.</b>{" "}Session starts and ends, durations, and the results you choose to
+            <b>Outcomes.</b>{" "}Session starts and ends, and the results you choose to
             tag.
           </li>
         </ul>

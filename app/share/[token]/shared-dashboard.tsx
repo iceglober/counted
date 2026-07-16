@@ -1,9 +1,12 @@
 "use client";
 
-import type { Insight, MetricData, TimeSeriesData, BreakdownItem } from "@/lib/types";
+import type { Insight, MetricData, TimeSeriesData, BreakdownItem, FunnelData, RetentionData } from "@/lib/types";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { Breakdown } from "@/components/dashboard/breakdown";
+import { Funnel } from "@/components/dashboard/funnel";
+import { Retention } from "@/components/dashboard/retention";
+import { spanToCols } from "@/components/dashboard/span-grid";
 
 function InsightRenderer({ insight }: { insight: Insight }) {
   if (!insight.data) return null;
@@ -26,6 +29,10 @@ function InsightRenderer({ insight }: { insight: Insight }) {
     }
     case "breakdown":
       return <Breakdown title={insight.title} items={(insight.data as { items?: BreakdownItem[] })?.items ?? []} />;
+    case "funnel":
+      return <Funnel title={insight.title} steps={(insight.data as FunnelData)?.steps ?? []} />;
+    case "retention":
+      return <Retention title={insight.title} data={(insight.data as RetentionData) ?? { cohorts: [], periods: [] }} />;
   }
 }
 
@@ -33,7 +40,7 @@ export function SharedDashboard({ insights }: { insights: Insight[] }) {
   return (
     <div className="grid grid-cols-3 gap-4">
       {insights.map((insight) => (
-        <div key={insight.id} className="w-full" style={{ gridColumn: `span ${Math.min(insight.span, 3)}` }}>
+        <div key={insight.id} className="w-full" style={{ gridColumn: `span ${spanToCols(insight.span)}` }}>
           <InsightRenderer insight={insight} />
         </div>
       ))}

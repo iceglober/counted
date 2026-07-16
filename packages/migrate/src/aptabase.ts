@@ -80,21 +80,55 @@ function toCountedEvent(row: AptabaseRow) {
   };
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Retry-After is either a delay in seconds or an HTTP-date. Return ms, or null
+// if unparseable so the caller falls back to its own backoff.
+function retryAfterMs(header: string | null): number | null {
+  if (!header) return null;
+  const secs = Number(header);
+  if (Number.isFinite(secs)) return Math.max(0, secs * 1000);
+  const when = Date.parse(header);
+  if (!Number.isNaN(when)) return Math.max(0, when - Date.now());
+  return null;
+}
+
 async function sendBatch(
   events: ReturnType<typeof toCountedEvent>[],
   targetHost: string,
   targetKey: string,
+  maxAttempts = 5,
 ): Promise<void> {
-  const res = await fetch(`${targetHost}/api/v0/event`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "App-Key": targetKey,
-    },
-    body: JSON.stringify(events),
-  });
+  let delay = 500;
+  for (let attempt = 1; ; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(`${targetHost}/api/v0/event`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "App-Key": targetKey,
+        },
+        body: JSON.stringify(events),
+      });
+    } catch (err) {
+      // Network / DNS / connection reset — transient, retry with backoff.
+      if (attempt >= maxAttempts) throw err;
+      await sleep(delay);
+      delay *= 2;
+      continue;
+    }
 
-  if (!res.ok) {
+    if (res.ok) return;
+
+    // 429 and 5xx are transient; honor Retry-After when present.
+    if ((res.status === 429 || res.status >= 500) && attempt < maxAttempts) {
+      const wait = retryAfterMs(res.headers.get("retry-after")) ?? delay;
+      await sleep(wait);
+      delay *= 2;
+      continue;
+    }
+
     throw new Error(`Ingestion failed: ${res.status} ${res.statusText}`);
   }
 }
@@ -138,19 +172,31 @@ async function* readFromClickHouse(
   since: string | undefined,
   batchSize: number,
 ): AsyncGenerator<AptabaseRow[]> {
-  let offset = 0;
-  const params: Record<string, string> = { appId };
-  let whereSince = "";
-  if (since) {
-    whereSince = " AND timestamp >= parseDateTimeBestEffort({since:String})";
-    params.since = since;
-  }
+  // Keyset (seek) pagination: order by (timestamp, session_id) and page forward
+  // past the last row we saw. OFFSET pagination ordered only by timestamp skips
+  // or duplicates rows that share a timestamp; the (timestamp, session_id) tie
+  // break is total, so pages never overlap or gap. It also resumes for free.
+  let cursor: { ts: string; session: string } | null = null;
 
   while (true) {
+    const params: Record<string, string> = { appId };
+    let where = "WHERE app_id = {appId:String}";
+    if (cursor) {
+      where +=
+        " AND (timestamp > parseDateTimeBestEffort({cursorTs:String})" +
+        " OR (timestamp = parseDateTimeBestEffort({cursorTs:String})" +
+        " AND session_id > {cursorSession:String}))";
+      params.cursorTs = cursor.ts;
+      params.cursorSession = cursor.session;
+    } else if (since) {
+      where += " AND timestamp >= parseDateTimeBestEffort({since:String})";
+      params.since = since;
+    }
+
     const sql =
       `SELECT ${CH_COLUMNS} FROM events ` +
-      `WHERE app_id = {appId:String}${whereSince} ` +
-      `ORDER BY timestamp ASC LIMIT ${batchSize} OFFSET ${offset} FORMAT JSONEachRow`;
+      `${where} ` +
+      `ORDER BY timestamp ASC, session_id ASC LIMIT ${batchSize} FORMAT JSONEachRow`;
     const body = await clickhouseQuery(sourceUrl, sql, params);
     const rows = body
       .split("\n")
@@ -158,8 +204,9 @@ async function* readFromClickHouse(
       .map((line) => JSON.parse(line) as AptabaseRow);
 
     if (rows.length === 0) break;
+    const last = rows[rows.length - 1];
+    cursor = { ts: last.timestamp, session: last.session_id };
     yield rows;
-    offset += rows.length;
     if (rows.length < batchSize) break;
   }
 }
@@ -214,33 +261,57 @@ export async function migrateAptabase(opts: MigrateOptions): Promise<void> {
   let totalBatches = 0;
   const pendingTasks: (() => Promise<void>)[] = [];
 
-  for await (const batch of source) {
-    const converted = batch.map(toCountedEvent);
-    totalEvents += converted.length;
-    totalBatches++;
+  // Highest source timestamp we've confirmed delivered. On failure it becomes a
+  // `--since` the user can resume from (ingestion has no dedup, so a resume may
+  // re-send the events sharing that exact second — an accepted, small overlap).
+  let checkpoint: string | undefined = opts.since;
+  const advanceCheckpoint = (events: ReturnType<typeof toCountedEvent>[]) => {
+    for (const e of events) {
+      if (!checkpoint || e.timestamp > checkpoint) checkpoint = e.timestamp;
+    }
+  };
 
-    if (opts.dryRun) {
-      console.log(`[dry-run] Batch ${totalBatches}: ${converted.length} events`);
-      continue;
+  try {
+    for await (const batch of source) {
+      const converted = batch.map(toCountedEvent);
+      totalEvents += converted.length;
+      totalBatches++;
+
+      if (opts.dryRun) {
+        console.log(`[dry-run] Batch ${totalBatches}: ${converted.length} events`);
+        continue;
+      }
+
+      const batchNum = totalBatches;
+      const eventCount = converted.length;
+      pendingTasks.push(async () => {
+        await sendBatch(converted, opts.targetHost, opts.targetKey);
+        advanceCheckpoint(converted);
+        console.log(`Batch ${batchNum}: ${eventCount} events (total: ${totalEvents})`);
+      });
+
+      if (pendingTasks.length >= opts.concurrency) {
+        await runWithConcurrency(pendingTasks.splice(0), opts.concurrency);
+      }
     }
 
-    const batchNum = totalBatches;
-    const eventCount = converted.length;
-    pendingTasks.push(async () => {
-      await sendBatch(converted, opts.targetHost, opts.targetKey);
-      console.log(`Batch ${batchNum}: ${eventCount} events (total: ${totalEvents})`);
-    });
-
-    if (pendingTasks.length >= opts.concurrency) {
-      await runWithConcurrency(pendingTasks.splice(0), opts.concurrency);
+    if (pendingTasks.length > 0) {
+      await runWithConcurrency(pendingTasks, opts.concurrency);
     }
-  }
-
-  if (pendingTasks.length > 0) {
-    await runWithConcurrency(pendingTasks, opts.concurrency);
+  } catch (err) {
+    if (checkpoint) {
+      console.error(
+        `\nMigration interrupted. Resume from the last confirmed batch with:\n` +
+          `  --since "${checkpoint}"`,
+      );
+    }
+    throw err;
   }
 
   console.log(
     `\n${opts.dryRun ? "[dry-run] " : ""}Migration complete: ${totalEvents} events in ${totalBatches} batches`,
   );
+  if (!opts.dryRun) {
+    console.log(`View your imported data: ${opts.targetHost}`);
+  }
 }

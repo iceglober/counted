@@ -100,15 +100,25 @@ export default function VsAptabasePage() {
   --target-host "https://app.counted.dev"`}</CodeBlock>
 
         <p>
-          <b>2. Swap the SDK.</b>{" "}The shape is the same — initialize once, then track named
-          events with properties.
+          <b>2. Swap the SDK.</b>{" "}Change one import. The drop-in shim keeps Aptabase&apos;s{" "}
+          <code>init</code> / <code>trackEvent</code> API — same call sites, only the key
+          changes.
         </p>
         <p className="small muted">&mdash; before (Aptabase)</p>
         <CodeBlock>{`import { init, trackEvent } from "@aptabase/web";
 
 init("A-EU-0000000000");
 trackEvent("plan_selected", { plan: "premium" });`}</CodeBlock>
-        <p className="small muted">+ after (Counted)</p>
+        <p className="small muted">+ after (Counted — drop-in shim)</p>
+        <CodeBlock>{`import { init, trackEvent } from "@counted/sdk/aptabase";
+
+init("ck_your_project_key");
+trackEvent("plan_selected", { plan: "premium" });`}</CodeBlock>
+
+        <p>
+          When you&apos;re ready, switch to the native Analytics API for the full
+          feature set (super-properties, richer typing):
+        </p>
         <CodeBlock>{`import { Analytics } from "@counted/sdk";
 
 const counted = new Analytics({ projectKey: "ck_..." });

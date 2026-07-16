@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { useProjects } from "@/components/dashboard/dashboard-shell";
 import { EditableText } from "@/components/editable-text";
-import { Copy, RotateCw, Hash, Globe, Smartphone, Tag, Trash2 } from "lucide-react";
+import { Copy, RotateCw, Hash, Globe, Smartphone, Tag, Trash2, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { IconButton } from "@/components/ui/icon-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
+import { api } from "@/lib/client-api";
+import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 
 type ProjectDetail = {
   id: string;
@@ -37,6 +39,10 @@ export default function ProjectsPage() {
   const [schema, setSchema] = useState<ProjectSchema | null>(null);
   const [rotating, setRotating] = useState(false);
   const [allProjects, setAllProjects] = useState<ProjectDetail[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmRotate, setConfirmRotate] = useState<"client" | "server" | null>(null);
+  const [serverKeyRevealed, setServerKeyRevealed] = useState(false);
+  const [rotatedKey, setRotatedKey] = useState<"client" | "server" | null>(null);
 
   useEffect(() => {
     fetch("/api/v0/projects")
@@ -56,28 +62,30 @@ export default function ProjectsPage() {
   }, [selectedId, allProjects]);
 
   async function createProject() {
-    const res = await fetch("/api/v0/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Untitled" }),
-    });
-    if (res.ok) {
-      const project = await res.json();
+    try {
+      const project = await api<ProjectDetail>("/api/v0/projects", { method: "POST", body: { name: "Untitled" } });
       setAllProjects((prev) => [...prev, project]);
       setSelectedId(project.id);
+    } catch {
+      /* api() surfaced the error */
     }
   }
 
   async function renameProject(name: string, id?: string) {
     const targetId = id ?? detail?.id;
     if (!targetId) return;
+    const prevName = allProjects.find((p) => p.id === targetId)?.name;
     if (detail && detail.id === targetId) setDetail({ ...detail, name });
     setAllProjects((prev) => prev.map((p) => p.id === targetId ? { ...p, name } : p));
-    await fetch(`/api/v0/projects/${targetId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
+    try {
+      await api(`/api/v0/projects/${targetId}`, { method: "PATCH", body: { name } });
+    } catch {
+      // Revert the optimistic rename.
+      if (prevName != null) {
+        setAllProjects((prev) => prev.map((p) => p.id === targetId ? { ...p, name: prevName } : p));
+        setDetail((d) => (d && d.id === targetId ? { ...d, name: prevName } : d));
+      }
+    }
   }
 
   async function copyKey() {
@@ -86,33 +94,49 @@ export default function ProjectsPage() {
     toast.success("Client key copied");
   }
 
+  async function copyServerKey() {
+    if (!detail?.serverKey) return;
+    await navigator.clipboard.writeText(detail.serverKey);
+    toast.success("Server key copied");
+  }
+
   async function rotateKey(type: "client" | "server" = "client") {
     if (!detail || rotating) return;
     setRotating(true);
-    const res = await fetch(`/api/v0/projects/${detail.id}/keys`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type }),
-    });
-    if (res.ok) {
-      const { clientKey, serverKey } = await res.json();
+    try {
+      const { clientKey, serverKey } = await api<{ clientKey: string | null; serverKey: string | null }>(
+        `/api/v0/projects/${detail.id}/keys`,
+        { method: "POST", body: { type } },
+      );
       setDetail({ ...detail, clientKey, serverKey, apiKey: clientKey ?? detail.apiKey });
       setAllProjects((prev) => prev.map((p) => p.id === detail.id ? { ...p, clientKey, serverKey } : p));
+      if (type === "server") setServerKeyRevealed(true);
+      setRotatedKey(type);
+      setTimeout(() => setRotatedKey(null), 4000);
+      toast.success(`${type === "client" ? "Client" : "Server"} key rotated`);
+    } catch {
+      /* api() surfaced the error */
+    } finally {
+      setRotating(false);
     }
-    setRotating(false);
   }
 
   async function deleteProject() {
     if (!detail) return;
-    const res = await fetch(`/api/v0/projects/${detail.id}`, { method: "DELETE" });
-    if (res.ok || res.status === 204) {
+    try {
+      await api(`/api/v0/projects/${detail.id}`, { method: "DELETE" });
+      toast.success("Project deleted");
       const remaining = allProjects.filter((p) => p.id !== detail.id);
       setAllProjects(remaining);
       setDetail(null);
       setSelectedId(remaining[0]?.id ?? "");
       router.refresh();
+    } catch {
+      /* api() surfaced the error */
     }
   }
+
+  const eventTotal = schema?.eventNames.reduce((sum, e) => sum + e.count, 0) ?? 0;
 
   return (
     <div className="flex-1 min-w-0">
@@ -163,12 +187,12 @@ export default function ProjectsPage() {
               <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1">Client Key</h2>
               <p className="text-xs text-text-tertiary mb-2">Public. Goes in your SDK. Ingest only.</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm font-mono text-text-primary border border-border select-all !px-2.5 !py-2">
+                <code className={`flex-1 text-sm font-mono text-text-primary border select-all !px-2.5 !py-2 transition-colors ${rotatedKey === "client" ? "border-accent bg-accent/8" : "border-border"}`}>
                   {detail.clientKey ?? detail.apiKey}
                 </code>
                 <IconButton icon={<Copy />} label="Copy client key" onClick={copyKey} />
               </div>
-              <button onClick={() => rotateKey("client")} disabled={rotating} className="text-xs text-error hover:text-error/80 mt-2 transition-colors disabled:opacity-50 flex items-center gap-1">
+              <button onClick={() => setConfirmRotate("client")} disabled={rotating} className="text-xs text-error hover:text-error/80 mt-2 transition-colors disabled:opacity-50 flex items-center gap-1">
                 <RotateCw className="w-3 h-3" />
                 {rotating ? "Rotating..." : "Rotate"}
               </button>
@@ -179,11 +203,23 @@ export default function ProjectsPage() {
               <h2 className="!text-[13px] font-bold text-text-primary !my-0 !pb-1">Server Key</h2>
               <p className="text-xs text-text-tertiary mb-2">Private. Server-side only. Full API access.</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm font-mono text-text-primary border border-border select-all !px-2.5 !py-2">
-                  {detail.serverKey ?? "Not generated yet"}
+                <code className={`flex-1 text-sm font-mono text-text-primary border select-all !px-2.5 !py-2 transition-colors ${rotatedKey === "server" ? "border-accent bg-accent/8" : "border-border"}`}>
+                  {detail.serverKey
+                    ? (serverKeyRevealed ? detail.serverKey : `${detail.serverKey.slice(0, 6)}${"•".repeat(8)}`)
+                    : "Not generated yet"}
                 </code>
+                {detail.serverKey && (
+                  <>
+                    <IconButton
+                      icon={serverKeyRevealed ? <EyeOff /> : <Eye />}
+                      label={serverKeyRevealed ? "Hide server key" : "Reveal server key"}
+                      onClick={() => setServerKeyRevealed((v) => !v)}
+                    />
+                    <IconButton icon={<Copy />} label="Copy server key" onClick={copyServerKey} />
+                  </>
+                )}
               </div>
-              <button onClick={() => rotateKey("server")} disabled={rotating} className="text-xs text-error hover:text-error/80 mt-2 transition-colors disabled:opacity-50 flex items-center gap-1">
+              <button onClick={() => setConfirmRotate("server")} disabled={rotating} className="text-xs text-error hover:text-error/80 mt-2 transition-colors disabled:opacity-50 flex items-center gap-1">
                 <RotateCw className="w-3 h-3" />
                 {rotating ? "Rotating..." : "Rotate"}
               </button>
@@ -295,7 +331,7 @@ analytics.track("page_view", { path: "/" });`}
             {/* Danger zone */}
             <div className="pt-4 border-t border-border">
               <button
-                onClick={deleteProject}
+                onClick={() => setConfirmDelete(true)}
                 className="text-xs text-error hover:text-error/80 transition-colors flex items-center gap-1.5"
               >
                 <Trash2 className="w-3 h-3" />
@@ -310,6 +346,33 @@ analytics.track("page_view", { path: "/" });`}
         )}
       </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Delete "${detail?.name ?? "project"}"?`}
+        description={
+          <>
+            This permanently deletes the project and all{" "}
+            <span className="font-semibold text-text-primary">{eventTotal.toLocaleString()}</span> of its recorded
+            events. This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete permanently"
+        destructive
+        confirmPhrase={detail?.name}
+        onConfirm={deleteProject}
+      />
+
+      <ConfirmDialog
+        open={confirmRotate !== null}
+        onOpenChange={(o) => !o && setConfirmRotate(null)}
+        title={confirmRotate === "server" ? "Rotate server key?" : "Rotate client key?"}
+        description="Rotating invalidates the current key immediately; apps and SDKs using it stop reporting until you update them with the new key."
+        confirmLabel="Rotate key"
+        destructive
+        onConfirm={() => { if (confirmRotate) return rotateKey(confirmRotate); }}
+      />
     </div>
   );
 }

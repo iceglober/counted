@@ -11,6 +11,23 @@ type ErrorContext = {
   routeType?: string;
 };
 
+// Runs once on server startup. On a graceful shutdown (Railway sends SIGTERM on
+// redeploy), the event route has already 202'd events that live only in the
+// in-memory buffer, so we drain them before exit. Without this, every redeploy
+// silently drops up to a full buffer (≈200 events / 5s) of acknowledged events.
+//
+// Remaining at-most-once window: events accepted in the milliseconds after the
+// drain starts, or a hard SIGKILL before the final DB write returns, are still
+// lost. This narrows the window from "every deploy" to "the drain tail".
+export async function register(): Promise<void> {
+  // Signal handlers only exist in the Node.js runtime, and the shutdown module
+  // (which pulls in pg via the buffer, and calls process.once) must never enter
+  // the Edge bundle — so it's imported dynamically behind this guard.
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  const { registerShutdownHandlers } = await import("./lib/shutdown");
+  registerShutdownHandlers();
+}
+
 export async function onRequestError(
   error: unknown,
   request: ErrorRequest,

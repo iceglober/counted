@@ -2,10 +2,11 @@
 
 import { Dropdown } from "@/components/dropdown";
 
+// "Unique users" is intentionally omitted: it aliased ephemeral 30-min session
+// IDs and wildly overstated "users". Use "Unique sessions" for session counts.
 const AGGREGATIONS = [
   { value: "count", label: "Count" },
   { value: "unique_sessions", label: "Unique sessions" },
-  { value: "unique_users", label: "Unique users" },
   { value: "sum", label: "Sum" },
   { value: "avg", label: "Average" },
   { value: "min", label: "Minimum" },

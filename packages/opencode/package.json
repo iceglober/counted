@@ -1,6 +1,6 @@
 {
   "name": "@counted/opencode",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Counted analytics plugin for OpenCode — track AI agent actions privately",
   "type": "module",
   "main": "dist/index.cjs",
@@ -11,6 +11,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./api": {
+      "types": "./dist/api.d.ts",
+      "import": "./dist/api.js",
+      "require": "./dist/api.cjs"
     }
   },
   "files": [
@@ -18,6 +23,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
   "sideEffects": false,

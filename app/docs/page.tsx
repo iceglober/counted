@@ -112,7 +112,7 @@ export default function DocsPage() {
       <H2>Next</H2>
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <NextLink href="/docs/api" title="API Reference →" blurb="Every endpoint: ingestion, projects, query, dashboards, alerts." />
-        <NextLink href="/for/agents" title="Analytics for AI agents →" blurb="Native plugins for Claude Code, OpenCode, Codex, and Gemini CLI." />
+        <NextLink href="/for/agents" title="Analytics for AI agents →" blurb="Native plugins for Claude Code and OpenCode." />
         <NextLink href="/blog" title="Blog →" blurb="Guides and notes on the privacy model, agents, and self-hosting." />
         <NextLink href="https://github.com/iceglober/counted#self-hosting" title="Self-host →" blurb="Run Counted on your own infra with Docker Compose." />
       </div>

@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { bufferEvents } from "@/lib/event-buffer";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { isOverHardLimit } from "@/lib/usage";
 
 const MAX_BATCH_SIZE = 50;
 const MAX_EVENT_NAME_LENGTH = 200;
@@ -11,6 +12,12 @@ const MAX_SESSION_ID_LENGTH = 100;
 const MAX_PROP_KEYS = 50;
 const MAX_PROP_KEY_LENGTH = 200;
 const MAX_PROP_VALUE_SIZE = 10_000;
+// Reject oversized bodies before we buffer them into memory. 50 events × 50
+// props × 10K chars is ~25MB of parse-time allocation otherwise.
+const MAX_BODY_BYTES = 1_000_000;
+// Clock skew tolerance: reject timestamps more than 1h in the future (bad clocks
+// or spoofed future-dating that would poison time-series charts).
+const MAX_FUTURE_SKEW_MS = 60 * 60 * 1000;
 
 function validateEvent(evt: Record<string, unknown>, index: number): string | null {
   if (!evt.eventName || typeof evt.eventName !== "string") {
@@ -46,13 +53,27 @@ function validateEvent(evt: Record<string, unknown>, index: number): string | nu
       }
     }
   }
+  if (evt.timestamp !== undefined && evt.timestamp !== null) {
+    const ts = new Date(evt.timestamp as string | number).getTime();
+    if (isNaN(ts)) {
+      return `events[${index}]: timestamp is not a valid date`;
+    }
+    if (ts > Date.now() + MAX_FUTURE_SKEW_MS) {
+      return `events[${index}]: timestamp is too far in the future`;
+    }
+  }
   return null;
 }
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    ?? request.headers.get("x-real-ip")
-    ?? "unknown";
+  // Reject oversized payloads before parsing (Content-Length is untrusted but a
+  // cheap first gate; the batch/prop caps below bound the parsed shape).
+  const contentLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+
+  const ip = getClientIp(request.headers);
 
   const rateCheck = checkRateLimit(ip);
   if (!rateCheck.allowed) {
@@ -68,7 +89,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const projectKey = request.headers.get("project-key") ?? request.headers.get("app-key");
+  // Also accept the key via ?key= query param: navigator.sendBeacon (used on
+  // page-unload) cannot set request headers, so the SDK's beacon path passes the
+  // client key in the query string. sk_ server keys are still rejected below.
+  const projectKey =
+    request.headers.get("project-key") ??
+    request.headers.get("app-key") ??
+    request.nextUrl.searchParams.get("key");
   if (!projectKey) {
     return NextResponse.json({ error: "Missing Project-Key header" }, { status: 401 });
   }
@@ -94,6 +121,13 @@ export async function POST(request: NextRequest) {
       { error: "Unclaimed project expired — claim it to keep ingesting events." },
       { status: 403 },
     );
+  }
+
+  // Free-plan hard stop: keep ingesting through the grace multiple (see
+  // lib/usage.ts), then acknowledge-and-drop rather than 429 (a 429 would trigger
+  // SDK retry storms). Owned free projects only; unclaimed/Pro projects pass.
+  if (await isOverHardLimit(project.id)) {
+    return new NextResponse(null, { status: 202 });
   }
 
   let body: unknown;
@@ -123,9 +157,16 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Country-only geography, from Cloudflare's edge header. The request IP is
+  // never read into storage. "XX" (unknown) / empty are normalised to null so
+  // they don't pollute the country breakdown; absent (self-host without CF) → null.
+  const cfCountry = request.headers.get("cf-ipcountry");
+  const countryCode = cfCountry && cfCountry !== "XX" ? cfCountry : null;
+
   const rows = eventList.map((evt: Record<string, unknown>) => ({
     projectId: project.id,
     timestamp: new Date((evt.timestamp as string) || Date.now()),
+    countryCode,
     sessionId: evt.sessionId as string,
     eventName: evt.eventName as string,
     osName: (evt.systemProps as Record<string, unknown>)?.osName as string ?? null,

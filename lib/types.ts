@@ -1,3 +1,17 @@
+// ─── Wire query types (single source of truth: @counted/api) ───────────────────
+// Re-exported so app code keeps importing them from "@/lib/types". The server,
+// the app, and the published client all share one definition — no drift.
+export type {
+  Measure,
+  GroupBy,
+  PropFilter,
+  SeriesQuery,
+  InsightQuery,
+  TimeRange,
+} from "@counted/api";
+
+import type { InsightQuery } from "@counted/api";
+
 // ─── Insight display types (used by dashboard components) ──────────────────────
 
 export type MetricData = {
@@ -50,56 +64,6 @@ export type Insight = {
   query?: InsightQuery;
   projectId?: string;
 };
-
-// ─── Query types (used by query engine and dashboard layout) ───────────────────
-
-export type Measure =
-  | "count"
-  | "unique_sessions"
-  | "unique_users"
-  | { property: string; aggregation: "sum" | "avg" | "min" | "max" };
-
-export type GroupBy =
-  | { type: "property"; key: string }
-  | { type: "system"; key: string }
-  | { type: "time"; bucket: string };
-
-export type PropFilter = {
-  field: string;
-  operator: "eq" | "neq" | "contains" | "gt" | "lt" | "in";
-  value: string | number | string[];
-};
-
-/** One extra line on a timeseries insight: its own measure and event filter. */
-export type SeriesQuery = {
-  label?: string;
-  measure: Measure;
-  eventFilter?: {
-    names?: string[];
-    properties?: PropFilter[];
-  };
-};
-
-export type InsightQuery = {
-  measure: Measure;
-  eventFilter?: {
-    names?: string[];
-    properties?: PropFilter[];
-  };
-  /** Additional series plotted alongside the primary measure (timeseries only). */
-  series?: SeriesQuery[];
-  groupBy?: GroupBy[];
-  timeBucket?: "hour" | "day" | "week" | "month";
-  orderBy?: { field: string; direction: "asc" | "desc" };
-  limit?: number;
-  funnelSteps?: string[];
-  retentionPeriod?: "day" | "week" | "month";
-  retentionPeriods?: number;
-};
-
-export type TimeRange =
-  | { type: "relative"; value: number; unit: string }
-  | { type: "absolute"; start: string; end: string };
 
 // ─── Dashboard layout types (stored in JSONB) ─────────────────────────────────
 

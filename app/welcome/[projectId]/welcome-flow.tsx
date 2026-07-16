@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/client-api";
 
 const TEMPLATES = [
   { template: "default" as const, title: "Product metrics", desc: "Traffic, events, breakdowns" },
@@ -30,12 +31,13 @@ export function WelcomeFlow({
     e.preventDefault();
     setBusy(true);
     try {
-      await fetch(`/api/v0/projects/${projectId}`, {
+      await api(`/api/v0/projects/${projectId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() || "My App" }),
+        body: { name: name.trim() || "My App" },
       });
       setStep("dashboard");
+    } catch {
+      /* api() surfaced the error */
     } finally {
       setBusy(false);
     }
@@ -43,15 +45,13 @@ export function WelcomeFlow({
 
   async function createDashboard(template: "default" | "agent" | "blank") {
     setBusy(true);
-    const res = await fetch("/api/v0/dashboards", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, slug: `dash-${Date.now()}`, template }),
-    });
-    if (res.ok) {
-      const dashboard = await res.json();
+    try {
+      const dashboard = await api<{ id: string }>("/api/v0/dashboards", {
+        method: "POST",
+        body: { projectId, slug: `dash-${Date.now()}`, template },
+      });
       router.push(`/dashboards?dashboard=${dashboard.id}`);
-    } else {
+    } catch {
       setBusy(false);
     }
   }
@@ -78,6 +78,11 @@ export function WelcomeFlow({
               onChange={(e) => setName(e.target.value)}
               placeholder="My App"
             />
+            {name.trim() === "" && (
+              <p className="text-xs text-text-tertiary">
+                We&apos;ll call it &ldquo;My App&rdquo; — you can rename it anytime.
+              </p>
+            )}
             <Button type="submit" disabled={busy}>Continue</Button>
           </form>
         </>

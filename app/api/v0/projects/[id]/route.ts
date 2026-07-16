@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { projects, dashboards, projectMembers, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireProjectAccess } from "@/lib/auth-guard";
+import { requireProjectAccess, readJson } from "@/lib/auth-guard";
 import { pool } from "@/lib/db";
 
 export async function PATCH(
@@ -20,7 +20,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Only owners can update projects" }, { status: 403 });
   }
 
-  const { name } = await request.json();
+  const parsed = await readJson<{ name?: string }>(request);
+  if (!parsed.ok) return parsed.response;
+  const { name } = parsed.body;
 
   const [result] = await db
     .update(projects)

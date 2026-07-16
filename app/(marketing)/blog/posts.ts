@@ -20,7 +20,18 @@ export type PostMeta = {
   published: boolean;
 };
 
-export const POSTS: PostMeta[] = [];
+export const POSTS: PostMeta[] = [
+  {
+    slug: "counting-without-identity",
+    title: "How Counted counts you without knowing who you are",
+    description:
+      "No cookie, no localStorage, no fingerprint. The whole identity system is 30 lines: an in-memory session ID that dies with the tab. What that costs, and what you get back.",
+    date: "2026-07-15",
+    readingTime: "4 min",
+    category: "Engineering",
+    published: false, // flip to true on publish day (and set the real date)
+  },
+];
 
 export function getPost(slug: string): PostMeta | undefined {
   return POSTS.find((p) => p.slug === slug);

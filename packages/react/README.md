@@ -15,7 +15,7 @@ import { AnalyticsProvider, useAnalytics } from "@counted/react";
 
 function App() {
   return (
-    <AnalyticsProvider projectKey="A-US-...">
+    <AnalyticsProvider projectKey="ck_...">
       <MyApp />
     </AnalyticsProvider>
   );
@@ -29,10 +29,25 @@ function SignupButton() {
 
 ## Migrating from Aptabase
 
+Same API as `@aptabase/react` — change only the import path:
+
 ```tsx
-// Drop-in replacement
-import { AptabaseProvider, useAptabase } from "@counted/react/aptabase";
-// Same API as @aptabase/react
+// import { AptabaseProvider } from "@aptabase/react";
+import { AptabaseProvider } from "@counted/react/aptabase";
+
+root.render(
+  <AptabaseProvider appKey="A-US-0000000000">
+    <App />
+  </AptabaseProvider>
+);
+```
+
+```tsx
+// import { useAptabase } from "@aptabase/react";
+import { useAptabase } from "@counted/react/aptabase";
+
+const { trackEvent } = useAptabase();
+trackEvent("save_settings", { theme: "dark" });
 ```
 
 ## License

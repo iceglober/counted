@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Star } from "lucide-react";
 import { ActionButton } from "@/components/action-button";
+import { api } from "@/lib/client-api";
 
 type DashboardTab = {
   id: string;
@@ -44,11 +45,10 @@ export const DashboardTabs = forwardRef<DashboardTabsRef, Props>(
         setDashboards((prev) => sortDashboards(prev.map((d) => d.id === id ? { ...d, name } : d)));
       },
       remove(id: string) {
+        // Just drop the tab locally — navigation after a delete is the parent's
+        // job (dashboard-page onDashboardDelete). The old `/${projectId}` push
+        // pointed at a dead route and 404'd.
         setDashboards((prev) => sortDashboards(prev.filter((d) => d.id !== id)));
-        if (id === activeDashboardId) {
-          router.push(`/${projectId}`);
-          router.refresh();
-        }
       },
       setDefault(id: string) {
         setDashboards((prev) => sortDashboards(prev.map((d) => ({ ...d, isDefault: d.id === id }))));
@@ -59,15 +59,15 @@ export const DashboardTabs = forwardRef<DashboardTabsRef, Props>(
 
     async function createDashboard(template: "blank" | "default" | "agent") {
       setMenuOpen(false);
-      const res = await fetch("/api/v0/dashboards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, slug: `dash-${Date.now()}`, template }),
-      });
-      if (res.ok) {
-        const dashboard = await res.json();
+      try {
+        const dashboard = await api<{ id: string; name: string }>("/api/v0/dashboards", {
+          method: "POST",
+          body: { projectId, slug: `dash-${Date.now()}`, template },
+        });
         setDashboards((prev) => sortDashboards([...prev, { id: dashboard.id, name: dashboard.name, isDefault: false }]));
         router.push(`/dashboards?dashboard=${dashboard.id}`);
+      } catch {
+        /* api() surfaced the error */
       }
     }
 

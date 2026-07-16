@@ -42,3 +42,21 @@ export function rateLimit(
 export function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
   return rateLimit(ip, MAX_REQUESTS, WINDOW_MS);
 }
+
+// Derive a trusted client IP for rate-limiting. The leftmost X-Forwarded-For
+// entry is client-supplied and trivially spoofable, so rotating a fake XFF header
+// would defeat per-IP limits. Prefer Cloudflare's CF-Connecting-IP; otherwise
+// trust only the RIGHTMOST XFF entry (appended by our own edge/proxy), never the
+// leftmost. This IP is used transiently for rate-limit keys only — never stored.
+export function getClientIp(headers: Headers): string {
+  const cf = headers.get("cf-connecting-ip")?.trim();
+  if (cf) return cf;
+
+  const xff = headers.get("x-forwarded-for");
+  if (xff) {
+    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
+
+  return headers.get("x-real-ip")?.trim() ?? "unknown";
+}

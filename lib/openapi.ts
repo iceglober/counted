@@ -157,8 +157,9 @@ export const spec = {
       get: {
         tags: ["Query"],
         summary: "Export events",
-        description: "Download events as JSON or CSV.",
-        security: [{ session: [] }],
+        description:
+          "Download events as JSON or CSV. The response is streamed, so a single call can export the full history for the given bounds without an in-memory row cap. To page through very large exports, use the timestamp cursor params: pass the oldest `timestamp` you received back as `before` on the next call to continue further back in time.",
+        security: [{ session: [] }, { serverKey: [] }],
         parameters: [
           { $ref: "#/components/parameters/ProjectId" },
           {
@@ -167,9 +168,24 @@ export const spec = {
             schema: { type: "string", enum: ["json", "csv"], default: "json" },
           },
           {
+            name: "before",
+            in: "query",
+            description:
+              "Exclusive upper bound — only export events with timestamp strictly before this ISO-8601 time. Use the last (oldest) timestamp from a prior page to continue.",
+            schema: { type: "string", format: "date-time" },
+          },
+          {
+            name: "after",
+            in: "query",
+            description:
+              "Inclusive lower bound — only export events at or after this ISO-8601 time.",
+            schema: { type: "string", format: "date-time" },
+          },
+          {
             name: "limit",
             in: "query",
-            schema: { type: "integer", default: 10000, maximum: 100000 },
+            description: "Optional cap on the number of rows this call returns. Omit to stream everything within the bounds.",
+            schema: { type: "integer" },
           },
         ],
         responses: {
@@ -234,7 +250,7 @@ export const spec = {
         summary: "Execute a query",
         description:
           "Run an analytics query against event data. Supports aggregations, filters, group by, and time bucketing.",
-        security: [{ session: [] }],
+        security: [{ session: [] }, { serverKey: [] }],
         requestBody: {
           required: true,
           content: {
@@ -587,7 +603,7 @@ export const spec = {
         tags: ["Dashboards"],
         summary: "Load dashboard data",
         description: "Fetch all insight data for a project's default or specified dashboard.",
-        security: [{ session: [] }],
+        security: [{ session: [] }, { serverKey: [] }],
         requestBody: {
           required: true,
           content: {
@@ -634,7 +650,7 @@ export const spec = {
         tags: ["Query"],
         summary: "List recent events",
         description: "Returns the 100 most recent events, optionally filtered by project.",
-        security: [{ session: [] }],
+        security: [{ session: [] }, { serverKey: [] }],
         parameters: [
           {
             name: "projectId",
@@ -672,6 +688,12 @@ export const spec = {
         in: "cookie",
         name: "better-auth.session_token",
         description: "Session cookie from authentication",
+      },
+      serverKey: {
+        type: "http",
+        scheme: "bearer",
+        description:
+          "Server key (sk_...) sent as `Authorization: Bearer sk_...`. Grants full read access to the single project the key belongs to. Accepted on read/scripting endpoints (query, events-list, export, dashboard-data).",
       },
     },
     parameters: {

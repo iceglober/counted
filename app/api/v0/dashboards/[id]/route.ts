@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dashboards } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireSession } from "@/lib/auth-guard";
+import { requireSession, readJson } from "@/lib/auth-guard";
 
 // Dashboards are user-owned; authorize by ownership.
 async function ownedDashboard(id: string) {
@@ -28,7 +28,11 @@ export async function PUT(
   }
   const { existing, userId } = owned;
 
-  const { name, slug, layout, filters, isDefault } = await request.json();
+  const parsed = await readJson<{
+    name?: string; slug?: string; layout?: unknown; filters?: unknown; isDefault?: boolean;
+  }>(request);
+  if (!parsed.ok) return parsed.response;
+  const { name, slug, layout, filters, isDefault } = parsed.body;
 
   // One default per user.
   if (isDefault) {
