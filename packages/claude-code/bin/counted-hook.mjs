@@ -22,7 +22,7 @@ function s(t) {
   };
 }
 
-// ../sdk/dist/chunk-MHINEWW6.js
+// ../sdk/dist/chunk-PZCMGO5W.js
 function y() {
   let n = Math.floor(Date.now() / 1e3), e = Math.random().toString(36).substring(2, 10);
   return `${n}.${e}`;
@@ -39,7 +39,7 @@ var r = class {
     return (!this.sessionId || this.timeoutMs > 0 && e - this.lastActivity > this.timeoutMs) && (this.sessionId = y()), this.lastActivity = e, this.sessionId;
   }
 };
-var S = "0.1.1";
+var S = "0.1.2";
 var T = `counted/${S}`;
 var E = { darwin: "macOS", win32: "Windows", linux: "Linux" };
 function d(n) {
