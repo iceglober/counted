@@ -83,11 +83,6 @@ export default function PricingPage() {
           </tbody>
         </table>
 
-        <div className="note">
-          <b>Pro is in early access.</b>{" "}Billing opens soon — start free and upgrade when
-          it&apos;s live.
-        </div>
-
         <p className="small muted">
           All plans include the full SDK and every insight type. Open source — self-host
           anytime. No cookies, no consent banner. Need more than 1M events/month?{" "}
