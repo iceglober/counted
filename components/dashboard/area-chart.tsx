@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import { ChevronDown, Check } from "lucide-react";
 import type { TimeSeriesData, SummaryStat } from "@/lib/types";
 
@@ -40,20 +40,10 @@ function summarySuffix(stat: SummaryStat, bucket?: string): string | null {
   return null;
 }
 
-function curvePath(points: { x: number; y: number }[]): string {
-  let path = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const p0 = points[Math.max(0, i - 2)];
-    const p1 = points[i - 1];
-    const p2 = points[i];
-    const p3 = points[Math.min(points.length - 1, i + 1)];
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
-    path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
-  }
-  return path;
+// Plain straight-segment line (connect-the-dots). No smoothing — the angular
+// polyline reads the data literally and matches the plain house style.
+function linePath(points: { x: number; y: number }[]): string {
+  return points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
 }
 
 type Props = {
@@ -85,6 +75,11 @@ export function AreaChart({ title, data, bucket, summary = "total", onSummaryCha
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // Unique, CSS-safe id for the fill gradient. Deriving it from the title broke
+  // the url(#…) reference whenever the title held characters like "()" or ":"
+  // (the area then fell back to solid black); useId is always valid and unique.
+  const gradientId = `fill-${useId().replace(/:/g, "")}`;
 
   // Single-series data has no `series`; normalise so rendering has one shape.
   const series = data.series?.length
@@ -118,8 +113,6 @@ export function AreaChart({ title, data, bucket, summary = "total", onSummaryCha
   const xOf = (i: number) => pl + (i / (n - 1)) * cw;
   const yOf = (v: number) => pt + (1 - (v - min) / range) * ch;
   const seriesPoints = series.map((s) => s.values.map((v, i) => ({ x: xOf(i), y: yOf(v) })));
-
-  const gradientId = `fill-${title.replace(/\s/g, "-")}`;
 
   // Y-axis ticks
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({
@@ -247,24 +240,18 @@ export function AreaChart({ title, data, bucket, summary = "total", onSummaryCha
         {/* Area fill only for a single series — stacked fills would muddy the lines. */}
         {!multi && seriesPoints[0].length > 0 && (
           <path
-            d={`${curvePath(seriesPoints[0])} L ${seriesPoints[0][seriesPoints[0].length - 1].x} ${pt + ch} L ${seriesPoints[0][0].x} ${pt + ch} Z`}
+            d={`${linePath(seriesPoints[0])} L ${seriesPoints[0][seriesPoints[0].length - 1].x} ${pt + ch} L ${seriesPoints[0][0].x} ${pt + ch} Z`}
             fill={`url(#${gradientId})`}
-            className="animate-fade"
           />
         )}
         {seriesPoints.map((pts, si) => (
           pts.length > 1 && (
             <path
               key={si}
-              d={curvePath(pts)}
+              d={linePath(pts)}
               fill="none"
               stroke={SERIES_COLORS[si % SERIES_COLORS.length]}
               strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              pathLength={1}
-              className="animate-draw"
-              style={{ strokeDasharray: 1 }}
             />
           )
         ))}
@@ -296,10 +283,9 @@ export function AreaChart({ title, data, bucket, summary = "total", onSummaryCha
               opacity="0.4"
             />
 
-            {/* Dot on each line — soft halo + pop on appear */}
+            {/* Dot on each line at the hovered bucket */}
             {seriesPoints.map((pts, si) => pts[hoverIndex] && (
-              <g key={si} style={{ transformBox: "fill-box", transformOrigin: "center" }} className="animate-grow-cell">
-                <circle cx={pts[hoverIndex].x} cy={pts[hoverIndex].y} r="8" fill={SERIES_COLORS[si % SERIES_COLORS.length]} opacity="0.16" />
+              <g key={si}>
                 <circle cx={pts[hoverIndex].x} cy={pts[hoverIndex].y} r="3.5" fill={SERIES_COLORS[si % SERIES_COLORS.length]} />
                 <circle cx={pts[hoverIndex].x} cy={pts[hoverIndex].y} r="1.5" fill="var(--color-surface-1)" />
               </g>
@@ -321,11 +307,11 @@ export function AreaChart({ title, data, bucket, summary = "total", onSummaryCha
               );
             })()}
 
-            {/* Date — just above the axis line */}
+            {/* Date — just above the axis line, anchored inward at the edges */}
             <text
               x={xOf(hoverIndex)}
               y={pt + ch + 12}
-              textAnchor="middle"
+              textAnchor={xOf(hoverIndex) <= pl + 1 ? "start" : xOf(hoverIndex) >= pl + cw - 1 ? "end" : "middle"}
               style={{ fontSize: 9, fontWeight: 600, fontFamily: "var(--font-sans)" }}
               className="fill-accent"
             >
@@ -334,15 +320,19 @@ export function AreaChart({ title, data, bucket, summary = "total", onSummaryCha
           </g>
         )}
 
-        {/* X-axis labels — hide when near hover */}
+        {/* X-axis labels — hide when near hover. Anchor the edge labels inward
+            (start on the left, end on the right) so they don't overflow the plot
+            and get clipped — the last label used to lose its final character. */}
         {labelIndices.map((i) => {
           if (hoverIndex !== null && Math.abs(xOf(i) - xOf(hoverIndex)) < 30) return null;
+          const x = xOf(i);
+          const anchor = x <= pl + 1 ? "start" : x >= pl + cw - 1 ? "end" : "middle";
           return (
             <text
               key={i}
-              x={xOf(i)}
+              x={x}
               y={h - 6}
-              textAnchor="middle"
+              textAnchor={anchor}
               className="fill-text-tertiary"
               style={{ fontSize: 9, fontFamily: "var(--font-sans)" }}
             >

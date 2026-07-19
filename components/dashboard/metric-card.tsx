@@ -46,7 +46,7 @@ function MetricValue({ value }: { value: string }) {
   );
 }
 
-function Sparkline({ data }: { data: number[] }) {
+function Sparkline({ data, trend }: { data: number[]; trend?: number }) {
   if (!data || data.length < 2) return <div className="w-20 h-7" />;
 
   const w = 80;
@@ -74,8 +74,10 @@ function Sparkline({ data }: { data: number[] }) {
     path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
   }
 
-  const trending = data[data.length - 1] >= data[0];
-  const stroke = trending ? "var(--color-success)" : "var(--color-error)";
+  // Colour the line to match the card's trend arrow so the number and the graph
+  // agree. Fall back to the line's own direction when there's no period trend.
+  const up = trend !== undefined && trend !== 0 ? trend > 0 : data[data.length - 1] >= data[0];
+  const stroke = up ? "var(--color-success)" : "var(--color-error)";
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-20 h-7" preserveAspectRatio="none">
@@ -87,9 +89,6 @@ function Sparkline({ data }: { data: number[] }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         opacity="0.85"
-        pathLength={1}
-        className="animate-draw"
-        style={{ strokeDasharray: 1 }}
       />
     </svg>
   );
@@ -107,7 +106,7 @@ export function MetricCard({ title, data }: { title: string; data: MetricData })
         <div className="text-2xl font-semibold tracking-tight tabular-nums">
           <MetricValue value={data.value ?? "—"} />
         </div>
-        <Sparkline data={data.sparkline} />
+        <Sparkline data={data.sparkline} trend={data.trend} />
       </div>
       {hasTrend ? (
         <div className="mt-2.5 flex items-center gap-1">
