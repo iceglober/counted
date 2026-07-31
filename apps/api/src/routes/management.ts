@@ -55,31 +55,8 @@ import {
   type RouteDefinition,
 } from "../http/route";
 import { sendProblem } from "../http/respond";
+import { body } from "../http/body";
 import { credentialView, dashboardView, monitorView, projectView, workspaceView } from "./views";
-
-type ParsedOf<S> = S extends { safeParse: (raw: unknown) => z.SafeParseReturnType<unknown, infer T> } ? T : never;
-
-/** Parse a body against a schema, or answer with every bad field at once. */
-const body = async <S extends { safeParse: (raw: unknown) => z.SafeParseReturnType<unknown, unknown> }>(
-  c: Context<ApiEnv>,
-  schema: S,
-): Promise<{ ok: true; value: ParsedOf<S> } | { ok: false; response: Response }> => {
-  let raw: unknown;
-  try {
-    raw = await c.req.json();
-  } catch {
-    return { ok: false, response: sendProblem(c, "request.malformed", { detail: "The body is not valid JSON." }) };
-  }
-  const parsed = schema.safeParse(raw);
-  if (!parsed.success) {
-    const fields = fieldsFrom(parsed.error);
-    return {
-      ok: false,
-      response: sendProblem(c, "request.validation_failed", { detail: validationDetail(fields), fields }),
-    };
-  }
-  return { ok: true, value: parsed.data as ParsedOf<S> };
-};
 
 /** Who to record as the author. A key acts for the account that issued it. */
 const actorOf = (principal: Principal) =>

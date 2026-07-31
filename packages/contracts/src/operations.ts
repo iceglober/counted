@@ -43,6 +43,11 @@ export const OPERATIONS: Readonly<Record<string, OperationSpec>> = {
 
   "GET /v1/me": { operationId: "describeCaller", provides: ["me"] },
 
+  "POST /v1/provision": { operationId: "provisionProject" },
+  "GET /v1/claims/{token}": { operationId: "previewClaim" },
+  // Adopting a project changes which workspaces exist and what is in them.
+  "POST /v1/claims/{token}/redeem": { operationId: "redeemClaim", invalidates: ["me", "projects"] },
+
   "POST /v1/events": { operationId: "ingestEvents" },
 
   "GET /v1/workspaces/{workspaceId}": {

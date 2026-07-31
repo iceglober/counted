@@ -309,3 +309,53 @@ export const WebhookAckSchema = z
     entitlementChanged: z.boolean().optional(),
   })
   .openapi("WebhookAck");
+
+/**
+ * Starting from nothing.
+ *
+ * The name is optional but the field is not hidden: a caller that knows what
+ * it is building says so at creation, and there is no second "rename it later"
+ * step that most people never take. v1 created "My Project" and asked
+ * afterwards, so every list read the same.
+ */
+export const ProvisionRequestSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+  })
+  .openapi("ProvisionRequest");
+
+export const ProvisionResponseSchema = z
+  .object({
+    project: z.object({ id: z.string(), name: z.string(), state: z.literal("unclaimed") }),
+    /** Disclosed once. Only its digest is stored. */
+    ingestKey: z.string(),
+    claimUrl: z.string(),
+    claimExpiresAt: z.string().datetime(),
+    /** Ready to paste. Built server-side so an agent and a human get the same one. */
+    snippet: z.string(),
+    docsUrl: z.string(),
+  })
+  .openapi("ProvisionResponse");
+
+export const ClaimPreviewSchema = z
+  .object({
+    project: z.object({ id: z.string(), name: z.string() }),
+    expiresAt: z.string().datetime().nullable(),
+  })
+  .openapi("ClaimPreview");
+
+export const RedeemClaimRequestSchema = z
+  .object({
+    /** Which workspace to adopt into. Absent means the caller's first, or a new one. */
+    workspaceId: z.string().optional(),
+    /** Names the workspace when one is being opened. */
+    workspaceName: z.string().trim().min(1).max(120).optional(),
+  })
+  .openapi("RedeemClaimRequest");
+
+export const RedeemClaimResponseSchema = z
+  .object({
+    workspace: z.object({ id: z.string() }),
+    project: z.object({ id: z.string(), name: z.string(), state: z.literal("claimed") }),
+  })
+  .openapi("RedeemClaimResponse");

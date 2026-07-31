@@ -34,7 +34,21 @@ import { roleGrants } from "./scope";
  * joins, each written slightly differently.
  */
 export type Placement = {
-  readonly workspace: WorkspaceId;
+  /**
+   * The workspace that owns the resource, or `null` when nothing does yet.
+   *
+   * An unclaimed project is the only thing that can be placed nowhere: it
+   * exists, it has an id, and its ingest key works — that is the whole of the
+   * no-signup path — but no membership reaches it, because there is no
+   * workspace for anyone to be a member of.
+   *
+   * This being nullable rather than the placement being `null` is the
+   * difference between "no such project" and "a project nobody owns yet".
+   * Collapsing them made an unclaimed project's own key answer 404, which
+   * silently broke onboarding: the key handed out by `/v1/provision` could not
+   * send a single event.
+   */
+  readonly workspace: WorkspaceId | null;
   readonly project: ProjectId | null;
 };
 
@@ -123,6 +137,10 @@ export const decide = (
   if (placement === null) return deny({ reason: "no_such_resource" });
 
   if (principal.kind === "account") {
+    // Nothing owns it, so no membership can reach it. An unclaimed project is
+    // adopted through a claim grant, never through authorization.
+    if (placement.workspace === null) return deny({ reason: "not_a_member" });
+
     const role = facts.role;
     if (role === undefined) return deny({ reason: "unresolved", fact: "role" });
     // Not a member of the workspace that owns this. Note this is decided from
@@ -153,7 +171,11 @@ export const decide = (
         : deny({ reason: "outside_binding" });
 
     case "service": {
-      if (placement.workspace !== principal.workspace) return deny({ reason: "outside_binding" });
+      // A service key is bound to a workspace, so an unowned project is
+      // outside every one of them.
+      if (placement.workspace === null || placement.workspace !== principal.workspace) {
+        return deny({ reason: "outside_binding" });
+      }
       if (principal.projects === "all") return ALLOW;
       // A key narrowed to some projects may still act on the workspace itself
       // only where no project is involved; anything project-scoped must be in

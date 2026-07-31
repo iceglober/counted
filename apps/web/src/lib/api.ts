@@ -47,6 +47,15 @@ export type RequestOptions = {
   readonly body?: unknown;
   /** Optimistic concurrency. The API answers 412 when the ETag is stale. */
   readonly ifMatch?: string;
+  /**
+   * A bearer credential for this one call.
+   *
+   * For the ingest endpoint, which authenticates with a project key rather
+   * than the session. Without it the onboarding test-event button would have
+   * to call `fetch` itself, and "one way to the network" would stop being
+   * true the first time somebody needed a second way.
+   */
+  readonly bearer?: string;
   readonly signal?: AbortSignal;
 };
 
@@ -113,12 +122,18 @@ export const createClient = (options: ClientOptions): ApiClient => {
     const headers: Record<string, string> = { accept: "application/json", ...options.headers };
     if (request.body !== undefined) headers["content-type"] = "application/json";
     if (request.ifMatch !== undefined) headers["if-match"] = request.ifMatch;
+    if (request.bearer !== undefined) headers["authorization"] = `Bearer ${request.bearer}`;
 
     const response = await http(url, {
       method,
       headers,
       ...(request.body === undefined ? {} : { body: JSON.stringify(request.body) }),
-      ...(options.credentials === undefined ? {} : { credentials: options.credentials }),
+      // A call carrying its own bearer is not the session's: sending the
+      // cookie too would attach ambient authority the caller did not ask for,
+      // and the API would then require an Origin it has no reason to.
+      ...(options.credentials === undefined || request.bearer !== undefined
+        ? {}
+        : { credentials: options.credentials }),
       ...(request.signal === undefined ? {} : { signal: request.signal }),
       // A signed-in response must never be served from a shared cache.
       cache: "no-store",

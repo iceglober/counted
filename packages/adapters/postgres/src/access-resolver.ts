@@ -134,11 +134,16 @@ export const createAccessResolver = (pool: Pool): AccessResolver => ({
           [resource.id],
         );
         const row = rows[0];
-        // An unclaimed project belongs to no workspace, so nobody's membership
-        // reaches it. Adopting one goes through a claim grant, not through
-        // authorization.
-        if (row === undefined || row.workspace_id === null) return null;
-        return { workspace: WorkspaceId(row.workspace_id), project: ProjectId(row.id) };
+        if (row === undefined) return null;
+        // An unclaimed project belongs to no workspace, so no membership
+        // reaches it — but it *exists*, and its own ingest key works, which is
+        // the whole of the no-signup path. Returning `null` here collapsed
+        // "nobody owns it" into "no such thing", and the key `/v1/provision`
+        // hands out could not send a single event.
+        return {
+          workspace: row.workspace_id === null ? null : WorkspaceId(row.workspace_id),
+          project: ProjectId(row.id),
+        };
       }
       case "dashboard": {
         const { rows } = await pool.query<{ workspace_id: string }>(

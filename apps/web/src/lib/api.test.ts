@@ -149,3 +149,39 @@ describe("request shape", () => {
     expect(seen[0]?.cache).toBe("no-store");
   });
 });
+
+describe("a per-request bearer", () => {
+  test("is sent, and the session cookie is not sent with it", async () => {
+    // The ingest endpoint authenticates with a project key. Attaching the
+    // session cookie too would send ambient authority the caller did not ask
+    // for — and the API would then require an Origin it has no reason to.
+    const seen: RequestInit[] = [];
+    const client = createClient({
+      baseUrl: "https://api.counted.test",
+      credentials: "include",
+      fetch: (async (_url: unknown, init: RequestInit) => {
+        seen.push(init);
+        return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+      }) as unknown as typeof fetch,
+    });
+
+    await client("ingestEvents", { bearer: "ck_live_x", body: { events: [] } });
+    expect(new Headers(seen[0]?.headers as HeadersInit).get("authorization")).toBe("Bearer ck_live_x");
+    expect(seen[0]?.credentials).toBeUndefined();
+  });
+
+  test("a call without one still carries the session", async () => {
+    const seen: RequestInit[] = [];
+    const client = createClient({
+      baseUrl: "https://api.counted.test",
+      credentials: "include",
+      fetch: (async (_url: unknown, init: RequestInit) => {
+        seen.push(init);
+        return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+      }) as unknown as typeof fetch,
+    });
+
+    await client("describeCaller");
+    expect(seen[0]?.credentials).toBe("include");
+  });
+});

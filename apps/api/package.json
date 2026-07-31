@@ -21,7 +21,8 @@
     "@counted/adapter-crypto": "workspace:*",
     "@counted/contracts": "workspace:*",
     "@counted/adapter-stripe": "workspace:*",
-    "@counted/adapter-notify": "workspace:*"
+    "@counted/adapter-notify": "workspace:*",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@counted/sdk-js": "workspace:*"

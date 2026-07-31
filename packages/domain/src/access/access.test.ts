@@ -361,3 +361,52 @@ describe("every scope is reachable and every principal kind is handled", () => {
     }
   });
 });
+
+describe("an unclaimed project is owned by nobody, not absent", () => {
+  /**
+   * The no-signup path depends on this. `/v1/provision` hands out an ingest
+   * key that must work before anyone signs in — so the project it names has to
+   * be reachable by its own credential while reachable by no membership.
+   *
+   * Collapsing "nobody owns it" into "no such thing" made that key answer 404,
+   * which broke onboarding silently: the snippet on the first screen could not
+   * send a single event, and the error read as a missing project.
+   */
+  const unowned: Placement = { workspace: null, project: prj };
+
+  test("its own ingest key may write to it", () => {
+    expect(decide(ingest, "events:write", projectResource, { placement: unowned })).toMatchObject({ allow: true });
+  });
+
+  test("a different project's key may not", () => {
+    const elsewhere: Principal = { ...ingest, project: otherPrj };
+    expect(decide(elsewhere, "events:write", projectResource, { placement: unowned })).toMatchObject({
+      allow: false,
+    });
+  });
+
+  test("no account reaches it, however senior", () => {
+    // There is no workspace to be a member of. Adoption goes through a claim
+    // grant, never through authorization — so an owner role, if one could
+    // somehow be resolved, must still not grant.
+    const decision = decide(
+      { kind: "account", account },
+      "projects:read",
+      projectResource,
+      { placement: unowned, role: "owner" },
+    );
+    expect(decision).toMatchObject({ allow: false });
+  });
+
+  test("no service key reaches it either", () => {
+    expect(decide(service(), "projects:read", projectResource, { placement: unowned })).toMatchObject({
+      allow: false,
+    });
+  });
+
+  test("and a project that truly does not exist is still refused", () => {
+    // `null` placement, not a placement with a null workspace. The two are
+    // different answers and the whole fix depends on keeping them apart.
+    expect(decide(ingest, "events:write", projectResource, { placement: null })).toMatchObject({ allow: false });
+  });
+});

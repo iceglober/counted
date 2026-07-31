@@ -43,6 +43,11 @@ import {
   SubscriptionSchema,
   UsageSchema,
   WebhookAckSchema,
+  ProvisionRequestSchema,
+  ProvisionResponseSchema,
+  ClaimPreviewSchema,
+  RedeemClaimRequestSchema,
+  RedeemClaimResponseSchema,
 } from "./schemas/management";
 import { z } from "./schemas/common";
 
@@ -135,6 +140,55 @@ export const buildRegistry = (): OpenAPIRegistry => {
     description: "Ends this session and clears the cookie. Succeeds even if the session had already expired.",
     tags: ["auth"],
     responses: { 204: { description: "Signed out" } },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/v1/provision",
+    summary: "Start a project from nothing",
+    description:
+      "Creates an unclaimed project with an ingest key that works immediately, plus a link to adopt it into a " +
+      "workspace. The one entry point, whether a human or an agent starts it. The claim grant expires; an " +
+      "unclaimed project stops accepting events when it lapses.",
+    tags: ["bootstrap"],
+    request: { body: { content: json(ProvisionRequestSchema).content } },
+    responses: {
+      201: { description: "Provisioned", ...json(ProvisionResponseSchema) },
+      422: problem("The name is not usable"),
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/v1/claims/{token}",
+    summary: "Preview a claim link",
+    description:
+      "What this link would adopt, before adopting it. Metadata only — no key and no digest. A link that never " +
+      "existed and one that has lapsed are refused identically.",
+    tags: ["bootstrap"],
+    request: { params: z.object({ token: z.string() }) },
+    responses: {
+      200: { description: "The project this link adopts", ...json(ClaimPreviewSchema) },
+      404: problem("The link is expired, spent, or was never issued"),
+    },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/v1/claims/{token}/redeem",
+    summary: "Adopt a provisioned project",
+    description:
+      "Adopts the project into a workspace, opening one if this account has none. The grant says which project; " +
+      "the session says who ends up owning it.",
+    tags: ["bootstrap"],
+    request: {
+      params: z.object({ token: z.string() }),
+      body: { content: json(RedeemClaimRequestSchema).content },
+    },
+    responses: {
+      200: { description: "Claimed", ...json(RedeemClaimResponseSchema) },
+      404: problem("The link is not valid, or that workspace is not yours"),
+    },
   });
 
   registry.registerPath({
@@ -509,5 +563,6 @@ export const buildOpenApiDocument = (): object =>
       { name: "ingest", description: "Writing events" },
       { name: "read", description: "Asking questions" },
       { name: "auth", description: "Signing in to the console" },
+      { name: "bootstrap", description: "Starting a project, and adopting it" },
     ],
   }) as unknown as OpenApiDocument);

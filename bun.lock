@@ -63,6 +63,7 @@
         "@counted/ports": "workspace:*",
         "hono": "^4.6.0",
         "pg": "^8.13.0",
+        "zod": "^3.24.0",
       },
       "devDependencies": {
         "@counted/sdk-js": "workspace:*",

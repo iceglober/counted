@@ -188,10 +188,21 @@ describe("placing a resource in the tenancy tree", () => {
     expect(await place({ type: "project", id: PRJ })).toEqual({ workspace: WS, project: PRJ });
   });
 
-  dbTest("an unclaimed project places nowhere", async () => {
-    // It belongs to no workspace, so no membership reaches it. Adoption goes
-    // through a claim grant, not through authorization.
-    expect(await place({ type: "project", id: UNCLAIMED })).toBeNull();
+  dbTest("an unclaimed project places at no workspace, but still places", async () => {
+    // It belongs to nobody, so no membership reaches it and adoption goes
+    // through a claim grant rather than through authorization. But it exists,
+    // and its own ingest key works — that is the whole of the no-signup path.
+    //
+    // This returned `null` until #68, collapsing "nobody owns it" into "no
+    // such thing". The key `/v1/provision` hands out could not send a single
+    // event, and the 404 read as a missing project.
+    expect(await place({ type: "project", id: UNCLAIMED })).toEqual({ workspace: null, project: UNCLAIMED });
+  });
+
+  dbTest("a project that does not exist still places nowhere at all", async () => {
+    // The distinction the above depends on: absent is `null`, unowned is a
+    // placement with a `null` workspace.
+    expect(await place({ type: "project", id: ProjectId("33333333-3333-3333-3333-333333333300") })).toBeNull();
   });
 
   dbTest("a dashboard places at its workspace, because it may span projects", async () => {

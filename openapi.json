@@ -26,6 +26,10 @@
     {
       "name": "auth",
       "description": "Signing in to the console"
+    },
+    {
+      "name": "bootstrap",
+      "description": "Starting a project, and adopting it"
     }
   ],
   "components": {
@@ -302,6 +306,153 @@
         "required": [
           "token"
         ]
+      },
+      "ProvisionResponse": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "unclaimed"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "state"
+            ]
+          },
+          "ingestKey": {
+            "type": "string"
+          },
+          "claimUrl": {
+            "type": "string"
+          },
+          "claimExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "docsUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "ingestKey",
+          "claimUrl",
+          "claimExpiresAt",
+          "snippet",
+          "docsUrl"
+        ]
+      },
+      "ProvisionRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        }
+      },
+      "ClaimPreview": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "project",
+          "expiresAt"
+        ]
+      },
+      "RedeemClaimResponse": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "project": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "claimed"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "state"
+            ]
+          }
+        },
+        "required": [
+          "workspace",
+          "project"
+        ]
+      },
+      "RedeemClaimRequest": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string"
+          },
+          "workspaceName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        }
       },
       "IngestOutcome": {
         "oneOf": [
@@ -2340,6 +2491,144 @@
         "operationId": "endSession",
         "x-counted-invalidates": [
           "me"
+        ]
+      }
+    },
+    "/v1/provision": {
+      "post": {
+        "summary": "Start a project from nothing",
+        "description": "Creates an unclaimed project with an ingest key that works immediately, plus a link to adopt it into a workspace. The one entry point, whether a human or an agent starts it. The claim grant expires; an unclaimed project stops accepting events when it lapses.",
+        "tags": [
+          "bootstrap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Provisioned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The name is not usable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "provisionProject"
+      }
+    },
+    "/v1/claims/{token}": {
+      "get": {
+        "summary": "Preview a claim link",
+        "description": "What this link would adopt, before adopting it. Metadata only — no key and no digest. A link that never existed and one that has lapsed are refused identically.",
+        "tags": [
+          "bootstrap"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project this link adopts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimPreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The link is expired, spent, or was never issued",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "previewClaim"
+      }
+    },
+    "/v1/claims/{token}/redeem": {
+      "post": {
+        "summary": "Adopt a provisioned project",
+        "description": "Adopts the project into a workspace, opening one if this account has none. The grant says which project; the session says who ends up owning it.",
+        "tags": [
+          "bootstrap"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemClaimRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Claimed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedeemClaimResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The link is not valid, or that workspace is not yours",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "redeemClaim",
+        "x-counted-invalidates": [
+          "me",
+          "projects"
         ]
       }
     },
