@@ -36,6 +36,7 @@ export type OperationSpec = {
 export const OPERATIONS: Readonly<Record<string, OperationSpec>> = {
   "GET /health": { operationId: "getLiveness" },
   "GET /health/ready": { operationId: "getReadiness" },
+  "GET /v1/openapi.json": { operationId: "getOpenApiDocument" },
 
   "POST /v1/auth/sign-in": { operationId: "requestSignInLink" },
   "POST /v1/auth/session": { operationId: "createSession", invalidates: ["me"] },

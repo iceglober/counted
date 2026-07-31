@@ -210,7 +210,7 @@ export default function ApiReferencePage() {
         <code className="font-mono text-text-primary">{baseUrl}</code>. Ingestion takes a write-only
         project key in the <code className="font-mono text-text-primary">project-key</code> header;
         management endpoints use your signed-in session. Machine-readable spec:{" "}
-        <a href="/api/v0/openapi.json" className="text-accent hover:text-accent-hover transition-colors">/api/v0/openapi.json</a>.
+        <a href="https://github.com/iceglober/counted/blob/main/openapi.json" className="text-accent hover:text-accent-hover transition-colors">openapi.json</a>.
       </p>
 
       {/* In-page quick nav (sidebar covers this on desktop; useful on mobile) */}

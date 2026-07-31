@@ -3,7 +3,7 @@
 
 export const SITE = "https://counted.dev";
 export const API = "https://app.counted.dev";
-export const API_BASE = `${API}/api/v0`;
+export const API_BASE = `${API}/v1`;
 
 export const NAME = "Counted";
 export const TAGLINE = "Privacy-first product analytics. No cookies, no PII, agent-native.";
@@ -47,19 +47,19 @@ export const SKILLS = [
     id: "provision-project",
     name: "Provision a project key",
     description:
-      "Mint a write-only client key (ck_) and a claim link with no signup: POST /api/v0/provision. The key can ingest events but cannot read data.",
+      "Mint a write-only client key (ck_) and a claim link with no signup: POST /v1/provision. The key can ingest events but cannot read data.",
   },
   {
     id: "track-event",
     name: "Track an event",
     description:
-      "Send a product-analytics event: POST /api/v0/event with a client key. One event or a batch of up to 50. Privacy-first: no cookies, no PII.",
+      "Send a product-analytics event: POST /v1/events with a client key as a Bearer token. Up to 250 events per batch, and the response is a receipt naming what was accepted, deduplicated and refused. Privacy-first: no cookies, no PII.",
   },
   {
     id: "query-metrics",
     name: "Query metrics",
     description:
-      "Read counts, breakdowns, time series, and funnels over your events with a server key (sk_) as a Bearer token: POST /api/v0/query.",
+      "Read counts, breakdowns, time series, and funnels over your events with a server key (sk_) as a Bearer token: POST /v1/projects/{projectId}/query.",
   },
   {
     id: "migrate-from-aptabase",

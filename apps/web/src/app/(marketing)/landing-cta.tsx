@@ -1,5 +1,7 @@
 "use client";
 
+import { browserApi } from "@/lib/api";
+
 import { useState } from "react";
 import Link from "next/link";
 import { track } from "./analytics";
@@ -13,13 +15,13 @@ export function LandingCTA() {
     setState("loading");
     track("cta_click", { location: "homepage_hero", label: "provision" });
     try {
-      const res = await fetch("/api/v0/provision", { method: "POST" });
-      if (res.ok) {
-        setResult(await res.json());
-        setState("done");
-      } else {
-        setState("idle");
-      }
+      // Through the same client as everything else. This called
+      // `/api/v0/provision` on its own origin — a v1 route that does not
+      // exist in v2, so the landing page's primary call to action would have
+      // failed silently the moment traffic moved.
+      const { data } = await browserApi()<{ ingestKey: string; claimUrl: string }>("provisionProject", { body: {} });
+      setResult({ clientKey: data.ingestKey, claimUrl: data.claimUrl });
+      setState("done");
     } catch {
       setState("idle");
     }

@@ -119,7 +119,7 @@ export default function DocsPage() {
 
       <p className="mt-10 text-sm text-text-tertiary">
         Machine-readable spec:{" "}
-        <a href="/api/v0/openapi.json" className="text-accent hover:text-accent-hover transition-colors">/api/v0/openapi.json</a>
+        <a href="https://github.com/iceglober/counted/blob/main/openapi.json" className="text-accent hover:text-accent-hover transition-colors">openapi.json</a>
         {" "}(OpenAPI 3.1) · agent summary at{" "}
         <a href="/docs/llms.txt" className="text-accent hover:text-accent-hover transition-colors">/docs/llms.txt</a>.
       </p>

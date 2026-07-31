@@ -19,10 +19,27 @@
 
 import { Principal, type Scope } from "@counted/domain";
 import { appliedFingerprint } from "@counted/adapter-postgres";
+import { buildOpenApiDocument } from "@counted/contracts";
 import type { Dependencies } from "../composition";
 import { publicRoute, type RouteDefinition } from "../http/route";
 
 export const healthRoutes = (deps: Dependencies): readonly RouteDefinition[] => [
+  {
+    method: "get",
+    path: "/v1/openapi.json",
+    security: publicRoute("The contract. Refusing to show it to an anonymous caller would defeat the point."),
+    handler: (c) => {
+      // The same document CI drift-gates against the committed artifact, so
+      // this cannot describe an API the server does not implement.
+      //
+      // It is *advertised* in two places already — the `Link` header on every
+      // 410 from the compat edge, and the docs — and until now neither
+      // resolved. A successor URI that 404s is worse than none: it sends
+      // somebody who did the right thing to a dead end.
+      c.header("cache-control", "public, max-age=300");
+      return c.json(buildOpenApiDocument());
+    },
+  },
   {
     method: "get",
     path: "/health",

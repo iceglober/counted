@@ -104,6 +104,17 @@ export const buildRegistry = (): OpenAPIRegistry => {
   });
 
   registry.registerPath({
+    method: "get",
+    path: "/v1/openapi.json",
+    summary: "This document",
+    description:
+      "The generated contract, served by the API that implements it. Named as the successor in the Link header " +
+      "on every 410 from the compat edge, so it has to resolve.",
+    tags: ["health"],
+    responses: { 200: { description: "The OpenAPI document" } },
+  });
+
+  registry.registerPath({
     method: "post",
     path: "/v1/auth/sign-in",
     summary: "Request a sign-in link",

@@ -32,7 +32,7 @@ const NAV: { title: string; items: { label: string; href: string }[] }[] = [
   {
     title: "Resources",
     items: [
-      { label: "OpenAPI spec", href: "/api/v0/openapi.json" },
+      { label: "OpenAPI spec", href: "https://github.com/iceglober/counted/blob/main/openapi.json" },
       { label: "llms.txt", href: "/docs/llms.txt" },
     ],
   },

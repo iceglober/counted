@@ -13,9 +13,9 @@ export function AgentView() {
       <h2>API</h2>
       <ul>
         <li><b>Base URL:</b> <code>https://api.counted.dev/v1</code></li>
-        <li><b>Provision a key (no signup):</b> <code>POST /api/v0/provision</code> → <code>ck_</code> client key + claim link</li>
-        <li><b>Ingest an event:</b> <code>POST /api/v0/event</code> (header <code>Project-Key: ck_…</code>)</li>
-        <li><b>Query metrics:</b> <code>POST /api/v0/query</code> (header <code>Authorization: Bearer sk_…</code>)</li>
+        <li><b>Provision a key (no signup):</b> <code>POST /v1/provision</code> → <code>ck_</code> ingest key + claim link</li>
+        <li><b>Ingest an event:</b> <code>POST /v1/events</code> (header <code>Authorization: Bearer ck_…</code>)</li>
+        <li><b>Query metrics:</b> <code>POST /v1/projects/&#123;id&#125;/query</code> (header <code>Authorization: Bearer sk_…</code>)</li>
         <li><b>OpenAPI:</b> <code>https://counted.dev/openapi.json</code></li>
       </ul>
 

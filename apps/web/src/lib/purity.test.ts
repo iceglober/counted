@@ -204,3 +204,63 @@ describe("one way to the network", () => {
     expect(called.filter((c) => !known.has(c.operationId))).toEqual([]);
   });
 });
+
+describe("the public copy teaches the current contract", () => {
+  /**
+   * `/api/v0/*` is the Aptabase compatibility edge. It exists so a shipped
+   * mobile app can keep sending events, it is marked deprecated in the spec,
+   * and it answers 410 for everything except ingest.
+   *
+   * The marketing pages, the docs, the llms.txt routes and the agent metadata
+   * all inherited v1's copy, which taught it as *the* integration path — so an
+   * agent or a developer following the instructions would have integrated
+   * against the deprecated edge by accident, and the landing page's own call
+   * to action called a route that does not exist in v2 at all.
+   *
+   * Checked because every one of those files reads like prose and none of them
+   * would fail a build.
+   */
+  test("nothing advertises the v0 compat edge", () => {
+    const offenders: { file: string; line: string }[] = [];
+    for (const file of sourceFiles()) {
+      if (file.endsWith("purity.test.ts")) continue;
+      for (const line of readFileSync(file, "utf8").split("\n")) {
+        // A path, not the word — the comment explaining why it is absent says
+        // `/api/v0/` too, and flagging that would be flagging the fix.
+        if (/["'`\s(]\/api\/v0\//.test(line) && !line.trimStart().startsWith("//") && !line.trimStart().startsWith("*")) {
+          offenders.push({ file: file.slice(APP.length + 1), line: line.trim().slice(0, 70) });
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  test("and the endpoints it does name are ones the API serves", async () => {
+    // Otherwise "advertise nothing" would satisfy the check above.
+    const { OPERATIONS } = await import("@counted/contracts");
+    const served = new Set(Object.keys(OPERATIONS).map((k) => k.split(" ")[1]));
+
+    /**
+     * The collection segment only — `/v1/events`, `/v1/workspaces`.
+     *
+     * A first version matched deeper and mangled every example carrying a
+     * concrete id: `/v1/workspaces/ws_123/projects` came out as
+     * `/v1/workspaces/ws`, which is in no route table and never will be. The
+     * collection is the part that is stable across every example, and it is
+     * enough to catch an endpoint that does not exist.
+     */
+    const named = new Set<string>();
+    for (const file of sourceFiles()) {
+      if (file.endsWith("purity.test.ts")) continue;
+      for (const match of readFileSync(file, "utf8").matchAll(/\/v1\/([a-z][a-z-]*)/g)) {
+        if (match[1] !== undefined) named.add(`/v1/${match[1]}`);
+      }
+    }
+
+    expect(named.size).toBeGreaterThan(2);
+    for (const path of named) {
+      const known = [...served].some((s) => s !== undefined && (s === path || s.startsWith(`${path}/`) || s.startsWith(path)));
+      expect({ path, known }).toMatchObject({ known: true });
+    }
+  });
+});

@@ -18,7 +18,7 @@ const CONTENT = `# Counted — privacy-first product analytics for AI agents
 
 ## TL;DR
 1. Get a client key (no account needed):
-     curl -X POST ${API}/api/v0/provision
+     curl -X POST ${API}/v1/provision
    -> { "clientKey": "ck_...", "claimUrl": "...", "dashboardUrl": "..." }
    Store clientKey in an env var named COUNTED_KEY. Never hard-code it.
 2. Install the SDK for the stack and call track("<event>", { ...props }) at the
@@ -26,7 +26,7 @@ const CONTENT = `# Counted — privacy-first product analytics for AI agents
 3. Tell the user to open claimUrl to claim the dashboard and watch live events.
 
 ## Get a project key
-- Auto (recommended, zero signup): POST ${API}/api/v0/provision returns a
+- Auto (recommended, zero signup): POST ${API}/v1/provision returns a
   write-only client key (ck_), a claimUrl, and a dashboardUrl. The key can only
   ingest events; it cannot read data. Hand the user the claimUrl — when they
   open it and sign up, the project and its real events attach to their account.
