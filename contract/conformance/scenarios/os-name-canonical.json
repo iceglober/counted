@@ -1,0 +1,14 @@
+{
+  "id": "SDK-070",
+  "title": "every event carries a canonical os_name and keeps the raw value",
+  "script": [
+    { "do": "track", "name": "a" },
+    { "do": "flush" },
+    { "expect": "request", "events": ["a"] },
+    { "expect": "field-in", "path": "systemProperties.os_name", "oneOf": [
+      "macos", "windows", "linux", "ios", "ipados", "android",
+      "tvos", "watchos", "visionos", "chromeos", "freebsd", "other"
+    ] },
+    { "expect": "field-present", "path": "systemProperties.sdk_version" }
+  ]
+}

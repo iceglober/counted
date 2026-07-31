@@ -153,6 +153,22 @@ export const runScenario = async (scenario: Scenario, harness: Harness): Promise
       continue;
     }
 
+    if (step.expect === "field-in") {
+      const actual = latest === null ? undefined : read(latest.body.events[0] ?? {}, step.path);
+      if (typeof actual !== "string" || !step.oneOf.includes(actual)) {
+        fail(index, `expected ${step.path} to be one of [${step.oneOf.join(", ")}], got ${JSON.stringify(actual)}`);
+      }
+      continue;
+    }
+
+    if (step.expect === "field-present") {
+      const actual = latest === null ? undefined : read(latest.body.events[0] ?? {}, step.path);
+      if (actual === undefined || actual === null) {
+        fail(index, `expected ${step.path} to be present, got ${JSON.stringify(actual)}`);
+      }
+      continue;
+    }
+
     if (step.expect === "same-as") {
       const saved = checkpoints.get(step.checkpoint);
       if (saved === undefined) {

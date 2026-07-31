@@ -34,6 +34,15 @@ export type Step =
    * contract says send nothing.
    */
   | { readonly expect: "field-absent"; readonly path: string }
+  /**
+   * Assert a field is one of a closed set.
+   *
+   * Weaker than an equality, and deliberately: the value depends on the
+   * machine the suite runs on. What must hold is that it is *in the enum* —
+   * a value outside it is how one operating system became four.
+   */
+  | { readonly expect: "field-in"; readonly path: string; readonly oneOf: readonly string[] }
+  | { readonly expect: "field-present"; readonly path: string }
   /** Assert a field is identical to what it was at a named checkpoint. */
   | { readonly expect: "same-as"; readonly path: string; readonly checkpoint: string }
   | { readonly checkpoint: string }

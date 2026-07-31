@@ -81,7 +81,8 @@ func main() {
 		func() int64 { clockMu.Lock(); defer clockMu.Unlock(); return now },
 		// Deterministic, so a jittered backoff is still assertable.
 		func() float64 { return 0.5 },
-		nil,
+		// The real detection, so conformance compares what ships.
+		counted.DetectSystem(""),
 	)
 
 	scanner := bufio.NewScanner(os.Stdin)

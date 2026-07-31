@@ -16,6 +16,7 @@ use std::thread;
 use std::time::Duration;
 
 use counted::client::{Client, Reply, Transport};
+use counted::platform::detect_system;
 
 struct Scripted {
     requests: Mutex<Vec<serde_json::Value>>,
@@ -79,7 +80,8 @@ fn main() {
         Arc::new(move || *clock_read.lock().unwrap()),
         // Deterministic, so a jittered backoff is still assertable.
         Arc::new(|| 0.5),
-        None,
+        // The real detection, so conformance compares what ships.
+        Some(detect_system(None)),
     ));
 
     let stdin = io::stdin();

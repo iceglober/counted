@@ -15,6 +15,7 @@
 
 pub mod client;
 pub mod contract;
+pub mod platform;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

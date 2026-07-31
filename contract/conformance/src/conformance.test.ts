@@ -117,6 +117,79 @@ for (const spec of DRIVERS) {
   });
 }
 
+/**
+ * The test whose absence caused the bug.
+ *
+ * Every per-language scenario can pass while the languages still disagree: JS
+ * reporting `macOS`, Go reporting `darwin` and Rust reporting `macos` are each
+ * internally consistent and each in *some* set. What was never checked is that
+ * they agree with **each other**, on one machine, at one moment — and that is
+ * exactly the property that failed, filing one operating system under four
+ * names in the same column.
+ *
+ * So this runs every available driver on this machine and requires one answer.
+ */
+describe("one machine, one operating system name", () => {
+  const trackOne = async (spec: ProcessDriverSpec): Promise<Record<string, unknown>> => {
+    const harness = await createProcessHarness(spec);
+    try {
+      harness.driver.track("probe");
+      await harness.driver.flush();
+      await harness.settle();
+      const [request] = harness.drain();
+      if (request === undefined) throw new Error(`${spec.language} sent no request`);
+      return (request.body.events[0]?.["systemProperties"] ?? {}) as Record<string, unknown>;
+    } finally {
+      await harness.stop();
+    }
+  };
+
+  test("every SDK reports the same os_name", async () => {
+    const reported: Record<string, unknown> = {};
+
+    // The reference, in process.
+    const js = createJsHarness();
+    js.driver.track("probe");
+    await js.driver.flush();
+    await js.settle();
+    reported["js"] = (js.drain()[0]?.body.events[0]?.["systemProperties"] as Record<string, unknown>)?.["os_name"];
+
+    for (const spec of DRIVERS) {
+      if (!spec.available()) throw new Error(`${spec.language} driver is missing — cannot claim agreement`);
+      reported[spec.language] = (await trackOne(spec))["os_name"];
+    }
+
+    // Reported as a map rather than a bare assertion, so a failure names which
+    // language disagreed instead of just saying two values differ.
+    const values = new Set(Object.values(reported));
+    expect({ reported, distinct: values.size }).toMatchObject({ distinct: 1 });
+  });
+
+  test("every SDK keeps its own raw value alongside it", async () => {
+    // Deliberately *not* required to agree. Go's runtime calls macOS
+    // "darwin" and Rust's calls it "macos"; both are true, and preserving them
+    // is what makes an unmapped platform discoverable. The canonical field is
+    // what must agree.
+    for (const spec of DRIVERS) {
+      if (!spec.available()) continue;
+      const system = await trackOne(spec);
+      expect({ language: spec.language, raw: system["os_name_raw"] }).toMatchObject({
+        raw: expect.any(String),
+      });
+    }
+  });
+
+  test("every SDK identifies itself, so a bad client can be found", async () => {
+    for (const spec of DRIVERS) {
+      if (!spec.available()) continue;
+      const system = await trackOne(spec);
+      expect({ language: spec.language, sdk: system["sdk_version"] }).toMatchObject({
+        sdk: expect.stringContaining("counted-"),
+      });
+    }
+  });
+});
+
 describe("the wire shape", () => {
   test("the body is an object with an events array, never a bare array", async () => {
     // v1 sent a bare object for one event and an array for several, so every
