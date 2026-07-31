@@ -7,11 +7,12 @@
  * coming back are the numbers the domain would have computed.
  *
  * Skipped automatically when no database is reachable, so the suite stays
- * runnable on a laptop with nothing running. CI (#41) sets TEST_DATABASE_URL.
+ * runnable on a laptop with nothing running. CI (#41) sets TEST_ADMIN_URL.
  */
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Pool } from "pg";
+import { createDatabase, type LiveDatabase } from "../testing/database";
 import {
   Analysis,
   FieldRef,
@@ -28,15 +29,14 @@ import { createPartitionSql, partitionsCovering } from "../partitions";
 import { Params } from "./params";
 import { breakdownDimension, compileBreakdown, compileScalar, compileSeries } from "./statements";
 
-const ADMIN = process.env["TEST_ADMIN_URL"] ?? "postgres://counted:counted@localhost:5434/postgres";
 const DB = "counted_v2_statements";
-const URL = process.env["TEST_DATABASE_URL"] ?? `postgres://counted:counted@localhost:5434/${DB}`;
 
 const PROJECT = "11111111-1111-1111-1111-111111111111";
 const iso = (s: string) => Instant.fromEpochMillis(Date.parse(s));
 const NOW = iso("2026-03-01T00:00:00Z");
 
 let pool: Pool | null = null;
+let live: LiveDatabase | null = null;
 let reachable = false;
 let reason = "";
 
@@ -68,12 +68,8 @@ const run = async (sql: string, values: readonly unknown[]) =>
 
 beforeAll(async () => {
   try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.query(`CREATE DATABASE ${DB}`);
-    await admin.end();
-
-    pool = new Pool({ connectionString: URL });
+    live = await createDatabase(DB);
+    pool = live.pool;
     for (const s of SCHEMA_STATEMENTS) await pool.query(s);
     for (const s of INDEX_STATEMENTS) await pool.query(s);
     for (const s of partitionsCovering(iso("2026-01-01T00:00:00Z"), iso("2026-03-01T00:00:00Z"), 1)) {
@@ -104,13 +100,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (pool !== null) await pool.end();
-  try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.end();
-  } catch {
-    /* nothing to clean up */
-  }
+  if (live !== null) await live.drop();
 });
 
 const spec = (analysis: Analysis) => ({

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Pool } from "pg";
+import { createDatabase, type LiveDatabase } from "./testing/database";
 import { Instant, TimeAxis, Window } from "@counted/domain";
 import { SCHEMA_STATEMENTS } from "./sql/schema";
 import {
@@ -10,11 +11,10 @@ import {
   verifyBucketContract,
 } from "./capabilities";
 
-const ADMIN = process.env["TEST_ADMIN_URL"] ?? "postgres://counted:counted@localhost:5434/postgres";
 const DB = "counted_v2_capabilities";
-const URL = process.env["TEST_DATABASE_URL"] ?? `postgres://counted:counted@localhost:5434/${DB}`;
 
 let pool: Pool | null = null;
+let live: LiveDatabase | null = null;
 let reachable = false;
 let reason = "";
 
@@ -29,11 +29,8 @@ const dbTest = (name: string, fn: () => Promise<void>): void =>
 
 beforeAll(async () => {
   try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.query(`CREATE DATABASE ${DB}`);
-    await admin.end();
-    pool = new Pool({ connectionString: URL });
+    live = await createDatabase(DB);
+    pool = live.pool;
     for (const s of SCHEMA_STATEMENTS) await pool.query(s);
     reachable = true;
   } catch (e) {
@@ -44,13 +41,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (pool !== null) await pool.end();
-  try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.end();
-  } catch {
-    /* nothing to clean up */
-  }
+  if (live !== null) await live.drop();
 });
 
 describe("the store is probed, not assumed", () => {
@@ -142,12 +133,31 @@ describe("timezone independence", () => {
     // A common real misconfiguration. Everything is stored and compared as
     // timestamptz, so the session zone must be irrelevant — if it were not,
     // every chart would shift for whoever set it.
-    const skewed = new Pool({ connectionString: URL, options: "-c TimeZone=America/New_York" });
+    const skewed = new Pool({ connectionString: live!.url, options: "-c TimeZone=America/New_York" });
     try {
       const check = await verifyBucketContract(skewed);
       expect(check.ok).toBe(true);
     } finally {
       await skewed.end();
     }
+  });
+});
+
+describe("the plain-Postgres claim", () => {
+  dbTest("on a stock image the extension really is absent", async () => {
+    // Guarded, because the local dev container is the timescale image and
+    // would fail this for the right reason. CI sets EXPECT_PLAIN_POSTGRES=1
+    // against a stock postgres:17 service, which is where the claim behind the
+    // whole storage decision — no extension required — is actually proven.
+    if (process.env["EXPECT_PLAIN_POSTGRES"] !== "1") return;
+
+    const caps = await probeCapabilities(pool!);
+    expect(caps.timescale).toBe(false);
+    expect(caps.partitioning).toBe("declarative");
+
+    // And bucketing still agrees, which is the part that would break first if
+    // anything had quietly depended on time_bucket.
+    const check = await verifyBucketContract(pool!);
+    expect(check.ok).toBe(true);
   });
 });

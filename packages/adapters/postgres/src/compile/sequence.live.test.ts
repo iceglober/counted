@@ -9,6 +9,7 @@
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Pool } from "pg";
+import { createDatabase, type LiveDatabase } from "../testing/database";
 import { Duration, FieldRef, Funnel, FunnelStep, Instant, Predicate } from "@counted/domain";
 import { SCHEMA_STATEMENTS } from "../sql/schema";
 import { INDEX_STATEMENTS } from "../sql/indexes";
@@ -16,13 +17,12 @@ import { createPartitionSql, partitionsCovering } from "../partitions";
 import { Params } from "./params";
 import { compileSequence, readSequenceRow } from "./sequence";
 
-const ADMIN = process.env["TEST_ADMIN_URL"] ?? "postgres://counted:counted@localhost:5434/postgres";
 const DB = "counted_v2_sequence";
-const URL = process.env["TEST_DATABASE_URL"] ?? `postgres://counted:counted@localhost:5434/${DB}`;
 const PROJECT = "11111111-1111-1111-1111-111111111111";
 const iso = (s: string) => Instant.fromEpochMillis(Date.parse(s));
 
 let pool: Pool | null = null;
+let live: LiveDatabase | null = null;
 let reachable = false;
 let reason = "";
 
@@ -67,12 +67,8 @@ const FIXTURE: readonly Row[] = [
 
 beforeAll(async () => {
   try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.query(`CREATE DATABASE ${DB}`);
-    await admin.end();
-
-    pool = new Pool({ connectionString: URL });
+    live = await createDatabase(DB);
+    pool = live.pool;
     for (const s of SCHEMA_STATEMENTS) await pool.query(s);
     for (const s of INDEX_STATEMENTS) await pool.query(s);
     for (const s of partitionsCovering(iso("2026-02-01T00:00:00Z"), iso("2026-02-28T00:00:00Z"), 1)) {
@@ -96,13 +92,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (pool !== null) await pool.end();
-  try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.end();
-  } catch {
-    /* nothing to clean up */
-  }
+  if (live !== null) await live.drop();
 });
 
 const counts = async (funnel: Funnel): Promise<readonly number[]> => {

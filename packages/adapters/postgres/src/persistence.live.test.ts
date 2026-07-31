@@ -8,6 +8,7 @@
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Pool } from "pg";
+import { createDatabase, type LiveDatabase } from "./testing/database";
 import {
   AccountId,
   CredentialDigest,
@@ -27,9 +28,7 @@ import { SCHEMA_STATEMENTS } from "./sql/schema";
 import { CONTROL_PLANE_STATEMENTS } from "./sql/control-plane";
 import { PostgresUnitOfWork } from "./unit-of-work";
 
-const ADMIN = process.env["TEST_ADMIN_URL"] ?? "postgres://counted:counted@localhost:5434/postgres";
 const DB = "counted_v2_persistence";
-const URL = process.env["TEST_DATABASE_URL"] ?? `postgres://counted:counted@localhost:5434/${DB}`;
 
 const t0 = Instant.fromEpochMillis(Date.parse("2026-02-01T00:00:00Z"));
 const WS = WorkspaceId("22222222-2222-2222-2222-222222222222");
@@ -38,6 +37,7 @@ const alice = AccountId("acc_alice");
 const bob = AccountId("acc_bob");
 
 let pool: Pool | null = null;
+let live: LiveDatabase | null = null;
 let uow: PostgresUnitOfWork | null = null;
 let reachable = false;
 let reason = "";
@@ -66,12 +66,8 @@ const ingestCredential = (n: string) => ({
 
 beforeAll(async () => {
   try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.query(`CREATE DATABASE ${DB}`);
-    await admin.end();
-
-    pool = new Pool({ connectionString: URL });
+    live = await createDatabase(DB);
+    pool = live.pool;
     for (const s of SCHEMA_STATEMENTS) await pool.query(s);
     for (const s of CONTROL_PLANE_STATEMENTS) await pool.query(s);
     uow = new PostgresUnitOfWork(pool);
@@ -84,13 +80,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (pool !== null) await pool.end();
-  try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.end();
-  } catch {
-    /* nothing to clean up */
-  }
+  if (live !== null) await live.drop();
 });
 
 const clean = async () => {

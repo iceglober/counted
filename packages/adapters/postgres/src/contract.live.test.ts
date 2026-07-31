@@ -10,6 +10,7 @@
 
 import { afterAll, beforeAll, describe, test } from "bun:test";
 import { Pool } from "pg";
+import { createDatabase, type LiveDatabase } from "./testing/database";
 import { ProjectId } from "@counted/domain";
 import { allStoreContracts, type StoreFixture } from "@counted/ports/contract";
 import { SCHEMA_STATEMENTS } from "./sql/schema";
@@ -19,25 +20,20 @@ import { Instant } from "@counted/domain";
 import { PostgresAnalyticalStore } from "./analytical-store";
 import { PostgresEventWriter } from "./event-writer";
 
-const ADMIN = process.env["TEST_ADMIN_URL"] ?? "postgres://counted:counted@localhost:5434/postgres";
 const DB = "counted_v2_contract";
-const URL = process.env["TEST_DATABASE_URL"] ?? `postgres://counted:counted@localhost:5434/${DB}`;
 const PROJECT = ProjectId("11111111-1111-1111-1111-111111111111");
 const iso = (s: string) => Instant.fromEpochMillis(Date.parse(s));
 
 let pool: Pool | null = null;
+let live: LiveDatabase | null = null;
 let fixture: StoreFixture | null = null;
 let reachable = false;
 let reason = "";
 
 beforeAll(async () => {
   try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.query(`CREATE DATABASE ${DB}`);
-    await admin.end();
-
-    pool = new Pool({ connectionString: URL });
+    live = await createDatabase(DB);
+    pool = live.pool;
     for (const s of SCHEMA_STATEMENTS) await pool.query(s);
     for (const s of INDEX_STATEMENTS) await pool.query(s);
 
@@ -72,13 +68,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (pool !== null) await pool.end();
-  try {
-    const admin = new Pool({ connectionString: ADMIN, connectionTimeoutMillis: 1_500 });
-    await admin.query(`DROP DATABASE IF EXISTS ${DB}`);
-    await admin.end();
-  } catch {
-    /* nothing to clean up */
-  }
+  if (live !== null) await live.drop();
 });
 
 describe("ports contract — Postgres adapter", () => {

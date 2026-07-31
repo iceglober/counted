@@ -16,6 +16,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
+    # Deliberately the stock image, not timescale/timescaledb. The v2 store
+    # requires no extension, and this is what keeps that true.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: counted
+          POSTGRES_PASSWORD: counted
+          POSTGRES_DB: counted
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U counted"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -55,9 +72,15 @@ jobs:
       - name: Test v2 packages
         run: bun run test:v2
         env:
-          # Live adapter tests skip when no database is reachable. CI must not
-          # get a green build from an unreachable database, so require one.
-          REQUIRE_DB: "0"
+          # A guard that silently passes turns "the database was unreachable in
+          # CI" into a green build, so the live adapter tests must be required.
+          REQUIRE_DB: "1"
+          TEST_ADMIN_URL: postgres://counted:counted@localhost:5432/postgres
+          # The service below is a STOCK postgres image. This flag turns on the
+          # assertion that the extension really is absent — which is where the
+          # storage decision (plain PostgreSQL, no TimescaleDB) is proven
+          # rather than assumed.
+          EXPECT_PLAIN_POSTGRES: "1"
 
       - name: Typecheck
         run: bun run typecheck
