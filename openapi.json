@@ -1,0 +1,1133 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Counted API",
+    "version": "0.1.0",
+    "description": "Privacy-first product analytics. No cookies, no fingerprinting, no PII. Identity is optional and always supplied by the caller."
+  },
+  "servers": [
+    {
+      "url": "https://api.counted.dev"
+    }
+  ],
+  "tags": [
+    {
+      "name": "health",
+      "description": "Liveness and readiness"
+    },
+    {
+      "name": "ingest",
+      "description": "Writing events"
+    },
+    {
+      "name": "read",
+      "description": "Asking questions"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ingestKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Project-Key",
+        "description": "A public ingest credential. Safe to embed; grants events:write and nothing else."
+      },
+      "serviceKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A secret service credential, scoped to the operations it was issued for."
+      }
+    },
+    "schemas": {
+      "Liveness": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          },
+          "release": {
+            "type": "string"
+          },
+          "uptimeSeconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "release",
+          "uptimeSeconds"
+        ]
+      },
+      "Readiness": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "unavailable"
+            ]
+          },
+          "release": {
+            "type": "string"
+          },
+          "checkMs": {
+            "type": "integer"
+          },
+          "store": {
+            "type": "object",
+            "properties": {
+              "engine": {
+                "type": "string"
+              },
+              "partitioning": {
+                "type": "string",
+                "enum": [
+                  "declarative",
+                  "hypertable",
+                  "none"
+                ]
+              },
+              "timescale": {
+                "type": "boolean"
+              },
+              "approximateDistinct": {
+                "type": "boolean"
+              },
+              "timeZone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "engine",
+              "partitioning",
+              "timescale",
+              "approximateDistinct",
+              "timeZone"
+            ]
+          },
+          "bucketContract": {
+            "type": "object",
+            "properties": {
+              "verified": {
+                "type": "boolean"
+              },
+              "samples": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "verified"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "release",
+          "checkMs"
+        ]
+      },
+      "IngestOutcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "index": {
+                "type": "integer"
+              },
+              "accepted": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "deduplicated": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "index",
+              "accepted",
+              "deduplicated"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "index": {
+                "type": "integer"
+              },
+              "accepted": {
+                "type": "boolean",
+                "enum": [
+                  false
+                ]
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "index",
+              "accepted",
+              "reason"
+            ]
+          }
+        ]
+      },
+      "QuotaState": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "overage",
+              "rejected"
+            ]
+          },
+          "used": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "state",
+          "used",
+          "limit"
+        ]
+      },
+      "IngestReceipt": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "integer"
+          },
+          "deduplicated": {
+            "type": "integer"
+          },
+          "rejected": {
+            "type": "integer"
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IngestOutcome"
+            }
+          },
+          "quota": {
+            "$ref": "#/components/schemas/QuotaState"
+          },
+          "committedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO-8601, UTC",
+            "example": "2026-03-17T14:37:00.000Z"
+          }
+        },
+        "required": [
+          "accepted",
+          "deduplicated",
+          "rejected",
+          "outcomes",
+          "quota",
+          "committedAt"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "https://counted.dev/problems/quota-exceeded"
+          },
+          "title": {
+            "type": "string",
+            "example": "Quota exceeded"
+          },
+          "status": {
+            "type": "integer",
+            "example": 429
+          },
+          "detail": {
+            "type": "string",
+            "example": "This workspace is past its monthly event allowance."
+          },
+          "requestId": {
+            "type": "string",
+            "example": "01JD8Z2K9Q"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "message"
+              ]
+            },
+            "example": [
+              {
+                "path": "events[0].name",
+                "message": "must not be empty"
+              }
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "requestId"
+        ]
+      },
+      "IngestEvent": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "visitId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "userId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO-8601, UTC",
+            "example": "2026-03-17T14:37:00.000Z"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 10000
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "systemProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "visitId"
+        ]
+      },
+      "IngestRequest": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IngestEvent"
+            },
+            "minItems": 1,
+            "maxItems": 50
+          }
+        },
+        "required": [
+          "events"
+        ]
+      },
+      "ReadoutValue": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "enum": [
+                  "scalar"
+                ]
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "shape",
+              "value"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "enum": [
+                  "series"
+                ]
+              },
+              "points": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "bucketStart": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO-8601, UTC",
+                      "example": "2026-03-17T14:37:00.000Z"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "bucketStart",
+                    "value"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "shape",
+              "points"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "enum": [
+                  "breakdown"
+                ]
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "value"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "shape",
+              "rows"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "enum": [
+                  "funnel"
+                ]
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "reached": {
+                      "type": "integer"
+                    },
+                    "rate": {
+                      "type": "number"
+                    },
+                    "cumulativeRate": {
+                      "type": "number"
+                    },
+                    "droppedOff": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "reached",
+                    "rate",
+                    "cumulativeRate",
+                    "droppedOff"
+                  ]
+                }
+              },
+              "overallRate": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "shape",
+              "steps",
+              "overallRate"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "enum": [
+                  "retention"
+                ]
+              },
+              "offsets": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "cohorts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "start": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO-8601, UTC",
+                      "example": "2026-03-17T14:37:00.000Z"
+                    },
+                    "size": {
+                      "type": "integer"
+                    },
+                    "cells": {
+                      "type": "array",
+                      "items": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "offset": {
+                            "type": "integer"
+                          },
+                          "returned": {
+                            "type": "integer"
+                          },
+                          "rate": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "offset",
+                          "returned",
+                          "rate"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "start",
+                    "size",
+                    "cells"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "shape",
+              "offsets",
+              "cohorts"
+            ]
+          }
+        ]
+      },
+      "QueryResponse": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "$ref": "#/components/schemas/ReadoutValue"
+          },
+          "computedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO-8601, UTC",
+            "example": "2026-03-17T14:37:00.000Z"
+          }
+        },
+        "required": [
+          "value",
+          "computedAt"
+        ]
+      },
+      "Measure": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "count"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "distinct"
+                ]
+              },
+              "basis": {
+                "type": "string",
+                "enum": [
+                  "visit",
+                  "person"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "basis"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "aggregate"
+                ]
+              },
+              "fn": {
+                "type": "string",
+                "enum": [
+                  "sum",
+                  "avg",
+                  "min",
+                  "max"
+                ]
+              },
+              "property": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "kind",
+              "fn",
+              "property"
+            ]
+          }
+        ]
+      },
+      "Predicate": {
+        "type": "object",
+        "description": "A filter expression. Leaves compare a field; `and`/`or`/`not` compose them. Ordering comparisons (gt/gte/lt/lte) take a number, which is what lets the compiler emit a guarded numeric cast."
+      },
+      "FieldRef": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "system"
+                ]
+              },
+              "key": {
+                "type": "string",
+                "enum": [
+                  "event_name",
+                  "os_name",
+                  "os_version",
+                  "locale",
+                  "app_version",
+                  "device_model",
+                  "country_code",
+                  "sdk_version"
+                ]
+              }
+            },
+            "required": [
+              "source",
+              "key"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "property"
+                ]
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "source",
+              "key"
+            ]
+          }
+        ]
+      },
+      "Grain": {
+        "type": "string",
+        "enum": [
+          "hour",
+          "day",
+          "week",
+          "month"
+        ]
+      },
+      "Dimension": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "by": {
+                "type": "string",
+                "enum": [
+                  "field"
+                ]
+              },
+              "field": {
+                "$ref": "#/components/schemas/FieldRef"
+              }
+            },
+            "required": [
+              "by",
+              "field"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "by": {
+                "type": "string",
+                "enum": [
+                  "time"
+                ]
+              },
+              "grain": {
+                "$ref": "#/components/schemas/Grain"
+              }
+            },
+            "required": [
+              "by",
+              "grain"
+            ]
+          }
+        ]
+      },
+      "Window": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "relative"
+                ]
+              },
+              "amount": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "hour",
+                  "day",
+                  "week",
+                  "month"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "amount",
+              "unit"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "absolute"
+                ]
+              },
+              "from": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO-8601, UTC",
+                "example": "2026-03-17T14:37:00.000Z"
+              },
+              "to": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO-8601, UTC",
+                "example": "2026-03-17T14:37:00.000Z"
+              }
+            },
+            "required": [
+              "kind",
+              "from",
+              "to"
+            ]
+          }
+        ]
+      },
+      "Analysis": {
+        "type": "object",
+        "properties": {
+          "measure": {
+            "$ref": "#/components/schemas/Measure"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "where": {
+            "$ref": "#/components/schemas/Predicate"
+          },
+          "groupBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Dimension"
+            }
+          },
+          "window": {
+            "$ref": "#/components/schemas/Window"
+          },
+          "orderBy": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "measure",
+          "window"
+        ]
+      },
+      "QueryRequest": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "3f1a2b4c-5d6e-4f70-8a91-2b3c4d5e6f70"
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/Analysis"
+          }
+        },
+        "required": [
+          "projectId",
+          "analysis"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Liveness",
+        "description": "Is this process running? Never touches the database, so a database blip cannot cause a restart loop.",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Alive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Liveness"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "summary": "Readiness",
+        "description": "Can this instance serve traffic? Pings the store and reports what it verified at boot.",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/events": {
+      "post": {
+        "summary": "Ingest events",
+        "description": "Accepts up to 50 events. Resolves only after the batch is durably committed, so a 202 means the data is written. Every event gets its own outcome, and the quota state is named rather than implied.",
+        "tags": [
+          "ingest"
+        ],
+        "security": [
+          {
+            "ingestKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Committed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The batch could not be read",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or unknown credential",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential may not write events",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The store is unavailable; retry",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/query": {
+      "post": {
+        "summary": "Run an analysis",
+        "description": "Answers one question. The response is tagged with its shape; the caller never has to infer it.",
+        "tags": [
+          "read"
+        ],
+        "security": [
+          {
+            "serviceKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The analysis is not well formed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or unknown credential",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential may not read this project",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The query exceeded its budget",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

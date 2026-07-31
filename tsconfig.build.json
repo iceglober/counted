@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "packages/domain" },
+    { "path": "packages/contracts" },
     { "path": "packages/ports" },
     { "path": "packages/application" },
     { "path": "packages/adapters/postgres" },

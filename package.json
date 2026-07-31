@@ -35,9 +35,11 @@
     "changeset": "npx @changesets/cli",
     "version-packages": "npx @changesets/cli version",
     "release": "npx @changesets/cli publish",
-    "arch": "depcruise packages/domain/src packages/ports/src packages/application/src packages/adapters apps --config .dependency-cruiser.cjs",
+    "arch": "depcruise packages/domain/src packages/contracts/src packages/ports/src packages/application/src packages/adapters apps --config .dependency-cruiser.cjs",
     "build:v2": "tsc --build tsconfig.build.json",
-    "test:v2": "bun test packages/domain packages/ports packages/application packages/adapters apps"
+    "test:v2": "bun test packages/domain packages/contracts packages/ports packages/application packages/adapters apps",
+    "openapi:generate": "bun scripts/generate-openapi.ts",
+    "openapi:check": "bun scripts/generate-openapi.ts && git diff --exit-code -- openapi.json"
   },
   "dependencies": {
     "@counted/api": "workspace:*",

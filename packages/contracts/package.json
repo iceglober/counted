@@ -1,0 +1,19 @@
+{
+  "name": "@counted/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The API contract. Zod schemas are the source; OpenAPI is generated from them.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.0",
+    "zod": "^3.24.0"
+  }
+}

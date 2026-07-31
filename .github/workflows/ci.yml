@@ -66,6 +66,12 @@ jobs:
       - name: Architecture rules (v2 layering)
         run: bun run arch
 
+      # The OpenAPI document is generated from the Zod schemas the server
+      # validates with. Regenerate and fail on any difference, so the spec
+      # cannot describe an API the code does not implement.
+      - name: OpenAPI drift
+        run: bun run openapi:check
+
       - name: Build v2 packages
         run: bun run build:v2
 
