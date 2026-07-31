@@ -107,4 +107,27 @@ For the API this is 11 workspaces rather than 20; the web image is 2.
 > **Local build note.** These have not been built locally: Docker Desktop on
 > the development machine is allocated 1.9 GiB and `bun install` is OOM-killed
 > (exit 137). Raise Docker → Settings → Resources → Memory to ~6 GiB to build
-> them here. Railway's builders are not so constrained.
+> them here. Railway's builders are not so constrained, and all three build
+> and run there.
+
+## Three things that bit during the first deploy
+
+**The root `railway.toml` wins.** Railway's config-as-code overrides anything
+set through the API or dashboard, so the v2 services initially built v1's
+Dockerfile and deployed the Next.js app under the API's hostname. Each service
+now names its own `railwayConfigFile`; the root `railway.toml` still belongs to
+v1 and goes at cutover.
+
+That is also how the v2 database ended up with v1 tables: the v1 image ran its
+own migrations against `DATABASE_URL`. The v2 migration then refused to start
+with `schema statement 2/11 failed: "events" is not partitioned` — which is the
+migration working, and is why it names the statement.
+
+**Watch patterns filter `railway up`, not just git pushes.** A deploy from an
+unchanged tree comes back `SKIPPED`, which in the dashboard reads like a deploy
+that worked. They are off; the root config's `watchPatterns = ["**"]` was
+itself added in v1 for the same class of bug.
+
+**`PORT` is Railway's, not the image's.** Next honoured the injected `8080`
+while the generated domain targeted `3000`, which is a 502 with a perfectly
+healthy container behind it. `PORT` is now set explicitly on the web service.

@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type { NextConfig } from "next";
 
 /**
@@ -9,6 +10,13 @@ import type { NextConfig } from "next";
  */
 const config: NextConfig = {
   reactStrictMode: true,
+  // Emits `.next/standalone` — a self-contained server with only the modules
+  // it actually imports. Without it the deploy image has nothing to copy, and
+  // the build fails at COPY rather than at anything that names the cause.
+  output: "standalone",
+  // The app lives in a workspace, so tracing has to start at the repo root or
+  // the standalone bundle misses the packages it imports from there.
+  outputFileTracingRoot: join(import.meta.dirname, "../.."),
   // The API is a different origin and answers with its own headers. Nothing
   // here should be caching a signed-in response.
   headers: async () => [

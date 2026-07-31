@@ -3,7 +3,7 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "deploy/api.Dockerfile",
-    "watchPatterns": ["apps/api/**", "packages/**", "package.json", "bun.lock", "deploy/api.*"]
+    "_comment": "No watchPatterns. They filter `railway up` as well as git pushes, so a deploy from an unchanged tree comes back SKIPPED \u2014 which reads in the dashboard like a deploy that worked."
   },
   "deploy": {
     "healthcheckPath": "/health/ready",
