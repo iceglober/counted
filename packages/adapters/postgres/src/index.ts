@@ -18,3 +18,5 @@ export * from "./compile/measure";
 export * from "./compile/statements";
 export * from "./compile/sequence";
 export * from "./compile/cohorts";
+export * from "./event-writer";
+export * from "./analytical-store";
