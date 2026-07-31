@@ -42,6 +42,9 @@
       ],
       "@/*": [
         "./apps/web/src/*"
+      ],
+      "@counted/aptabase-compat": [
+        "./packages/aptabase-compat/src/index.ts"
       ]
     },
     "jsx": "react-jsx"
@@ -57,6 +60,7 @@
     "packages/react/src/**/*",
     "packages/react/test/**/*",
     "packages/agent-core/src/**/*",
-    "packages/agent-cli/src/**/*"
+    "packages/agent-cli/src/**/*",
+    "packages/aptabase-compat/src/**/*"
   ]
 }

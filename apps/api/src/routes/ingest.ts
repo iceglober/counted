@@ -28,6 +28,7 @@ import {
   type QuotaDecision,
   type Principal,
   type SubmittedEvent,
+  type ProjectId,
 } from "@counted/domain";
 import { IngestEventSchema, IngestRequestSchema, fieldsFrom, validationDetail, z } from "@counted/contracts";
 import type { WritableEvent } from "@counted/ports";
@@ -54,7 +55,7 @@ const RETRY_AFTER_SECONDS = 5;
  * whatever they were given. Converting at the boundary is the rule the domain
  * states about itself; this is what enforcing it looks like.
  */
-const toSubmitted = (e: z.infer<typeof IngestEventSchema>): SubmittedEvent => ({
+export const toSubmitted = (e: z.infer<typeof IngestEventSchema>): SubmittedEvent => ({
   name: e.name,
   visitId: e.visitId,
   userId: e.userId,
@@ -74,6 +75,90 @@ const toWritable = (e: ReturnType<typeof admit>["admitted"][number]): WritableEv
   properties: e.properties,
   system: e.system,
 });
+
+/**
+ * Admit a batch, write it, and report what happened.
+ *
+ * Extracted so the Aptabase compat edge runs *this* — not a second ingest
+ * implementation that could drift from it. Everything that decides whether an
+ * event is stored, deduplicated or refused lives here and is reached by both
+ * doors; the two differ only in the shape they arrive in and the shape they
+ * answer with.
+ */
+export type IngestOutcome =
+  | { readonly ok: false; readonly full: boolean; readonly error: string }
+  | {
+      readonly ok: true;
+      readonly accepted: number;
+      readonly deduplicated: number;
+      readonly rejected: number;
+      readonly outcomes: readonly (
+        | { index: number; accepted: true; deduplicated: boolean }
+        | { index: number; accepted: false; reason: string }
+      )[];
+      readonly quota: QuotaDecision;
+      readonly warnings: readonly unknown[];
+      readonly committedAt: Instant;
+    };
+
+export const ingestBatch = async (
+  deps: Dependencies,
+  project: ProjectId,
+  events: readonly ReturnType<typeof toSubmitted>[],
+): Promise<IngestOutcome> => {
+  const quota = await deps.quota.decide(project);
+  const admission = admit({ project, events, receivedAt: deps.clock.now(), quota });
+
+  let written: ReadonlySet<string>;
+  let committedAt: Instant;
+  try {
+    const result = await deps.ingest.submit(admission.admitted.map(toWritable));
+    written = result.written;
+    committedAt = result.committedAt;
+  } catch (error) {
+    return {
+      ok: false,
+      full: error instanceof QueueFullError,
+      error: error instanceof Error ? error.message : "unknown",
+    };
+  }
+
+  const counts = tally(admission.dispositions);
+  const admittedByIndex = new Map(admission.admitted.map((e) => [e.index, e]));
+
+  const outcomes = admission.dispositions.map((d) => {
+    if (d.kind === "accepted") {
+      const event = admittedByIndex.get(d.index)!;
+      return {
+        index: d.index,
+        accepted: true as const,
+        // A fact from the RETURNING set, not arithmetic on a count.
+        deduplicated: !written.has(dedupIdentity(toWritable(event))),
+      };
+    }
+    if (d.kind === "dropped") {
+      return {
+        index: d.index,
+        accepted: false as const,
+        reason: "Dropped: this workspace is past its monthly event allowance.",
+      };
+    }
+    return { index: d.index, accepted: false as const, reason: explainRefusal(d.reason) };
+  });
+
+  const deduplicated = outcomes.filter((o) => o.accepted && o.deduplicated).length;
+
+  return {
+    ok: true,
+    accepted: counts.accepted - deduplicated,
+    deduplicated,
+    rejected: counts.rejected + counts.dropped,
+    outcomes,
+    quota,
+    warnings: admission.warnings,
+    committedAt,
+  };
+};
 
 export const ingestRoutes = (deps: Dependencies): readonly RouteDefinition[] => [
   {
@@ -120,85 +205,44 @@ export const ingestRoutes = (deps: Dependencies): readonly RouteDefinition[] => 
         });
       }
 
-      const quota = await deps.quota.decide(principal.project);
-      const admission = admit({
-        project: principal.project,
-        events: parsed.data.events.map(toSubmitted),
-        receivedAt: deps.clock.now(),
-        quota,
-      });
+      const result = await ingestBatch(deps, principal.project, parsed.data.events.map(toSubmitted));
 
-      let written: ReadonlySet<string>;
-      let committedAt: Instant;
-      try {
-        const rows = admission.admitted.map(toWritable);
-        const result = await deps.ingest.submit(rows);
-        written = result.written;
-        committedAt = result.committedAt;
-      } catch (error) {
+      if (!result.ok) {
         // The write did not commit, so the answer must not say it did.
-        const full = error instanceof QueueFullError;
         log.warn("ingest.unavailable", {
           projectId: principal.project,
-          rows: admission.admitted.length,
-          reason: full ? "queue_full" : "write_failed",
-          error: error instanceof Error ? error.message : "unknown",
+          reason: result.full ? "queue_full" : "write_failed",
+          error: result.error,
         });
         return sendProblem(c, "internal.unavailable", {
           retryAfter: RETRY_AFTER_SECONDS,
-          detail: full
+          detail: result.full
             ? "Ingestion is saturated. Resend — events carry a dedup key, so a retry cannot double-count."
             : "The write did not commit. Resend — events carry a dedup key, so a retry cannot double-count.",
         });
       }
 
-      const counts = tally(admission.dispositions);
-      const admittedByIndex = new Map(admission.admitted.map((e) => [e.index, e]));
-
-      const outcomes = admission.dispositions.map((d) => {
-        if (d.kind === "accepted") {
-          const event = admittedByIndex.get(d.index)!;
-          return {
-            index: d.index,
-            accepted: true as const,
-            // A fact from the RETURNING set, not arithmetic on a count.
-            deduplicated: !written.has(dedupIdentity(toWritable(event))),
-          };
-        }
-        if (d.kind === "dropped") {
-          return {
-            index: d.index,
-            accepted: false as const,
-            reason: "Dropped: this workspace is past its monthly event allowance.",
-          };
-        }
-        return { index: d.index, accepted: false as const, reason: explainRefusal(d.reason) };
-      });
-
-      const deduplicated = outcomes.filter((o) => o.accepted && o.deduplicated).length;
-
       log.info("ingest.receipt", {
         projectId: principal.project,
-        accepted: counts.accepted,
-        deduplicated,
-        dropped: counts.dropped,
-        rejected: counts.rejected,
-        quota: quotaLabel(quota),
+        accepted: result.accepted,
+        deduplicated: result.deduplicated,
+        rejected: result.rejected,
+        quota: quotaLabel(result.quota),
       });
 
       return c.json(
         {
-          accepted: counts.accepted - deduplicated,
-          deduplicated,
-          rejected: counts.rejected + counts.dropped,
-          outcomes,
+          accepted: result.accepted,
+          deduplicated: result.deduplicated,
+          rejected: result.rejected,
+          outcomes: result.outcomes,
           quota: {
-            state: quotaLabel(quota),
-            used: quota.used,
-            limit: quota.kind === "accept" ? quota.limit : quota.limit,
+            state: quotaLabel(result.quota),
+            used: result.quota.used,
+            limit: result.quota.limit,
           },
-          ...(admission.warnings.length === 0 ? {} : { warnings: admission.warnings }),
-          committedAt: Instant.toISO(committedAt),
+          ...(result.warnings.length === 0 ? {} : { warnings: result.warnings }),
+          committedAt: Instant.toISO(result.committedAt),
         },
         202,
       );

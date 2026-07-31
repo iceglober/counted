@@ -22,7 +22,8 @@
     "@counted/contracts": "workspace:*",
     "@counted/adapter-stripe": "workspace:*",
     "@counted/adapter-notify": "workspace:*",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "@counted/aptabase-compat": "workspace:*"
   },
   "devDependencies": {
     "@counted/sdk-js": "workspace:*"

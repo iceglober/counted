@@ -142,6 +142,61 @@ export const buildRegistry = (): OpenAPIRegistry => {
     responses: { 204: { description: "Signed out" } },
   });
 
+  /**
+   * The compatibility edge.
+   *
+   * Documented because it is *served*, and the census gate's whole point is
+   * that nothing reaches the network undescribed — v1's spec omitted the one
+   * endpoint its own agent cards advertised. Marked deprecated because it
+   * exists to be migrated away from, and its request shape is Aptabase's
+   * rather than ours: it is described, not adopted.
+   */
+  for (const path of ["/api/v0/event", "/api/v0/events"]) {
+    registry.registerPath({
+      method: "post",
+      path,
+      summary: "Ingest an Aptabase-shaped event",
+      description:
+        "Accepts what an Aptabase SDK already sends — `App-Key`, `eventName`, `sessionId`, `systemProps` — " +
+        "translates it at the edge, and runs the same ingest path as POST /v1/events. Answers 200 with an empty " +
+        "body, which is what their clients expect. Use /v1/events for anything new.",
+      deprecated: true,
+      tags: ["compat"],
+      responses: {
+        200: { description: "Accepted. Empty body, as Aptabase answers." },
+        400: { description: "The body could not be translated" },
+        401: { description: "No usable ingest key was presented" },
+        413: { description: "Payload too large" },
+        503: { description: "The write did not commit. Retry; events carry a derived dedup key." },
+      },
+    });
+  }
+
+  for (const path of [
+    "/api/v0/events-list",
+    "/api/v0/dashboard-data",
+    "/api/v0/query",
+    "/api/v0/usage",
+    "/api/v0/projects",
+    "/api/v0/dashboards",
+    "/api/v0/alerts",
+    "/api/v0/provision",
+  ]) {
+    for (const method of ["get", "post"] as const) {
+      registry.registerPath({
+        method,
+        path,
+        summary: "Removed in v1",
+        description:
+          "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it " +
+          "rather than read prose.",
+        deprecated: true,
+        tags: ["compat"],
+        responses: { 410: { description: "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"." } },
+      });
+    }
+  }
+
   registry.registerPath({
     method: "post",
     path: "/v1/provision",
@@ -564,5 +619,6 @@ export const buildOpenApiDocument = (): object =>
       { name: "read", description: "Asking questions" },
       { name: "auth", description: "Signing in to the console" },
       { name: "bootstrap", description: "Starting a project, and adopting it" },
+      { name: "compat", description: "The Aptabase-shaped edge. Deprecated by design." },
     ],
   }) as unknown as OpenApiDocument);

@@ -1,0 +1,10 @@
+{
+  "name": "@counted/aptabase-compat",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Edge translation for Aptabase-shaped clients. Their vocabulary stops here.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "test": "bun test", "typecheck": "tsc --noEmit" },
+  "dependencies": {}
+}

@@ -58,6 +58,7 @@
         "@counted/adapter-postgres": "workspace:*",
         "@counted/adapter-stripe": "workspace:*",
         "@counted/application": "workspace:*",
+        "@counted/aptabase-compat": "workspace:*",
         "@counted/contracts": "workspace:*",
         "@counted/domain": "workspace:*",
         "@counted/ports": "workspace:*",
@@ -194,6 +195,10 @@
         "@counted/domain": "workspace:*",
         "@counted/ports": "workspace:*",
       },
+    },
+    "packages/aptabase-compat": {
+      "name": "@counted/aptabase-compat",
+      "version": "2.0.0",
     },
     "packages/codex-cli": {
       "name": "@counted/codex-cli",
@@ -387,6 +392,8 @@
     "@counted/api-server": ["@counted/api-server@workspace:apps/api"],
 
     "@counted/application": ["@counted/application@workspace:packages/application"],
+
+    "@counted/aptabase-compat": ["@counted/aptabase-compat@workspace:packages/aptabase-compat"],
 
     "@counted/claude-code": ["@counted/claude-code@workspace:packages/agent-claude-code"],
 

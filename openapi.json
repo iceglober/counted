@@ -30,6 +30,10 @@
     {
       "name": "bootstrap",
       "description": "Starting a project, and adopting it"
+    },
+    {
+      "name": "compat",
+      "description": "The Aptabase-shaped edge. Deprecated by design."
     }
   ],
   "components": {
@@ -2492,6 +2496,302 @@
         "x-counted-invalidates": [
           "me"
         ]
+      }
+    },
+    "/api/v0/event": {
+      "post": {
+        "summary": "Ingest an Aptabase-shaped event",
+        "description": "Accepts what an Aptabase SDK already sends — `App-Key`, `eventName`, `sessionId`, `systemProps` — translates it at the edge, and runs the same ingest path as POST /v1/events. Answers 200 with an empty body, which is what their clients expect. Use /v1/events for anything new.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "200": {
+            "description": "Accepted. Empty body, as Aptabase answers."
+          },
+          "400": {
+            "description": "The body could not be translated"
+          },
+          "401": {
+            "description": "No usable ingest key was presented"
+          },
+          "413": {
+            "description": "Payload too large"
+          },
+          "503": {
+            "description": "The write did not commit. Retry; events carry a derived dedup key."
+          }
+        },
+        "operationId": "ingestAptabaseEvent"
+      }
+    },
+    "/api/v0/events": {
+      "post": {
+        "summary": "Ingest an Aptabase-shaped event",
+        "description": "Accepts what an Aptabase SDK already sends — `App-Key`, `eventName`, `sessionId`, `systemProps` — translates it at the edge, and runs the same ingest path as POST /v1/events. Answers 200 with an empty body, which is what their clients expect. Use /v1/events for anything new.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "200": {
+            "description": "Accepted. Empty body, as Aptabase answers."
+          },
+          "400": {
+            "description": "The body could not be translated"
+          },
+          "401": {
+            "description": "No usable ingest key was presented"
+          },
+          "413": {
+            "description": "Payload too large"
+          },
+          "503": {
+            "description": "The write did not commit. Retry; events carry a derived dedup key."
+          }
+        },
+        "operationId": "ingestAptabaseEvents"
+      }
+    },
+    "/api/v0/events-list": {
+      "get": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneEventsList"
+      },
+      "post": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneEventsListPost"
+      }
+    },
+    "/api/v0/dashboard-data": {
+      "get": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneDashboardData"
+      },
+      "post": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneDashboardDataPost"
+      }
+    },
+    "/api/v0/query": {
+      "get": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneQuery"
+      },
+      "post": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneQueryPost"
+      }
+    },
+    "/api/v0/usage": {
+      "get": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneUsage"
+      },
+      "post": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneUsagePost"
+      }
+    },
+    "/api/v0/projects": {
+      "get": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneProjects"
+      },
+      "post": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneProjectsPost"
+      }
+    },
+    "/api/v0/dashboards": {
+      "get": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneDashboards"
+      },
+      "post": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneDashboardsPost"
+      }
+    },
+    "/api/v0/alerts": {
+      "get": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneAlerts"
+      },
+      "post": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneAlertsPost"
+      }
+    },
+    "/api/v0/provision": {
+      "get": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneProvisionV0"
+      },
+      "post": {
+        "summary": "Removed in v1",
+        "description": "Gone, not missing. Answers 410 with a `Link` header naming the successor, so a client can follow it rather than read prose.",
+        "deprecated": true,
+        "tags": [
+          "compat"
+        ],
+        "responses": {
+          "410": {
+            "description": "Removed. See Link: </v1/openapi.json>; rel=\"successor-version\"."
+          }
+        },
+        "operationId": "goneProvisionV0Post"
       }
     },
     "/v1/provision": {

@@ -149,6 +149,27 @@ export const OPERATIONS: Readonly<Record<string, OperationSpec>> = {
   "POST /v1/shared/dashboard/render": { operationId: "renderSharedDashboard" },
 
   "POST /v1/webhooks/stripe": { operationId: "receiveStripeWebhook" },
+
+  // The compatibility edge. Named like everything else so the operation table
+  // stays exhaustive — the generator fails on a path with no entry.
+  "POST /api/v0/event": { operationId: "ingestAptabaseEvent" },
+  "POST /api/v0/events": { operationId: "ingestAptabaseEvents" },
+  "GET /api/v0/events-list": { operationId: "goneEventsList" },
+  "POST /api/v0/events-list": { operationId: "goneEventsListPost" },
+  "GET /api/v0/dashboard-data": { operationId: "goneDashboardData" },
+  "POST /api/v0/dashboard-data": { operationId: "goneDashboardDataPost" },
+  "GET /api/v0/query": { operationId: "goneQuery" },
+  "POST /api/v0/query": { operationId: "goneQueryPost" },
+  "GET /api/v0/usage": { operationId: "goneUsage" },
+  "POST /api/v0/usage": { operationId: "goneUsagePost" },
+  "GET /api/v0/projects": { operationId: "goneProjects" },
+  "POST /api/v0/projects": { operationId: "goneProjectsPost" },
+  "GET /api/v0/dashboards": { operationId: "goneDashboards" },
+  "POST /api/v0/dashboards": { operationId: "goneDashboardsPost" },
+  "GET /api/v0/alerts": { operationId: "goneAlerts" },
+  "POST /api/v0/alerts": { operationId: "goneAlertsPost" },
+  "GET /api/v0/provision": { operationId: "goneProvisionV0" },
+  "POST /api/v0/provision": { operationId: "goneProvisionV0Post" },
 };
 
 /** Fill `{param}` placeholders in a tag from a request's path parameters. */
