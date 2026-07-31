@@ -17,3 +17,4 @@ export * from "./compile/predicate";
 export * from "./compile/measure";
 export * from "./compile/statements";
 export * from "./compile/sequence";
+export * from "./compile/cohorts";
