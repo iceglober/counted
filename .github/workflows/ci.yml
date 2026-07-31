@@ -87,6 +87,18 @@ jobs:
       - name: Contract drift
         run: bun run contract:check
 
+      # The cross-language SDK contract. Go and Rust drivers are built first;
+      # a missing toolchain fails the job rather than skipping quietly, because
+      # a suite that reports green because it ran nothing is the failure this
+      # exists to prevent.
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.22" }
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build conformance drivers
+        run: bun run conformance:build
+      - name: SDK conformance (js, python, go, rust)
+        run: bun run conformance
+
       - name: Test v2 packages
         run: bun run test:v2
         env:

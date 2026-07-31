@@ -66,11 +66,22 @@ describe("every event carries what makes a retry safe", () => {
 
   test("a retried batch carries the identical key and instant", async () => {
     // The property the whole delivery model rests on.
+    let clock = NOW;
     const capture: Capture = { requests: [] };
-    const { counted } = client(capture, (n) => (n === 1 ? new Response("", { status: 503 }) : accepted()));
+    const counted = new Counted({
+      key: "ck",
+      endpoint: "https://api.test/v1/events",
+      flushIntervalMs: 0,
+      now: () => clock,
+      random: () => 0.5,
+      fetch: responder(capture, (n) => (n === 1 ? new Response("", { status: 503 }) : accepted())),
+    });
 
     counted.track("page_view");
     await counted.flush();
+    // Past the backoff the failure scheduled. Without this the retry is
+    // correctly still paused — which is SDK-042 working, not a fault.
+    clock += 60_000;
     await counted.flush();
 
     expect(capture.requests).toHaveLength(2);
@@ -141,11 +152,25 @@ describe("identify", () => {
 });
 
 describe("a refusal is not retried; a failure is", () => {
-  test("a 503 returns the batch to the queue", async () => {
+  test("a 503 returns the batch to the queue, and retries after backing off", async () => {
+    let clock = NOW;
     const capture: Capture = { requests: [] };
-    const { counted } = client(capture, (n) => (n === 1 ? new Response("", { status: 503 }) : accepted()));
+    const counted = new Counted({
+      key: "ck",
+      endpoint: "https://api.test/v1/events",
+      flushIntervalMs: 0,
+      now: () => clock,
+      random: () => 0.5,
+      fetch: responder(capture, (n) => (n === 1 ? new Response("", { status: 503 }) : accepted())),
+    });
+
     counted.track("page_view");
     await counted.flush();
+    // Immediately: still backing off, so nothing is sent. SDK-042.
+    await counted.flush();
+    expect(capture.requests).toHaveLength(1);
+
+    clock += 60_000;
     await counted.flush();
     expect(capture.requests).toHaveLength(2);
   });
@@ -215,13 +240,14 @@ describe("a refusal is not retried; a failure is", () => {
   });
 
   test("a network error is retried, because nothing was heard back", async () => {
-    const capture: Capture = { requests: [] };
+    let clock = NOW;
     let calls = 0;
     const counted = new Counted({
       key: "ck",
       endpoint: "https://api.test/v1/events",
       flushIntervalMs: 0,
-      now: () => NOW,
+      now: () => clock,
+      random: () => 0.5,
       fetch: (async () => {
         calls += 1;
         if (calls === 1) throw new Error("connection reset");
@@ -230,9 +256,9 @@ describe("a refusal is not retried; a failure is", () => {
     });
     counted.track("x");
     await counted.flush();
+    clock += 60_000;
     await counted.flush();
     expect(calls).toBe(2);
-    expect(capture.requests).toHaveLength(0);
   });
 
   test("Retry-After pauses sending until it elapses", async () => {

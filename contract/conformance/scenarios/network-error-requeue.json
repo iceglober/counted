@@ -1,14 +1,42 @@
 {
   "id": "SDK-021",
-  "title": "a transport failure returns the batch to the head, in order",
+  "title": "a transport failure returns the batch to the head, in order, after backing off",
   "script": [
-    { "do": "track", "name": "first" },
-    { "do": "flush" },
-    { "expect": "request", "events": ["first"] },
-    { "respond": "network-error" },
-
-    { "do": "track", "name": "second" },
-    { "do": "flush" },
-    { "expect": "request", "events": ["first", "second"] }
+    {
+      "do": "track",
+      "name": "first"
+    },
+    {
+      "do": "flush"
+    },
+    {
+      "expect": "request",
+      "events": [
+        "first"
+      ]
+    },
+    {
+      "respond": "network-error"
+    },
+    {
+      "do": "track",
+      "name": "second"
+    },
+    {
+      "do": "flush"
+    },
+    {
+      "expect": "no-request"
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": "request",
+      "events": [
+        "first",
+        "second"
+      ]
+    }
   ]
 }

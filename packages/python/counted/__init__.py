@@ -1,7 +1,18 @@
-"""Counted — Privacy-first analytics SDK for Python."""
+"""Counted — privacy-first product analytics.
 
-from counted.client import Analytics
-from counted.client import track, flush, destroy, init
+Behaviour is specified in ``contract/sdk-behaviour.md`` and enforced by the
+cross-language conformance suite.
+"""
 
-__all__ = ["Analytics", "track", "flush", "destroy", "init"]
-__version__ = "0.1.0"
+from .client import Counted, HttpTransport, Response, Transport
+from .platform import SDK_VERSION, canonical_os, detect_system
+
+__all__ = [
+    "Counted",
+    "HttpTransport",
+    "Response",
+    "Transport",
+    "SDK_VERSION",
+    "canonical_os",
+    "detect_system",
+]

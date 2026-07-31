@@ -1,207 +1,350 @@
-"""Counted analytics client."""
+"""The Python SDK.
 
-import atexit
+Behaviour is specified in ``contract/sdk-behaviour.md`` and enforced by the
+conformance suite: the same scenario files drive this, the JavaScript
+reference, Go and Rust, and CI will not merge until all four agree.
+
+What was here before had the shape of a client and none of the reliability.
+There was no retry, no re-queue, and a bare ``except: pass`` around the send —
+so a failed flush dropped its events and reported success. That is the exact
+failure the conformance suite exists to make unshippable: it was not hard to
+write correctly, nobody was ever told it was wrong.
+
+The clock and the transport are injectable. Not for elegance — it is the only
+way the conformance driver can control time and failures, and behaviour that
+cannot be driven cannot be verified.
+"""
+
+from __future__ import annotations
+
 import json
-import platform
+import random
 import threading
 import time
-import urllib.request
 import uuid
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Callable, Protocol
+from urllib import error, request
 
-SDK_VERSION = "counted-python/0.1.0"
-DEFAULT_HOST = "https://app.counted.dev"
-DEFAULT_FLUSH_INTERVAL = 30.0
-DEFAULT_MAX_BATCH_SIZE = 50
-
-_global_client: "Analytics | None" = None
+from ._contract import BACKOFF, DEFAULTS, FATAL_STATUSES, RETRYABLE_STATUSES
+from .platform import detect_system
 
 
-class Analytics:
-    """Privacy-first event tracking. No cookies, no fingerprinting, no PII."""
+@dataclass(frozen=True)
+class Response:
+    status: int
+    headers: dict[str, str]
+    body: dict[str, Any] | None
+
+
+class Transport(Protocol):
+    def send(self, url: str, key: str, body: str) -> Response:
+        """Deliver a batch. Raises on a transport failure."""
+
+
+class HttpTransport:
+    """The real one. Standard library only — no dependencies is a selling point."""
+
+    def __init__(self, timeout_ms: int = DEFAULTS["requestTimeoutMs"]) -> None:
+        self._timeout = timeout_ms / 1000
+
+    def send(self, url: str, key: str, body: str) -> Response:
+        req = request.Request(
+            url,
+            data=body.encode("utf-8"),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+            method="POST",
+        )
+        try:
+            with request.urlopen(req, timeout=self._timeout) as raw:
+                return Response(raw.status, dict(raw.headers), _read_json(raw.read()))
+        except error.HTTPError as http_error:
+            # An HTTP error is an answer, not a transport failure. Reading the
+            # body is how `retryable` is learnt, and swallowing it here is what
+            # made the old client retry a 401 forever.
+            return Response(http_error.code, dict(http_error.headers), _read_json(http_error.read()))
+
+
+def _read_json(raw: bytes) -> dict[str, Any] | None:
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except Exception:
+        return None
+
+
+@dataclass
+class _Event:
+    name: str
+    visit_id: str
+    occurred_at: str
+    idempotency_key: str
+    user_id: str | None = None
+    properties: dict[str, Any] | None = None
+    system_properties: dict[str, Any] | None = None
+
+    def to_wire(self) -> dict[str, Any]:
+        wire: dict[str, Any] = {
+            "name": self.name,
+            "visitId": self.visit_id,
+            "occurredAt": self.occurred_at,
+            "idempotencyKey": self.idempotency_key,
+        }
+        # Absent, not null. The ingest contract makes these optional, and
+        # sending an explicit null is sending a value where it says send none.
+        if self.user_id is not None:
+            wire["userId"] = self.user_id
+        if self.properties is not None:
+            wire["properties"] = self.properties
+        if self.system_properties is not None:
+            wire["systemProperties"] = self.system_properties
+        return wire
+
+
+class Counted:
+    """SDK-001: track() never throws, never blocks, performs no I/O."""
 
     def __init__(
         self,
-        project_key: str,
-        host: str = DEFAULT_HOST,
-        flush_interval: float = DEFAULT_FLUSH_INTERVAL,
-        max_batch_size: int = DEFAULT_MAX_BATCH_SIZE,
-        session_id: str | None = None,
-        session_timeout: float = 1800.0,
-    ):
-        self.project_key = project_key
-        self.host = host.rstrip("/")
-        self.flush_interval = flush_interval
-        self.max_batch_size = max_batch_size
-        self.session_timeout = session_timeout
+        key: str,
+        endpoint: str = "https://api.counted.dev/v1/events",
+        app_version: str | None = None,
+        flush_interval_ms: int = DEFAULTS["flushIntervalMs"],
+        max_batch_size: int = DEFAULTS["maxBatchSize"],
+        max_buffer_events: int = DEFAULTS["maxBufferEvents"],
+        visit_timeout_ms: int = DEFAULTS["visitTimeoutMs"],
+        transport: Transport | None = None,
+        clock: Callable[[], float] | None = None,
+        random_source: Callable[[], float] | None = None,
+        on_diagnostic: Callable[[dict[str, Any]], None] | None = None,
+    ) -> None:
+        self._key = key
+        self._endpoint = endpoint
+        self._max_batch = min(max_batch_size, 250)
+        self._max_buffer = max_buffer_events
+        self._visit_timeout_ms = visit_timeout_ms
+        self._transport = transport or HttpTransport()
+        self._clock = clock or (lambda: time.time() * 1000)
+        self._random = random_source or random.random
+        self._on_diagnostic = on_diagnostic
 
-        self._buffer: list[dict[str, Any]] = []
         self._lock = threading.Lock()
-        self._enabled = True
-        self._send_threads: list[threading.Thread] = []
-
-        self._session_id = session_id or self._generate_session_id()
-        self._last_activity = time.time()
+        self._buffer: list[_Event] = []
+        self._dropped = 0
+        self._person: str | None = None
+        self._visit_id: str | None = None
+        self._visit_seen = 0.0
+        self._paused_until = 0.0
+        self._attempt = 0
+        self._disabled = False
+        self._closed = False
+        self._system = detect_system(app_version)
 
         self._timer: threading.Timer | None = None
-        self._start_timer()
+        if flush_interval_ms > 0:
+            self._interval = flush_interval_ms / 1000
+            self._start_timer()
+        else:
+            self._interval = 0
 
-        atexit.register(self.destroy)
+    # ── public surface ──────────────────────────────────────────────────────
 
-    def track(self, event_name: str, props: dict[str, Any] | None = None) -> None:
-        """Track an event with optional properties."""
-        if not self._enabled:
+    def track(self, name: str, properties: dict[str, Any] | None = None) -> None:
+        if self._closed or self._disabled:
             return
-
-        event = {
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime()),
-            "sessionId": self._get_session_id(),
-            "eventName": event_name,
-            "systemProps": self._detect_system_props(),
-            "props": props or {},
-        }
-
         with self._lock:
-            self._buffer.append(event)
-            if len(self._buffer) >= self.max_batch_size:
-                self._flush_locked()
+            self._buffer.append(
+                _Event(
+                    name=name,
+                    visit_id=self._current_visit(),
+                    # SDK-010/011: minted and stamped now, reused verbatim on
+                    # every retry. The server dedups on (key, instant), so
+                    # regenerating either double-counts.
+                    occurred_at=_iso(self._clock()),
+                    idempotency_key=str(uuid.uuid4()),
+                    user_id=self._person,
+                    properties=properties,
+                    system_properties=self._system,
+                )
+            )
+            self._trim_locked()
+            full = len(self._buffer) >= self._max_batch
+        if full:
+            self.flush()
+
+    def identify(self, user_id: str) -> None:
+        """SDK-060/061: the customer's own id. Never derived, inferred or hashed."""
+        trimmed = user_id.strip()
+        self._person = trimmed or None
+
+    def reset(self) -> None:
+        """SDK-062: forget the person and start a new visit."""
+        self._person = None
+        with self._lock:
+            self._visit_id = _mint_visit(self._clock(), self._random)
+            self._visit_seen = self._clock()
 
     def flush(self) -> None:
-        """Flush buffered events to the server."""
+        if self._disabled:
+            return
         with self._lock:
-            self._flush_locked()
+            if self._clock() < self._paused_until:
+                return
+            batch = self._buffer[: self._max_batch]
+            del self._buffer[: len(batch)]
+        if not batch:
+            return
+        self._send(batch)
 
-    def destroy(self) -> None:
-        """Flush remaining events and stop the timer.
-
-        Waits for in-flight sends to finish so short-lived processes (CLIs,
-        scripts) don't lose events: the send threads are daemons and would be
-        killed at interpreter exit otherwise.
-        """
+    def shutdown(self) -> None:
+        """SDK-080: flush what is queued, then stop."""
+        self._closed = True
         self._stop_timer()
         self.flush()
-        for t in list(self._send_threads):
-            t.join(timeout=10)
-        with self._lock:
-            self._send_threads = [t for t in self._send_threads if t.is_alive()]
 
-    def disable(self) -> None:
-        """Disable tracking."""
-        self._enabled = False
-        with self._lock:
-            self._buffer.clear()
-        self._stop_timer()
+    # ── internals ───────────────────────────────────────────────────────────
 
-    def enable(self) -> None:
-        """Enable tracking."""
-        self._enabled = True
-        self._start_timer()
-
-    def _flush_locked(self) -> None:
-        """Flush buffer while holding the lock."""
-        if not self._buffer:
+    def _send(self, batch: list[_Event]) -> None:
+        body = json.dumps({"events": [event.to_wire() for event in batch]})
+        try:
+            response = self._transport.send(self._endpoint, self._key, body)
+        except Exception as failure:  # noqa: BLE001 — every transport failure is a retry
+            # Not `except: pass`. Nothing was heard back, so nothing is known
+            # about whether it landed: requeue and try again.
+            self._requeue(batch)
+            self._schedule_backoff()
+            self._report({"kind": "retry", "status": 0, "detail": str(failure)})
             return
 
-        batch = self._buffer[: self.max_batch_size]
-        self._buffer = self._buffer[self.max_batch_size :]
+        if 200 <= response.status < 300:
+            # SDK-040: every per-event outcome settles. Only transport
+            # failures and retryable statuses come back.
+            self._attempt = 0
+            self._report_receipt(response.body)
+            return
 
-        # Fire and forget in a thread to not block the caller. Keep a handle so
-        # destroy() can wait for delivery before the process exits.
-        self._send_threads = [t for t in self._send_threads if t.is_alive()]
-        t = threading.Thread(target=self._send, args=(batch,), daemon=True)
-        t.start()
-        self._send_threads.append(t)
+        retryable = _retryable(response)
+        if not retryable:
+            if response.status in FATAL_STATUSES:
+                # SDK-043: a credential that is missing or revoked will not
+                # become valid by being asked again.
+                with self._lock:
+                    discarded = len(self._buffer)
+                    self._buffer.clear()
+                self._disabled = True
+                self._stop_timer()
+                self._report(
+                    {"kind": "disabled", "status": response.status, "discarded": discarded, "detail": _detail(response)}
+                )
+                return
+            self._report({"kind": "refused", "status": response.status, "detail": _detail(response)})
+            return
 
-    def _send(self, events: list[dict[str, Any]]) -> None:
-        """Send events to the Counted API."""
-        url = f"{self.host}/api/v0/event"
-        data = json.dumps(events).encode("utf-8")
+        self._requeue(batch)
+        retry_after = _retry_after_ms(response.headers)
+        if retry_after is not None:
+            # SDK-041: the server said when. Believe it.
+            self._paused_until = self._clock() + retry_after
+        else:
+            self._schedule_backoff()
 
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={
-                "Content-Type": "application/json",
-                "Project-Key": self.project_key,
-            },
-            method="POST",
-        )
+    def _schedule_backoff(self) -> None:
+        """SDK-042: exponential, capped, full jitter.
 
-        try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                resp.read()
-        except Exception:
-            pass  # Silently fail — analytics should never crash the host app
+        Without jitter every client that failed in one outage returns in the
+        same millisecond and knocks the recovering server over again.
+        """
+        self._attempt += 1
+        ceiling = min(BACKOFF["maxMs"], BACKOFF["baseMs"] * (BACKOFF["factor"] ** (self._attempt - 1)))
+        self._paused_until = self._clock() + self._random() * ceiling
 
-    def _get_session_id(self) -> str:
-        now = time.time()
-        if self.session_timeout > 0 and now - self._last_activity > self.session_timeout:
-            self._session_id = self._generate_session_id()
-        self._last_activity = now
-        return self._session_id
+    def _requeue(self, batch: list[_Event]) -> None:
+        """SDK-021: back to the head, so ordering survives."""
+        with self._lock:
+            self._buffer[0:0] = batch
+            self._trim_locked()
 
-    @staticmethod
-    def _generate_session_id() -> str:
-        ts = int(time.time())
-        rand = uuid.uuid4().hex[:8]
-        return f"{ts}.{rand}"
+    def _trim_locked(self) -> None:
+        """SDK-020/022: bounded on insert, dropping the oldest."""
+        excess = len(self._buffer) - self._max_buffer
+        if excess <= 0:
+            return
+        del self._buffer[:excess]
+        self._dropped += excess
+        self._report({"kind": "dropped", "events": excess, "reason": "queue_full"})
 
-    @staticmethod
-    def _detect_system_props() -> dict[str, Any]:
-        return {
-            "osName": platform.system() or None,
-            "osVersion": platform.release() or None,
-            "locale": None,
-            "appVersion": None,
-            "deviceModel": None,
-            "sdkVersion": SDK_VERSION,
-            "isDebug": False,
-        }
+    def _current_visit(self) -> str:
+        """SDK-050: rolls over after inactivity. Never an identity."""
+        now = self._clock()
+        if self._visit_id is None or (
+            self._visit_timeout_ms > 0 and now - self._visit_seen > self._visit_timeout_ms
+        ):
+            self._visit_id = _mint_visit(now, self._random)
+        self._visit_seen = now
+        return self._visit_id
+
+    def _report_receipt(self, body: dict[str, Any] | None) -> None:
+        if not body:
+            return
+        if body.get("rejected", 0):
+            reasons = [o.get("reason") for o in body.get("outcomes", []) if not o.get("accepted")]
+            self._report({"kind": "rejected", "events": body["rejected"], "reasons": reasons})
+        quota = body.get("quota")
+        if quota and quota.get("state") != "ok":
+            self._report({"kind": "quota", **quota})
+
+    def _report(self, diagnostic: dict[str, Any]) -> None:
+        if self._on_diagnostic is not None:
+            self._on_diagnostic(diagnostic)
 
     def _start_timer(self) -> None:
-        if self._timer is not None:
+        if self._interval <= 0 or self._closed or self._disabled:
             return
-
-        def tick():
-            self.flush()
-            self._timer = None
-            self._start_timer()
-
-        self._timer = threading.Timer(self.flush_interval, tick)
+        self._timer = threading.Timer(self._interval, self._on_tick)
+        # So a script is not held open by analytics.
         self._timer.daemon = True
         self._timer.start()
 
+    def _on_tick(self) -> None:
+        self.flush()
+        self._start_timer()
+
     def _stop_timer(self) -> None:
-        if self._timer:
+        if self._timer is not None:
             self._timer.cancel()
             self._timer = None
 
 
-# ─── Module-level convenience API ───────────────────────────────────────────────
+def _detail(response: Response) -> str:
+    if response.body and isinstance(response.body.get("detail"), str):
+        return response.body["detail"]
+    return f"HTTP {response.status}"
 
 
-def init(project_key: str, **kwargs: Any) -> Analytics:
-    """Initialize the global analytics client."""
-    global _global_client
-    _global_client = Analytics(project_key=project_key, **kwargs)
-    return _global_client
+def _retryable(response: Response) -> bool:
+    """SDK-044: the server's own answer wins; the status list is the fallback."""
+    if response.body is not None and isinstance(response.body.get("retryable"), bool):
+        return bool(response.body["retryable"])
+    return response.status in RETRYABLE_STATUSES
 
 
-def track(event_name: str, props: dict[str, Any] | None = None) -> None:
-    """Track an event on the global client."""
-    if _global_client:
-        _global_client.track(event_name, props)
+def _retry_after_ms(headers: dict[str, str]) -> float | None:
+    raw = None
+    for name, value in headers.items():
+        if name.lower() == "retry-after":
+            raw = value
+            break
+    if raw is None:
+        return None
+    try:
+        return float(raw) * 1000
+    except ValueError:
+        return None
 
 
-def flush() -> None:
-    """Flush the global client."""
-    if _global_client:
-        _global_client.flush()
+def _iso(millis: float) -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(millis / 1000)) + f".{int(millis % 1000):03d}Z"
 
 
-def destroy() -> None:
-    """Destroy the global client."""
-    global _global_client
-    if _global_client:
-        _global_client.destroy()
-        _global_client = None
+def _mint_visit(millis: float, random_source: Callable[[], float]) -> str:
+    suffix = format(int(random_source() * (36**8)), "x")
+    return f"{int(millis // 1000)}.{suffix}"

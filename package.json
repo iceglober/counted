@@ -43,7 +43,8 @@
     "openapi:check": "bun scripts/generate-openapi.ts && git diff --exit-code -- openapi.json",
     "typecheck:v2": "tsc -p tsconfig.typecheck.json",
     "contract:generate": "bun scripts/generate-contract.ts",
-    "contract:check": "bun scripts/generate-contract.ts && git diff --exit-code -- packages/sdk-js/src/gen"
+    "contract:check": "bun scripts/generate-contract.ts && git diff --exit-code -- packages/sdk-js/src/gen packages/python/counted/_contract.py packages/go/contract_gen.go packages/rust/src/contract.rs",
+    "conformance:build": "cd packages/rust && cargo build --bin conformance && cd ../go && go build -o bin/conformance ./cmd/conformance"
   },
   "dependencies": {
     "@counted/api": "workspace:*",

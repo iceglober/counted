@@ -15,7 +15,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { runScenario } from "./runner";
 import { createJsHarness } from "./js-harness";
+import { createProcessHarness, type ProcessDriverSpec } from "./process-harness";
 import type { Scenario } from "./scenario";
+import { existsSync } from "node:fs";
 
 const ROOT = join(import.meta.dir, "../../..");
 const SCENARIO_DIR = join(ROOT, "contract/conformance/scenarios");
@@ -62,6 +64,58 @@ describe("the JavaScript SDK conforms", () => {
     });
   }
 });
+
+/**
+ * The other languages, driven over a pipe.
+ *
+ * The same scenario files, the same runner, the same assertions. A language
+ * whose toolchain is absent is skipped loudly rather than passing quietly —
+ * a suite that reports green because it ran nothing is the thing this exists
+ * to prevent.
+ */
+const DRIVERS: readonly ProcessDriverSpec[] = [
+  {
+    language: "python",
+    command: "python3",
+    args: ["-m", "counted.conformance"],
+    cwd: join(ROOT, "packages/python"),
+    available: () => existsSync(join(ROOT, "packages/python/counted/conformance.py")),
+  },
+  {
+    language: "rust",
+    command: join(ROOT, "packages/rust/target/debug/conformance"),
+    args: [],
+    cwd: join(ROOT, "packages/rust"),
+    // Built by `cargo build --bin conformance`. Absent means the suite
+    // reports it rather than passing quietly.
+    available: () => existsSync(join(ROOT, "packages/rust/target/debug/conformance")),
+  },
+  {
+    language: "go",
+    command: join(ROOT, "packages/go/bin/conformance"),
+    args: [],
+    cwd: join(ROOT, "packages/go"),
+    // Built by `go build -o bin/conformance ./cmd/conformance`.
+    available: () => existsSync(join(ROOT, "packages/go/bin/conformance")),
+  },
+];
+
+for (const spec of DRIVERS) {
+  describe(`the ${spec.language} SDK conforms`, () => {
+    for (const { file, scenario } of scenarios()) {
+      test(`${scenario.id} — ${scenario.title} (${file})`, async () => {
+        if (!spec.available()) throw new Error(`${spec.language} driver is missing`);
+        const harness = await createProcessHarness(spec);
+        try {
+          const failures = await runScenario(scenario, harness);
+          expect(failures.map((f) => `step ${f.step}: ${f.detail}`)).toEqual([]);
+        } finally {
+          await harness.stop();
+        }
+      });
+    }
+  });
+}
 
 describe("the wire shape", () => {
   test("the body is an object with an events array, never a bare array", async () => {

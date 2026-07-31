@@ -15,7 +15,7 @@
  * at-least-once delivery safe rather than a source of double counting.
  */
 
-import { FATAL_STATUSES } from "./gen/contract";
+import { BACKOFF, FATAL_STATUSES } from "./gen/contract";
 import { EventQueue, type QueuedEvent } from "./queue";
 import { detectSystem, type SystemProperties } from "./platform";
 import { sendBatch, sendBeacon, type IngestReceipt, type SendOutcome } from "./transport";
@@ -38,6 +38,8 @@ export type CountedOptions = {
   readonly visitId?: string;
   readonly fetch?: typeof fetch;
   readonly now?: () => number;
+  /** Injected so a jittered backoff is still assertable. */
+  readonly random?: () => number;
   /** Called for anything a developer should see. Defaults to console. */
   readonly onDiagnostic?: (diagnostic: Diagnostic) => void;
 };
@@ -64,11 +66,13 @@ export class Counted {
   private readonly options: Required<Pick<CountedOptions, "endpoint" | "flushIntervalMs" | "maxBatchSize">> &
     CountedOptions;
   private readonly now: () => number;
+  private readonly random: () => number;
 
   private person: string | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private inFlight: Promise<void> | null = null;
   private pausedUntil = 0;
+  private attempt = 0;
   private closed = false;
   private disabled = false;
   private readonly warned = new Set<number>();
@@ -81,6 +85,7 @@ export class Counted {
       maxBatchSize: Math.min(options.maxBatchSize ?? DEFAULTS.maxBatchSize, 250),
     };
     this.now = options.now ?? (() => Date.now());
+    this.random = options.random ?? Math.random;
     this.queue = new EventQueue(options.maxQueueSize ?? DEFAULTS.maxQueueSize);
     this.visit = new Visit({ ...(options.visitId === undefined ? {} : { visitId: options.visitId }), now: this.now });
     this.system = detectSystem({
@@ -186,6 +191,7 @@ export class Counted {
 
   private handle(outcome: SendOutcome, batch: readonly QueuedEvent[]): void {
     if (outcome.kind === "accepted") {
+      this.attempt = 0;
       this.reportReceipt(outcome.receipt);
       return;
     }
@@ -212,7 +218,17 @@ export class Counted {
       return;
     }
 
-    if (outcome.retryAfterMs !== null) this.pausedUntil = this.now() + outcome.retryAfterMs;
+    // SDK-041: the server said when. Believe it. Otherwise SDK-042: back off
+    // exponentially with full jitter — without jitter every client that failed
+    // in one outage comes back in the same millisecond and knocks the
+    // recovering server over again.
+    if (outcome.retryAfterMs !== null) {
+      this.pausedUntil = this.now() + outcome.retryAfterMs;
+    } else {
+      this.attempt += 1;
+      const ceiling = Math.min(BACKOFF.maxMs, BACKOFF.baseMs * BACKOFF.factor ** (this.attempt - 1));
+      this.pausedUntil = this.now() + this.random() * ceiling;
+    }
     this.queue.requeue(batch);
   }
 

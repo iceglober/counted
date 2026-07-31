@@ -62,4 +62,74 @@ const write = (relative: string, contents: string): void => {
   console.log(`wrote ${relative} (${contents.length} bytes)`);
 };
 
+const python = (c: Contract): string => `"""${BANNER.split("\n").join("\n")}"""
+
+CONTRACT_VERSION = ${JSON.stringify(c.contractVersion)}
+
+OS_NAMES = ${JSON.stringify(c.osNames)}
+
+OS_ALIASES = ${JSON.stringify(c.osAliases, null, 4)}
+
+DEFAULTS = ${JSON.stringify(c.defaults, null, 4)}
+
+BACKOFF = ${JSON.stringify(c.backoff, null, 4)}
+
+ENDPOINTS = ${JSON.stringify(c.endpoints, null, 4)}
+
+RETRYABLE_STATUSES = ${JSON.stringify(c.retryableStatuses)}
+
+FATAL_STATUSES = ${JSON.stringify(c.fatalStatuses)}
+`;
+
+const go = (c: Contract): string => `// ${BANNER.split("\n").join("\n// ")}
+
+package counted
+
+const ContractVersion = ${JSON.stringify(c.contractVersion)}
+
+var OsNames = []string{${c.osNames.map((n) => JSON.stringify(n)).join(", ")}}
+
+var OsAliases = map[string]string{
+${Object.entries(c.osAliases).map(([k, v]) => `\t${JSON.stringify(k)}: ${JSON.stringify(v)},`).join("\n")}
+}
+
+const (
+${Object.entries(c.defaults).map(([k, v]) => `\t${k[0]!.toUpperCase()}${k.slice(1)} = ${v}`).join("\n")}
+)
+
+const (
+\tBackoffBaseMs = ${c.backoff.baseMs}
+\tBackoffMaxMs  = ${c.backoff.maxMs}
+\tBackoffFactor = ${c.backoff.factor}
+)
+
+var RetryableStatuses = []int{${c.retryableStatuses.join(", ")}}
+
+var FatalStatuses = []int{${c.fatalStatuses.join(", ")}}
+`;
+
+const rust = (c: Contract): string => `// ${BANNER.split("\n").join("\n// ")}
+
+pub const CONTRACT_VERSION: &str = ${JSON.stringify(c.contractVersion)};
+
+pub const OS_NAMES: [&str; ${c.osNames.length}] = [${c.osNames.map((n) => JSON.stringify(n)).join(", ")}];
+
+pub const OS_ALIASES: [(&str, &str); ${Object.keys(c.osAliases).length}] = [
+${Object.entries(c.osAliases).map(([k, v]) => `    (${JSON.stringify(k)}, ${JSON.stringify(v)}),`).join("\n")}
+];
+
+${Object.entries(c.defaults).map(([k, v]) => `pub const ${k.replace(/([A-Z])/g, "_$1").toUpperCase()}: u64 = ${v};`).join("\n")}
+
+pub const BACKOFF_BASE_MS: u64 = ${c.backoff.baseMs};
+pub const BACKOFF_MAX_MS: u64 = ${c.backoff.maxMs};
+pub const BACKOFF_FACTOR: u64 = ${c.backoff.factor};
+
+pub const RETRYABLE_STATUSES: [u16; ${c.retryableStatuses.length}] = [${c.retryableStatuses.join(", ")}];
+
+pub const FATAL_STATUSES: [u16; ${c.fatalStatuses.length}] = [${c.fatalStatuses.join(", ")}];
+`;
+
 write("packages/sdk-js/src/gen/contract.ts", typescript(source));
+write("packages/python/counted/_contract.py", python(source));
+write("packages/go/contract_gen.go", go(source));
+write("packages/rust/src/contract.rs", rust(source));

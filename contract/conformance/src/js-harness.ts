@@ -72,6 +72,8 @@ export const createJsHarness = (options: Record<string, unknown> = {}): Harness 
     // Driven explicitly: a wall-clock timer would race the virtual one.
     flushIntervalMs: 0,
     now: () => clock,
+    // Deterministic, so a jittered backoff is still assertable.
+    random: () => 0.5,
     fetch: fetchImpl,
     onDiagnostic: () => {},
     ...options,

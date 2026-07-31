@@ -1,0 +1,51 @@
+{
+  "id": "SDK-042",
+  "title": "a retryable status backs off before retrying, and the retry is the same event",
+  "script": [
+    {
+      "do": "track",
+      "name": "a"
+    },
+    {
+      "do": "flush"
+    },
+    {
+      "expect": "request",
+      "events": [
+        "a"
+      ]
+    },
+    {
+      "checkpoint": "first-attempt"
+    },
+    {
+      "respond": {
+        "status": 500,
+        "body": {
+          "retryable": true,
+          "detail": "temporarily unavailable"
+        }
+      }
+    },
+    {
+      "do": "flush"
+    },
+    {
+      "expect": "no-request"
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": "request",
+      "events": [
+        "a"
+      ]
+    },
+    {
+      "expect": "same-as",
+      "path": "idempotencyKey",
+      "checkpoint": "first-attempt"
+    }
+  ]
+}

@@ -97,12 +97,22 @@ export const runScenario = async (scenario: Scenario, harness: Harness): Promise
       continue;
     }
 
-    if ("checkpoint" in step) {
+    // A bare checkpoint, not a `same-as` — which carries a `checkpoint`
+    // property too. Testing only for that property matched both, so every
+    // `same-as` silently became a checkpoint overwrite and its comparison
+    // never ran. The idempotency-key assertions were dead in all four
+    // languages until a mutation test showed a re-stamped key passing.
+    if ("checkpoint" in step && !("expect" in step)) {
       // Records the whole first event, so a later `same-as` can compare any
       // field of it — which is how "the retry reused the id" is expressed.
       checkpoints.set(step.checkpoint, latest?.body.events[0] ?? null);
       continue;
     }
+
+    // Settle before every assertion. In-process this is a few turns of the
+    // event loop; across a pipe it is what pulls the driver's captured
+    // requests over. Without it a process driver would always look idle.
+    await harness.settle();
 
     if (step.expect === "request") {
       const requests = harness.drain();
