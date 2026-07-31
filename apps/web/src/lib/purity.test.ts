@@ -99,17 +99,43 @@ describe("no domain logic", () => {
 });
 
 describe("one way to the network", () => {
-  test("no source file calls fetch directly except the client and the callback", () => {
-    // Two exceptions, both deliberate: `lib/api.ts` *is* the client, and the
-    // magic-link callback re-emits the API's own Set-Cookie, which the client
-    // deliberately does not model.
+  test("no source file reaches the API except through the client", () => {
+    /**
+     * The invariant is about the *API*, not about the word `fetch`. A call to
+     * this app's own origin — the share page's refresh button hitting its BFF
+     * — is not a second way to the API; it is a page talking to its own
+     * server, and forbidding it would push the token into browser JavaScript,
+     * which is the thing the share design exists to prevent.
+     *
+     * So what is forbidden is naming the API's base URL anywhere but the
+     * client, and the one exception is the magic-link callback, which re-emits
+     * the API's own `Set-Cookie` — something the client deliberately does not
+     * model.
+     */
     const allowed = ["src/lib/api.ts", "src/app/auth/callback/route.ts"];
+    const reachesApi = /(publicApiUrl|serverApiUrl)\s*\(|https?:\/\/[^"'`\s]*counted[^"'`\s]*\/v1\//;
+
     const offenders = sourceFiles()
       .map((file) => ({ file, relative: file.slice(APP.length + 1) }))
-      .filter(({ relative }) => !allowed.includes(relative) && !relative.endsWith("purity.test.ts"))
-      .filter(({ file }) => /\bfetch\s*\(/.test(readFileSync(file, "utf8")));
+      // Application code only. A test of the client names URLs on purpose, and
+      // nothing it does ships.
+      .filter(({ relative }) => !allowed.includes(relative) && !/\.test\.tsx?$/.test(relative))
+      .filter(({ file }) => reachesApi.test(readFileSync(file, "utf8")));
 
     expect(offenders.map((o) => o.relative)).toEqual([]);
+  });
+
+  test("a same-origin fetch never carries a credential", () => {
+    // The other half. A BFF call is fine; a BFF call that builds an
+    // `Authorization` header in the browser is the share token escaping into
+    // page JavaScript.
+    const offenders = sourceFiles()
+      .filter((file) => !file.endsWith("purity.test.ts") && !file.endsWith("api.ts"))
+      .filter((file) => {
+        const source = readFileSync(file, "utf8");
+        return source.includes('"use client"') && /authorization\s*:/i.test(source);
+      });
+    expect(offenders.map((f) => f.slice(APP.length + 1))).toEqual([]);
   });
 
   test("every operation the app calls exists in the contract", async () => {
