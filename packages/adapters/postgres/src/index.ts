@@ -9,6 +9,7 @@
 export * from "./sql/schema";
 export * from "./partitions";
 export * from "./partition-maintenance";
+export * from "./retention";
 export * from "./sql/indexes";
 export * from "./pool";
 export * from "./access-resolver";

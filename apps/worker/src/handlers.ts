@@ -6,14 +6,17 @@
  * will claim.
  */
 
-import type { JobName, PartitionMaintenance } from "@counted/ports";
+import type { JobName, PartitionMaintenance, RetentionMaintenance } from "@counted/ports";
 import type { Handler } from "./runtime";
 import { partitionsEnsure } from "./jobs/partitions-ensure";
+import { retentionPurge } from "./jobs/retention-purge";
 
 export type JobDependencies = {
   readonly partitions: PartitionMaintenance;
+  readonly retention: RetentionMaintenance;
 };
 
 export const buildHandlers = (deps: JobDependencies): Readonly<Partial<Record<JobName, Handler>>> => ({
   "partitions.ensure": partitionsEnsure(deps.partitions),
+  "retention.purge": retentionPurge({ partitions: deps.partitions, retention: deps.retention }),
 });

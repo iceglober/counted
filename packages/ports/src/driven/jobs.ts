@@ -143,3 +143,39 @@ export type PartitionSpec = {
   readonly from: Instant;
   readonly to: Instant;
 };
+
+/**
+ * Deleting events past their retention.
+ *
+ * Two mechanisms because partitions are global and retention is per-plan: a
+ * whole month can only be dropped once it is expired for *everyone*, and
+ * anything shorter has to be deleted per project inside partitions other
+ * customers still need.
+ */
+export interface RetentionMaintenance {
+  /**
+   * Irreversible. The caller must have established that the partition's entire
+   * range is past the longest retention any plan grants.
+   */
+  dropPartition(name: string): Promise<void>;
+
+  /**
+   * Every project, with the plan and payment state that govern its retention.
+   *
+   * Read together rather than per project, because the alternative is a query
+   * per project on a job that runs every six hours.
+   */
+  projectsWithPlans(): Promise<readonly ProjectRetention[]>;
+
+  /**
+   * Delete a project's events older than `olderThan`, up to `limit` rows.
+   * Returns how many were deleted, so the caller can tell "done" from "more".
+   */
+  purgeProject(project: import("@counted/domain").ProjectId, olderThan: import("@counted/domain").Instant, limit: number): Promise<number>;
+}
+
+export type ProjectRetention = {
+  readonly project: import("@counted/domain").ProjectId;
+  readonly plan: string;
+  readonly payment: string;
+};
