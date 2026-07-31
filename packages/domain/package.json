@@ -1,0 +1,13 @@
+{
+  "name": "@counted/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The domain layer. Entities, value objects, pure algorithms. No I/O, no framework, no database.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "build": "tsc --build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  }
+}

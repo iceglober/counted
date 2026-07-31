@@ -1,0 +1,10 @@
+{
+  "name": "@counted/application",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Use cases, planning, and policy. Depends on domain and ports; never on an adapter.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "build": "tsc --build", "test": "bun test", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@counted/domain": "workspace:*", "@counted/ports": "workspace:*" }
+}
