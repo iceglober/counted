@@ -19,6 +19,29 @@ CREATE TABLE IF NOT EXISTS workspaces (
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
+-- One row per workspace, upserted. v1 updated a subscriptions row keyed on
+-- user_id, which matched nothing for every first-time subscriber: the customer
+-- paid, the statement reported success, and nothing changed.
+CREATE TABLE IF NOT EXISTS subscriptions (
+  workspace_id      uuid        PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,
+  plan              text        NOT NULL DEFAULT 'free',
+  payment_state     text        NOT NULL DEFAULT 'none',
+  customer_ref      text        UNIQUE,
+  subscription_ref  text        UNIQUE,
+  renews_at         timestamptz,
+  updated_at        timestamptz NOT NULL DEFAULT now()
+);
+
+-- Stripe delivers at-least-once and retries for days. Without this, a retried
+-- checkout event is applied twice — harmless for the transition itself, not
+-- harmless for the message that goes out with it.
+CREATE TABLE IF NOT EXISTS webhook_events (
+  id           text        PRIMARY KEY,
+  type         text        NOT NULL,
+  received_at  timestamptz NOT NULL DEFAULT now(),
+  processed_at timestamptz
+);
+
 CREATE TABLE IF NOT EXISTS workspace_members (
   workspace_id uuid        NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   account_id   text        NOT NULL,

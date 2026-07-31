@@ -36,6 +36,11 @@ import {
   WorkspaceViewSchema,
   CreateShareRequestSchema,
   ShareGrantedSchema,
+  CheckoutSessionRequestSchema,
+  HostedSessionSchema,
+  SubscriptionSchema,
+  UsageSchema,
+  WebhookAckSchema,
 } from "./schemas/management";
 import { z } from "./schemas/common";
 
@@ -349,6 +354,47 @@ export const buildRegistry = (): OpenAPIRegistry => {
       200: { description: "One readout per tile", ...json(DashboardDataResponseSchema) },
       401: problem("The link is unknown, revoked or expired"),
       404: problem("The dashboard no longer exists"),
+    },
+  });
+
+  // ── Billing ────────────────────────────────────────────────────────────
+  //
+  // Stripe reports payment state; the domain decides what that entitles a
+  // workspace to. Nothing here returns a customer id — only whether one exists.
+
+  managed("get", "/v1/workspaces/{workspaceId}/usage", "Read usage against the allowance", {
+    params: WorkspacePathSchema,
+    description: "The same count the ingest path enforces on, so the bar cannot disagree with a rejection.",
+    ok: { status: 200, description: "Usage this period", schema: UsageSchema },
+  });
+  managed("get", "/v1/workspaces/{workspaceId}/subscription", "Read the subscription", {
+    params: WorkspacePathSchema,
+    description:
+      "A workspace with no subscription reads as free rather than erroring. `inGrace` is true when a paid plan is being honoured despite a payment problem.",
+    ok: { status: 200, description: "The subscription", schema: SubscriptionSchema },
+  });
+  managed("post", "/v1/workspaces/{workspaceId}/billing/checkout-sessions", "Open checkout", {
+    params: WorkspacePathSchema,
+    body: CheckoutSessionRequestSchema,
+    ok: { status: 201, description: "Where to send the browser", schema: HostedSessionSchema },
+  });
+  managed("post", "/v1/workspaces/{workspaceId}/billing/portal-sessions", "Open the billing portal", {
+    params: WorkspacePathSchema,
+    description:
+      "Refused with billing.no_account when the workspace has never been to checkout. The provider returns the browser to a page that renders rather than one that redirects.",
+    ok: { status: 201, description: "Where to send the browser", schema: HostedSessionSchema },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/v1/webhooks/stripe",
+    summary: "Stripe webhook",
+    description:
+      "Authenticated by HMAC signature over the raw body with a five-minute window, not by a credential. Deduplicated by event id: a replay is acknowledged and changes nothing. An event we do not act on is acknowledged rather than retried.",
+    tags: ["billing"],
+    responses: {
+      200: { description: "Received", ...json(WebhookAckSchema) },
+      400: problem("The signature did not verify, or the body is malformed"),
     },
   });
 

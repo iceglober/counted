@@ -258,3 +258,54 @@ export const ShareGrantedSchema = z
     dashboard: DashboardViewSchema,
   })
   .openapi("ShareGranted");
+
+// ── Billing ──────────────────────────────────────────────────────────────────
+
+export const CheckoutSessionRequestSchema = z
+  .object({ cadence: z.enum(["monthly", "annual"]).default("monthly") })
+  .openapi("CheckoutSessionRequest");
+
+export const HostedSessionSchema = z
+  .object({ url: z.string().openapi({ description: "Where to send the browser. Short-lived." }) })
+  .openapi("HostedSession");
+
+export const UsageSchema = z
+  .object({
+    events: z.object({
+      used: z.number().int(),
+      limit: z.number().int().nullable(),
+      /** Named rather than implied — `overage` is stored-but-past-allowance. */
+      state: z.enum(["ok", "overage", "rejected"]),
+    }),
+    projects: z.object({ used: z.number().int(), limit: z.number().int().nullable() }),
+    plan: z.enum(["free", "pro"]),
+    inGrace: z.boolean(),
+  })
+  .openapi("Usage");
+
+export const SubscriptionSchema = z
+  .object({
+    plan: z.enum(["free", "pro"]),
+    paymentState: z.enum(["none", "active", "past_due", "canceled"]),
+    /** A paid plan honoured despite a payment problem. */
+    inGrace: z.boolean(),
+    renewsAt: InstantSchema.nullable(),
+    limits: z.object({
+      eventsPerMonth: z.number().int().nullable(),
+      projects: z.number().int().nullable(),
+      seats: z.number().int().nullable(),
+      retentionDays: z.number().int().nullable(),
+    }),
+    /** Whether a portal session can be opened. Never the customer id. */
+    hasBillingAccount: z.boolean(),
+  })
+  .openapi("Subscription");
+
+export const WebhookAckSchema = z
+  .object({
+    received: z.literal(true),
+    applied: z.boolean(),
+    reason: z.string().optional(),
+    entitlementChanged: z.boolean().optional(),
+  })
+  .openapi("WebhookAck");

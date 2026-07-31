@@ -19,6 +19,7 @@ import { ingestRoutes } from "./routes/ingest";
 import { queryRoutes } from "./routes/query";
 import { managementRoutes } from "./routes/management";
 import { shareRoutes } from "./routes/share";
+import { billingRoutes } from "./routes/billing";
 import { createGuard } from "./http/guard";
 import { census, mount, type RouteDefinition } from "./http/route";
 import { sendProblem } from "./http/respond";
@@ -120,6 +121,7 @@ export const allRoutes = (deps: Dependencies): readonly RouteDefinition[] => [
   ...queryRoutes(deps),
   ...managementRoutes(deps),
   ...shareRoutes(deps),
+  ...billingRoutes(deps),
 ];
 
 export const routeCensus = (deps: Dependencies) => census(allRoutes(deps));

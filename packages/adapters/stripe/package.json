@@ -1,0 +1,10 @@
+{
+  "name": "@counted/adapter-stripe",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Stripe: hosted sessions and signed webhooks. Reports payment state; never decides an entitlement.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "build": "tsc --build", "test": "bun test", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@counted/domain": "workspace:*", "@counted/ports": "workspace:*" }
+}

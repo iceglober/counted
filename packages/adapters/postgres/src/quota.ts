@@ -26,6 +26,7 @@ import {
   type PlanId,
   type ProjectId,
   type QuotaDecision,
+  type WorkspaceId,
 } from "@counted/domain";
 import type { QuotaService } from "@counted/ports";
 
@@ -111,5 +112,22 @@ const usageThisPeriod = async (pool: Pool, workspace: string | null, project: Pr
               AND project_id IN (SELECT id FROM projects WHERE workspace_id = $1)`,
           [workspace],
         );
+  return Number(rows[0]?.used ?? 0);
+};
+
+/**
+ * Events a workspace has recorded this calendar month.
+ *
+ * Exported so the usage endpoint reads the same number the ingest path
+ * enforces on. Two counts for one figure is how a customer ends up seeing a
+ * usage bar that disagrees with the quota that just rejected them.
+ */
+export const eventsThisPeriod = async (pool: Pool, workspace: WorkspaceId): Promise<number> => {
+  const { rows } = await pool.query<{ used: string }>(
+    `SELECT count(*)::text AS used FROM events
+      WHERE occurred_at >= date_trunc('month', now())
+        AND project_id IN (SELECT id FROM projects WHERE workspace_id = $1)`,
+    [workspace],
+  );
   return Number(rows[0]?.used ?? 0);
 };

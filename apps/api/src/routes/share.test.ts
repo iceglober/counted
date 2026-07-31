@@ -40,7 +40,7 @@ const OTHER_DASH = DashboardId("55555555-5555-5555-5555-555555555599");
 const OWNER_KEY = "sk_owner_key_value";
 const SHARE_TOKEN = "st_stubGrantTokenValue000000";
 
-const config: Config = { databaseUrl: "postgres://stub", port: 8080, release: "test" };
+const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, release: "test" };
 
 const owner: Principal = {
   kind: "service",
@@ -113,6 +113,20 @@ const app = (h: Harness = {}) => {
       },
     }),
     log: silentLogger(),
+  billing: {
+    createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),
+    createPortalSession: async () => ({ url: "https://portal.stripe.test/session", expiresAt: null }),
+    verifyWebhook: () => ({ ok: false as const, error: { reason: "bad_signature" as const } }),
+  },
+  subscriptions: {
+    find: async () => null,
+    findByCustomer: async () => null,
+    findBySubscriptionRef: async () => null,
+    save: async () => {},
+  },
+  webhooks: { claim: async () => true, markProcessed: async () => {} },
+  usage: { eventsInCurrentPeriod: async () => 0 },
+
     ids: { next: () => "00000000-0000-7000-8000-000000000000" },
     grants: { issue: () => SHARE_TOKEN },
     // A digest that is the token, so the stub resolver can be keyed on it.

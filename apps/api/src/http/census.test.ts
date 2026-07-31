@@ -21,7 +21,7 @@ import type { Config, Dependencies } from "../composition";
 import { publicRoute, requires, projectFromPath, census, type RouteDefinition } from "./route";
 import { stubAccess, silentLogger } from "../server.test";
 
-const config: Config = { databaseUrl: "postgres://stub", port: 8080, release: "test" };
+const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, release: "test" };
 
 const writer: EventWriter = {
   append: async () => ({ accepted: 0, deduplicated: 0, written: [], committedAt: Instant.fromEpochMillis(0) }),
@@ -30,6 +30,20 @@ const writer: EventWriter = {
 const deps: Dependencies = {
   access: stubAccess(),
   log: silentLogger(),
+  billing: {
+    createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),
+    createPortalSession: async () => ({ url: "https://portal.stripe.test/session", expiresAt: null }),
+    verifyWebhook: () => ({ ok: false as const, error: { reason: "bad_signature" as const } }),
+  },
+  subscriptions: {
+    find: async () => null,
+    findByCustomer: async () => null,
+    findBySubscriptionRef: async () => null,
+    save: async () => {},
+  },
+  webhooks: { claim: async () => true, markProcessed: async () => {} },
+  usage: { eventsInCurrentPeriod: async () => 0 },
+
   grants: { issue: (kind: "share" | "claim") => `${kind === "share" ? "st" : "ct"}_stubGrantTokenValue000000` },
   ids: { next: () => "00000000-0000-7000-8000-000000000000" },
   quota: { decide: async () => Quota.decide(Entitlement.none(), { used: 0 }) },

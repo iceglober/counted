@@ -22,13 +22,17 @@ import {
   bootStore,
   createAccessResolver,
   createQuotaService,
+  createSubscriptionRepository,
+  createWebhookLedger,
+  eventsThisPeriod,
   describeBoot,
   poolConfig,
   type BootReport,
 } from "@counted/adapter-postgres";
 import { idGenerator, issueGrantToken, secretGenerator } from "@counted/adapter-crypto";
+import { StripeGateway } from "@counted/adapter-stripe";
 import { createLogger, type Logger } from "./http/log";
-import type { AccessResolver, AnalyticalStore, EventWriter, GrantIssuer, IdGenerator, QuotaService, SecretGenerator } from "@counted/ports";
+import type { AccessResolver, AnalyticalStore, EventWriter, BillingGateway, GrantIssuer, IdGenerator, QuotaService, SecretGenerator, SubscriptionRepository, UsageMeter, WebhookLedger } from "@counted/ports";
 import { Coalescer } from "./ingest/coalescer";
 import { Instant, type Clock } from "@counted/domain";
 
@@ -37,6 +41,9 @@ export type Config = {
   readonly port: number;
   /** Free-form, for the health payload. Not used for behaviour. */
   readonly release: string;
+  /** Where the web app lives. Checkout and the portal return here. */
+  readonly appUrl: string;
+  readonly stripe: { readonly secretKey: string; readonly webhookSecret: string; readonly monthlyPrice: string; readonly annualPrice: string };
 };
 
 export const configFromEnv = (env: Record<string, string | undefined>): Config => {
@@ -50,6 +57,15 @@ export const configFromEnv = (env: Record<string, string | undefined>): Config =
     databaseUrl,
     port: Number(env["PORT"] ?? 8080),
     release: env["RELEASE"] ?? env["RAILWAY_GIT_COMMIT_SHA"] ?? "dev",
+    appUrl: env["APP_URL"] ?? "http://localhost:3000",
+    stripe: {
+      // Absent in development: the billing endpoints then fail loudly at the
+      // provider rather than at boot, so the rest of the API still runs.
+      secretKey: env["STRIPE_SECRET_KEY"] ?? "",
+      webhookSecret: env["STRIPE_WEBHOOK_SECRET"] ?? "",
+      monthlyPrice: env["STRIPE_PRICE_MONTHLY_ID"] ?? "",
+      annualPrice: env["STRIPE_PRICE_ANNUAL_ID"] ?? "",
+    },
   };
 };
 
@@ -71,6 +87,10 @@ export type Dependencies = {
   readonly secrets: SecretGenerator;
   readonly ids: IdGenerator;
   readonly grants: GrantIssuer;
+  readonly billing: BillingGateway;
+  readonly subscriptions: SubscriptionRepository;
+  readonly webhooks: WebhookLedger;
+  readonly usage: UsageMeter;
   readonly boot: BootReport;
   readonly config: Config;
   shutdown(): Promise<void>;
@@ -116,6 +136,14 @@ export const compose = async (config: Config): Promise<Dependencies> => {
     secrets: secretGenerator,
     ids: idGenerator,
     grants: { issue: issueGrantToken },
+    billing: new StripeGateway({
+      secretKey: config.stripe.secretKey,
+      webhookSecret: config.stripe.webhookSecret,
+      prices: { monthly: config.stripe.monthlyPrice, annual: config.stripe.annualPrice },
+    }),
+    subscriptions: createSubscriptionRepository(analytics),
+    webhooks: createWebhookLedger(analytics),
+    usage: { eventsInCurrentPeriod: (w) => eventsThisPeriod(analytics, w) },
     boot,
     config,
     shutdown: async () => {

@@ -53,6 +53,7 @@
       "dependencies": {
         "@counted/adapter-crypto": "workspace:*",
         "@counted/adapter-postgres": "workspace:*",
+        "@counted/adapter-stripe": "workspace:*",
         "@counted/application": "workspace:*",
         "@counted/contracts": "workspace:*",
         "@counted/domain": "workspace:*",
@@ -76,6 +77,14 @@
         "@counted/domain": "workspace:*",
         "@counted/ports": "workspace:*",
         "pg": "^8.13.0",
+      },
+    },
+    "packages/adapters/stripe": {
+      "name": "@counted/adapter-stripe",
+      "version": "0.0.0",
+      "dependencies": {
+        "@counted/domain": "workspace:*",
+        "@counted/ports": "workspace:*",
       },
     },
     "packages/api": {
@@ -299,6 +308,8 @@
     "@counted/adapter-crypto": ["@counted/adapter-crypto@workspace:packages/adapters/crypto"],
 
     "@counted/adapter-postgres": ["@counted/adapter-postgres@workspace:packages/adapters/postgres"],
+
+    "@counted/adapter-stripe": ["@counted/adapter-stripe@workspace:packages/adapters/stripe"],
 
     "@counted/api": ["@counted/api@workspace:packages/api"],
 

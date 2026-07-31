@@ -328,6 +328,8 @@
               "request.unsupported_media_type",
               "quota.exceeded",
               "rate.limited",
+              "billing.no_account",
+              "billing.provider_unavailable",
               "query.timeout",
               "query.unsupported",
               "internal.unavailable",
@@ -1905,6 +1907,200 @@
             "default": 720
           }
         }
+      },
+      "Usage": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "object",
+            "properties": {
+              "used": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "overage",
+                  "rejected"
+                ]
+              }
+            },
+            "required": [
+              "used",
+              "limit",
+              "state"
+            ]
+          },
+          "projects": {
+            "type": "object",
+            "properties": {
+              "used": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "used",
+              "limit"
+            ]
+          },
+          "plan": {
+            "type": "string",
+            "enum": [
+              "free",
+              "pro"
+            ]
+          },
+          "inGrace": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "events",
+          "projects",
+          "plan",
+          "inGrace"
+        ]
+      },
+      "Subscription": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "free",
+              "pro"
+            ]
+          },
+          "paymentState": {
+            "type": "string",
+            "enum": [
+              "none",
+              "active",
+              "past_due",
+              "canceled"
+            ]
+          },
+          "inGrace": {
+            "type": "boolean"
+          },
+          "renewsAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "ISO-8601, UTC",
+            "example": "2026-03-17T14:37:00.000Z"
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "eventsPerMonth": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "projects": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "seats": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "retentionDays": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "eventsPerMonth",
+              "projects",
+              "seats",
+              "retentionDays"
+            ]
+          },
+          "hasBillingAccount": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "plan",
+          "paymentState",
+          "inGrace",
+          "renewsAt",
+          "limits",
+          "hasBillingAccount"
+        ]
+      },
+      "HostedSession": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Where to send the browser. Short-lived."
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "CheckoutSessionRequest": {
+        "type": "object",
+        "properties": {
+          "cadence": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "annual"
+            ],
+            "default": "monthly"
+          }
+        }
+      },
+      "WebhookAck": {
+        "type": "object",
+        "properties": {
+          "received": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "applied": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "entitlementChanged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "received",
+          "applied"
+        ]
       }
     },
     "parameters": {}
@@ -3711,6 +3907,313 @@
           },
           "404": {
             "description": "The dashboard no longer exists",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/usage": {
+      "get": {
+        "summary": "Read usage against the allowance",
+        "description": "The same count the ingest path enforces on, so the bar cannot disagree with a rejection.",
+        "tags": [
+          "manage"
+        ],
+        "security": [
+          {
+            "serviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage this period",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or unknown credential",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or it is not yours",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/subscription": {
+      "get": {
+        "summary": "Read the subscription",
+        "description": "A workspace with no subscription reads as free rather than erroring. `inGrace` is true when a paid plan is being honoured despite a payment problem.",
+        "tags": [
+          "manage"
+        ],
+        "security": [
+          {
+            "serviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or unknown credential",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or it is not yours",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/billing/checkout-sessions": {
+      "post": {
+        "summary": "Open checkout",
+        "tags": [
+          "manage"
+        ],
+        "security": [
+          {
+            "serviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Where to send the browser",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostedSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or unknown credential",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or it is not yours",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/billing/portal-sessions": {
+      "post": {
+        "summary": "Open the billing portal",
+        "description": "Refused with billing.no_account when the workspace has never been to checkout. The provider returns the browser to a page that renders rather than one that redirects.",
+        "tags": [
+          "manage"
+        ],
+        "security": [
+          {
+            "serviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Where to send the browser",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostedSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or unknown credential",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or it is not yours",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/stripe": {
+      "post": {
+        "summary": "Stripe webhook",
+        "description": "Authenticated by HMAC signature over the raw body with a five-minute window, not by a credential. Deduplicated by event id: a replay is acknowledged and changes nothing. An event we do not act on is acknowledged rather than retried.",
+        "tags": [
+          "billing"
+        ],
+        "responses": {
+          "200": {
+            "description": "Received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The signature did not verify, or the body is malformed",
             "content": {
               "application/problem+json": {
                 "schema": {

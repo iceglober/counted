@@ -7,6 +7,7 @@
  */
 
 export * from "./driven/access";
+export * from "./driven/billing";
 export * from "./driven/analytical-store";
 export * from "./driven/event-writer";
 export * from "./driven/repositories";

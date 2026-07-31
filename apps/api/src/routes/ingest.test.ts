@@ -44,7 +44,7 @@ const ingestPrincipal: Principal = {
   scopes: ["events:write"],
 };
 
-const config: Config = { databaseUrl: "postgres://stub", port: 8080, release: "test" };
+const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, release: "test" };
 
 type Harness = {
   quota?: QuotaDecision;
@@ -79,6 +79,20 @@ const app = (h: Harness = {}) => {
       placements: { [PRJ]: placement },
     }),
     log: silentLogger(),
+  billing: {
+    createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),
+    createPortalSession: async () => ({ url: "https://portal.stripe.test/session", expiresAt: null }),
+    verifyWebhook: () => ({ ok: false as const, error: { reason: "bad_signature" as const } }),
+  },
+  subscriptions: {
+    find: async () => null,
+    findByCustomer: async () => null,
+    findBySubscriptionRef: async () => null,
+    save: async () => {},
+  },
+  webhooks: { claim: async () => true, markProcessed: async () => {} },
+  usage: { eventsInCurrentPeriod: async () => 0 },
+
   grants: { issue: (kind: "share" | "claim") => `${kind === "share" ? "st" : "ct"}_stubGrantTokenValue000000` },
   ids: { next: () => "00000000-0000-7000-8000-000000000000" },
     secrets: { issue: () => ({ secret: "", digest: "" as never, prefix: "" as never }), digest: (s) => s as never },

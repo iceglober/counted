@@ -84,6 +84,20 @@ export const ERRORS = {
     retryable: true,
     summary: "Too many requests in too short a window. Honour `Retry-After`.",
   },
+  // ── billing ───────────────────────────────────────────────────────────
+  "billing.no_account": {
+    status: 409,
+    title: "No Billing Account",
+    retryable: false,
+    summary: "This workspace has never been to checkout, so there is no billing account to manage.",
+  },
+  "billing.provider_unavailable": {
+    status: 502,
+    title: "Billing Provider Unavailable",
+    retryable: true,
+    summary:
+      "The payment provider did not answer. Nothing was charged and nothing changed; try again in a moment.",
+  },
   // ── query ─────────────────────────────────────────────────────────────
   "query.timeout": {
     status: 504,
