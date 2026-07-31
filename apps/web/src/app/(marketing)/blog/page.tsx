@@ -1,0 +1,56 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { SiteNav, SiteFooter } from "../site-chrome";
+import { visiblePosts } from "./posts";
+import { formatDate } from "./format-date";
+
+export const metadata: Metadata = {
+  title: "Blog — Counted",
+  description:
+    "Guides on privacy-first analytics, agent eval, and self-hosting. Most get you to a working result in five minutes.",
+  alternates: { canonical: "/blog" },
+  openGraph: {
+    title: "Counted Blog",
+    description: "Quickstarts and guides for privacy-first, agent-native analytics.",
+    url: "/blog",
+    type: "website",
+  },
+};
+
+
+export default function BlogIndex() {
+  const posts = visiblePosts();
+  return (
+    <div>
+      <SiteNav />
+
+      <div className="page">
+        <h1>Blog</h1>
+        <p>
+          Short, copy-paste guides. Each ends at a live dashboard; most take five minutes.
+        </p>
+
+        {posts.length === 0 ? (
+          <p className="muted">No posts yet.</p>
+        ) : (
+          posts.map((post) => (
+            <p key={post.slug}>
+              <Link href={`/blog/${post.slug}`}>
+                <b>{post.title}</b>
+              </Link>
+              {!post.published && <b> [draft]</b>}
+              <br />
+              <span className="small muted">
+                {formatDate(post.date)} &middot; {post.readingTime} read &middot; {post.category}
+              </span>
+              <br />
+              {post.description}
+            </p>
+          ))
+        )}
+      </div>
+
+      <SiteFooter />
+    </div>
+  );
+}

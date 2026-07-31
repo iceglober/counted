@@ -51,10 +51,11 @@ export const requireCaller = async (): Promise<Caller> => {
 export const workspaceFrom = (caller: Caller, requested: string | undefined): Workspace => {
   if (requested !== undefined) {
     const found = caller.workspaces.find((workspace) => workspace.id === requested);
-    if (found === undefined) redirect("/");
+    if (found === undefined) redirect("/dashboards");
     return found;
   }
   const first = caller.workspaces[0];
-  if (first === undefined) redirect("/");
+  // No workspace yet means the bootstrap path, not the marketing page.
+  if (first === undefined) redirect("/start");
   return first;
 };

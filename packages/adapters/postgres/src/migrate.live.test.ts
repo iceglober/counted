@@ -18,7 +18,16 @@ import { Pool } from "pg";
 import { createDatabase, databaseUrl, type LiveDatabase } from "./testing/database";
 import { appliedFingerprint, migrate, schemaFingerprint } from "./migrate";
 
-const DB = "counted_v2_migrate";
+/**
+ * Unique per process.
+ *
+ * These create and drop whole databases, and the suite runs alongside the
+ * other live tests against one server. With fixed names, two runs race on
+ * `DROP DATABASE` — which blocks while any connection is open — and the
+ * failure looks like a five-second timeout in an unrelated assertion.
+ */
+const SUFFIX = String(process.pid);
+const DB = `counted_v2_migrate_${SUFFIX}`;
 
 let db: LiveDatabase;
 
@@ -73,9 +82,9 @@ describe("several replicas starting at once", () => {
     // Every replica runs this at boot, so this is the normal case. Without the
     // advisory lock, `CREATE TABLE … IF NOT EXISTS` races produce a duplicate
     // key error on pg_type and concurrent index creation can deadlock.
-    const fresh = await createDatabase("counted_v2_migrate_race");
+    const fresh = await createDatabase(`counted_v2_migrate_race_${SUFFIX}`);
     try {
-      const pools = Array.from({ length: 8 }, () => new Pool({ connectionString: databaseUrl("counted_v2_migrate_race") }));
+      const pools = Array.from({ length: 8 }, () => new Pool({ connectionString: databaseUrl(`counted_v2_migrate_race_${SUFFIX}`) }));
       const results = await Promise.all(pools.map((pool) => migrate(pool, { release: "race" })));
 
       // Exactly one did the work; the rest found it current.
@@ -102,7 +111,7 @@ describe("the fingerprint", () => {
   test("is absent from a database that has never been migrated", async () => {
     // Readiness reports this as not-ready rather than as an error: an empty
     // database is a state a deploy passes through, not a fault.
-    const empty = await createDatabase("counted_v2_migrate_empty");
+    const empty = await createDatabase(`counted_v2_migrate_empty_${SUFFIX}`);
     try {
       expect(await appliedFingerprint(empty.pool)).toBeNull();
     } finally {

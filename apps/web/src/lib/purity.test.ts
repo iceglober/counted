@@ -88,13 +88,51 @@ describe("no domain logic", () => {
     expect(importers.map((f) => f.slice(ROOT.length + 1))).toEqual([]);
   });
 
-  test("the contracts package is the only shared dependency", () => {
-    // Contracts is schemas and the operation table — the description of the
-    // API, which a client is supposed to have. Anything else from the
-    // workspace would be logic this app should be asking for instead.
+  test("only the contract and the public SDK come from the workspace", () => {
+    /**
+     * Two, and the second needs justifying.
+     *
+     * `@counted/contracts` is schemas and the operation table — the
+     * description of the API, which a client is supposed to have.
+     *
+     * `@counted/sdk-js` is the SDK **any customer installs**, used here for
+     * the same thing they use it for: sending events to the public ingest
+     * endpoint with a public key. It is the least privileged path in the
+     * system, not a private one, and Counted measuring its own marketing site
+     * with its own product is the point.
+     *
+     * Anything else from the workspace would be logic this app should be
+     * asking the API for.
+     */
     const dependencies = Object.keys((manifest()["dependencies"] as Record<string, string>) ?? {});
-    const internal = dependencies.filter((name) => name.startsWith("@counted/"));
-    expect(internal).toEqual(["@counted/contracts"]);
+    const internal = dependencies.filter((name) => name.startsWith("@counted/")).sort();
+    expect(internal).toEqual(["@counted/contracts", "@counted/sdk-js"]);
+  });
+
+  test("the SDK is used to write events, never to read data", () => {
+    /**
+     * The teeth. Allowing the SDK must not become a second way to *read* —
+     * a page that pulled a dashboard through the SDK would be doing something
+     * an integrator could not, which is the whole invariant.
+     *
+     * The SDK's own surface makes this nearly structural (it has `track`,
+     * `identify`, `reset`, `flush` and nothing that fetches), but naming it
+     * means a future read method cannot quietly arrive here.
+     */
+    const users = sourceFiles().filter(
+      (file) => !file.endsWith("purity.test.ts") && readFileSync(file, "utf8").includes("@counted/sdk-js"),
+    );
+    expect(users.length).toBeGreaterThan(0);
+    for (const file of users) {
+      const source = readFileSync(file, "utf8");
+      // Only the constructor and the write-side calls.
+      const calls = [...source.matchAll(/counted\.(\w+)\(/g)].map((m) => m[1]);
+      for (const call of calls) {
+        expect({ file: file.slice(APP.length + 1), call }).toMatchObject({
+          call: expect.stringMatching(/^(track|identify|reset|flush|shutdown)$/),
+        });
+      }
+    }
   });
 });
 
@@ -112,14 +150,28 @@ describe("one way to the network", () => {
      * the API's own `Set-Cookie` — something the client deliberately does not
      * model.
      */
-    const allowed = ["src/lib/api.ts", "src/app/auth/callback/route.ts"];
+    const allowed = [
+      "src/lib/api.ts",
+      "src/app/auth/callback/route.ts",
+      // The marketing site's own analytics. It names the ingest endpoint
+      // because that is what the SDK posts to — with a public key, exactly as
+      // a customer's site does. Writing events is not reaching the API for
+      // data, which is what this check is about.
+      "src/lib/attribution.ts",
+    ];
+
+    // Documentation *shows* people the URL — that is what documentation is
+    // for, and a docs page that could not print the endpoint would be a poor
+    // one. This check is about the app reaching the API behind the client's
+    // back, which a code sample in prose does not do.
+    const isDocs = (relative: string): boolean => relative.startsWith("src/app/docs/");
     const reachesApi = /(publicApiUrl|serverApiUrl)\s*\(|https?:\/\/[^"'`\s]*counted[^"'`\s]*\/v1\//;
 
     const offenders = sourceFiles()
       .map((file) => ({ file, relative: file.slice(APP.length + 1) }))
       // Application code only. A test of the client names URLs on purpose, and
       // nothing it does ships.
-      .filter(({ relative }) => !allowed.includes(relative) && !/\.test\.tsx?$/.test(relative))
+      .filter(({ relative }) => !allowed.includes(relative) && !isDocs(relative) && !/\.test\.tsx?$/.test(relative))
       .filter(({ file }) => reachesApi.test(readFileSync(file, "utf8")));
 
     expect(offenders.map((o) => o.relative)).toEqual([]);
