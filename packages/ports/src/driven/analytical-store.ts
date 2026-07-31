@@ -41,8 +41,24 @@ export const RequestId = (raw: string): RequestId => raw as RequestId;
  * The five question shapes. Anything a tile or a monitor can ask reduces to
  * one of these, which is what keeps the compiler surface finite.
  */
+/**
+ * The absolute interval a request covers.
+ *
+ * Relative windows ("last 7 days") are resolved **once**, in the application,
+ * against the Clock port — never by the store. An adapter that read its own
+ * clock would be ambient time inside the hexagon, and two requests in the same
+ * batch could silently cover different intervals.
+ */
+export type ResolvedBounds = { readonly from: Instant; readonly to: Instant };
+
 export type StoreRequest =
-  | { readonly id: RequestId; readonly kind: "scalar"; readonly project: ProjectId; readonly analysis: Analysis }
+  | {
+      readonly id: RequestId;
+      readonly kind: "scalar";
+      readonly project: ProjectId;
+      readonly analysis: Analysis;
+      readonly bounds: ResolvedBounds;
+    }
   | {
       readonly id: RequestId;
       readonly kind: "series";
@@ -50,10 +66,29 @@ export type StoreRequest =
       readonly analysis: Analysis;
       /** Bucket edges computed by the domain. The store assigns, it does not bucket. */
       readonly axis: TimeAxis;
+      readonly bounds: ResolvedBounds;
     }
-  | { readonly id: RequestId; readonly kind: "breakdown"; readonly project: ProjectId; readonly analysis: Analysis }
-  | { readonly id: RequestId; readonly kind: "sequence"; readonly project: ProjectId; readonly funnel: Funnel }
-  | { readonly id: RequestId; readonly kind: "cohorts"; readonly project: ProjectId; readonly retention: Retention };
+  | {
+      readonly id: RequestId;
+      readonly kind: "breakdown";
+      readonly project: ProjectId;
+      readonly analysis: Analysis;
+      readonly bounds: ResolvedBounds;
+    }
+  | {
+      readonly id: RequestId;
+      readonly kind: "sequence";
+      readonly project: ProjectId;
+      readonly funnel: Funnel;
+      readonly bounds: ResolvedBounds;
+    }
+  | {
+      readonly id: RequestId;
+      readonly kind: "cohorts";
+      readonly project: ProjectId;
+      readonly retention: Retention;
+      readonly bounds: ResolvedBounds;
+    };
 
 export type BreakdownRow = { readonly label: string; readonly value: number };
 

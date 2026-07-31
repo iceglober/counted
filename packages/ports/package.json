@@ -4,7 +4,16 @@
   "private": true,
   "type": "module",
   "description": "Driving and driven interfaces, plus the contract suites every adapter must pass.",
-  "exports": { ".": "./src/index.ts", "./contract": "./src/contract/index.ts" },
-  "scripts": { "build": "tsc --build", "test": "bun test", "typecheck": "tsc --noEmit" },
-  "dependencies": { "@counted/domain": "workspace:*" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./contract": "./src/contract/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@counted/domain": "workspace:*"
+  }
 }
