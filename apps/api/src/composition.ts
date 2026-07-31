@@ -20,11 +20,13 @@ import {
   PostgresEventWriter,
   PostgresUnitOfWork,
   bootStore,
+  createAccessResolver,
   describeBoot,
   poolConfig,
   type BootReport,
 } from "@counted/adapter-postgres";
-import type { AnalyticalStore, EventWriter } from "@counted/ports";
+import { secretGenerator } from "@counted/adapter-crypto";
+import type { AccessResolver, AnalyticalStore, EventWriter, SecretGenerator } from "@counted/ports";
 import { Instant, type Clock } from "@counted/domain";
 
 export type Config = {
@@ -58,6 +60,8 @@ export type Dependencies = {
   readonly writer: EventWriter;
   readonly unitOfWork: PostgresUnitOfWork;
   readonly clock: Clock;
+  readonly access: AccessResolver;
+  readonly secrets: SecretGenerator;
   readonly boot: BootReport;
   readonly config: Config;
   shutdown(): Promise<void>;
@@ -88,6 +92,10 @@ export const compose = async (config: Config): Promise<Dependencies> => {
     writer: new PostgresEventWriter(ingest),
     unitOfWork: new PostgresUnitOfWork(analytics),
     clock: { now: () => Instant.fromEpochMillis(Date.now()) },
+    // Authorization reads the control plane, not the analytics pool: a slow
+    // dashboard query must never be able to stop requests being authorized.
+    access: createAccessResolver(analytics),
+    secrets: secretGenerator,
     boot,
     config,
     shutdown: async () => {

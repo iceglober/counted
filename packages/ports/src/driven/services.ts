@@ -3,7 +3,7 @@
  * because they are I/O or non-determinism.
  */
 
-import type { CredentialDigest, DomainEventEnvelope, Instant } from "./types";
+import type { CredentialDigest, CredentialPrefix, DomainEventEnvelope, Instant } from "./types";
 
 /**
  * Ids and secrets. The domain forbids randomness (`domain-has-no-io`), so
@@ -16,7 +16,12 @@ export interface IdGenerator {
 
 export interface SecretGenerator {
   /** A fresh secret plus the digest to store. The secret is shown once. */
-  issue(prefix: string): { readonly secret: string; readonly digest: CredentialDigest; readonly display: string };
+  issue(kind: string): {
+    readonly secret: string;
+    readonly digest: CredentialDigest;
+    /** The display stub — what a human sees in a key list. Not sensitive. */
+    readonly prefix: CredentialPrefix;
+  };
   /** Hash a presented secret for comparison. Never reverses. */
   digest(secret: string): CredentialDigest;
 }

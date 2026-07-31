@@ -19,6 +19,9 @@
 import type { Brand } from "../shared/brand";
 import type { CredentialId } from "../shared/ids";
 import type { Instant } from "../shared/instant";
+// The scope vocabulary is authorization's, not the credential's — one
+// list, shared by roles and keys alike, so the two cannot disagree.
+import type { Scope } from "../access/scope";
 
 /** The hash of a secret. Never the secret. */
 export type CredentialDigest = Brand<string, "CredentialDigest">;
@@ -30,20 +33,6 @@ export const CredentialDigest = (raw: string): CredentialDigest => raw as Creden
  */
 export type CredentialPrefix = Brand<string, "CredentialPrefix">;
 export const CredentialPrefix = (raw: string): CredentialPrefix => raw as CredentialPrefix;
-
-export type Scope =
-  | "events:write"
-  | "events:read"
-  | "projects:read"
-  | "projects:write"
-  | "dashboards:read"
-  | "dashboards:write";
-
-/**
- * Ingest credentials are public — they ship in browser bundles and mobile
- * apps. They may therefore do exactly one thing.
- */
-export const INGEST_SCOPES: readonly Scope[] = ["events:write"];
 
 export type CredentialKind = "ingest" | "service";
 

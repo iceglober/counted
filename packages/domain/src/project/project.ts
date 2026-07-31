@@ -22,9 +22,8 @@ import {
   type CredentialDigest,
   type CredentialKind,
   type CredentialPrefix,
-  INGEST_SCOPES,
-  type Scope,
 } from "./credential";
+import { INGEST_SCOPES, type Scope } from "../access/scope";
 import type { ProjectError } from "./errors";
 import type { ProjectEvent } from "./events";
 

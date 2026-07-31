@@ -6,6 +6,7 @@
  * enforced in CI: this package may reference @counted/domain and nothing else.
  */
 
+export * from "./driven/access";
 export * from "./driven/analytical-store";
 export * from "./driven/event-writer";
 export * from "./driven/repositories";

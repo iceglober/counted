@@ -22,6 +22,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { CredentialDigest, CredentialPrefix } from "@counted/domain";
+import type { SecretGenerator } from "@counted/ports";
 
 /** How a secret announces what it is. Visible, and deliberately unmistakable. */
 export const SECRET_PREFIXES = {
@@ -29,7 +30,7 @@ export const SECRET_PREFIXES = {
   ingest: "ck",
   /** Secret. Server-side, scoped. */
   service: "sk",
-} as const;
+};
 
 export type SecretKind = keyof typeof SECRET_PREFIXES;
 
@@ -49,12 +50,26 @@ export const digestOf = (secret: string): CredentialDigest =>
   CredentialDigest(createHash("sha256").update(secret, "utf8").digest("hex"));
 
 /**
+ * Split at the *first* underscore only.
+ *
+ * The base64url alphabet contains `_`, so a secret body routinely holds one.
+ * `split("_", 2)` truncates the body at the second underscore rather than
+ * returning the remainder — which silently produced short display stubs, and
+ * did it on roughly one key in eleven, so it would have looked like a haunting
+ * rather than a bug.
+ */
+const parts = (secret: string): { kind: string; body: string } => {
+  const at = secret.indexOf("_");
+  return at === -1 ? { kind: "", body: secret } : { kind: secret.slice(0, at), body: secret.slice(at + 1) };
+};
+
+/**
  * A human-readable stub: the kind, and the first six characters of the random
  * part. Six base64url characters is ~36 bits — plenty to distinguish the keys
  * one project holds, and useless for guessing the other 220.
  */
 export const displayPrefix = (secret: string): CredentialPrefix => {
-  const [kind = "", body = ""] = secret.split("_", 2);
+  const { kind, body } = parts(secret);
   return CredentialPrefix(`${kind}_${body.slice(0, 6)}`);
 };
 
@@ -72,7 +87,7 @@ export const issueSecret = (kind: SecretKind): IssuedSecret => {
  * credential may actually do comes from its stored scopes.
  */
 export const kindOf = (secret: string): SecretKind | null => {
-  const prefix = secret.split("_", 1)[0];
+  const { kind: prefix } = parts(secret);
   for (const [kind, p] of Object.entries(SECRET_PREFIXES)) {
     if (p === prefix) return kind as SecretKind;
   }
@@ -86,10 +101,10 @@ export const kindOf = (secret: string): SecretKind | null => {
  * the presented string alone, or a caller could be tricked into hashing under
  * the wrong assumption.
  */
-export const secretGenerator = {
+export const secretGenerator: SecretGenerator = {
   issue: (prefix: string): IssuedSecret => {
     const kind = (Object.entries(SECRET_PREFIXES).find(([, p]) => p === prefix)?.[0] ?? "service") as SecretKind;
     return issueSecret(kind);
   },
   digest: digestOf,
-} as const;
+};

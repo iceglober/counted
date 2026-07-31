@@ -11,6 +11,7 @@
 
 export * from "./shared";
 export * from "./workspace";
+export * from "./access";
 export * from "./project";
 export * from "./identity";
 export * from "./analytics";

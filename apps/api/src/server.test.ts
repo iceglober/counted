@@ -8,8 +8,8 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { Instant } from "@counted/domain";
-import type { AnalyticalStore, EventWriter } from "@counted/ports";
+import { Instant, Principal, type Placement, type Resource, type Role } from "@counted/domain";
+import type { AccessResolver, AnalyticalStore, EventWriter, SecretGenerator } from "@counted/ports";
 import { createApp } from "./server";
 import { configFromEnv, type Config, type Dependencies } from "./composition";
 
@@ -28,7 +28,34 @@ const stubWriter: EventWriter = {
   append: async () => ({ accepted: 0, deduplicated: 0, committedAt: Instant.fromEpochMillis(0) }),
 };
 
+/**
+ * An access resolver that answers from maps rather than from SQL.
+ *
+ * Every authorization rule is therefore exercised here with no database, which
+ * is the point of the port — and the reason the guard's behaviour is asserted
+ * in milliseconds rather than against a container.
+ */
+export const stubAccess = (
+  over: {
+    principals?: Record<string, Principal>;
+    placements?: Record<string, Placement>;
+    roles?: Record<string, Role>;
+  } = {},
+): AccessResolver => ({
+  principalFor: async (presented) => over.principals?.[presented.digest] ?? Principal.ANONYMOUS,
+  placementOf: async (resource: Resource) => over.placements?.[resource.id] ?? null,
+  roleOf: async (account, workspace) => over.roles?.[`${workspace}:${account}`] ?? null,
+});
+
+/** Digest that is just the secret, so a test can name a principal readably. */
+const stubSecrets: SecretGenerator = {
+  issue: (kind) => ({ secret: `${kind}_x`, digest: `${kind}_x` as never, prefix: `${kind}_x` as never }),
+  digest: (secret) => secret as never,
+};
+
 const deps = (overrides: Partial<Dependencies> = {}): Dependencies => ({
+  access: stubAccess(),
+  secrets: stubSecrets,
   store: stubStore(),
   writer: stubWriter,
   unitOfWork: { transact: async (work: never) => work } as unknown as Dependencies["unitOfWork"],

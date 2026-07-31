@@ -30,6 +30,9 @@ describe("secrets are shown once and stored as digests", () => {
     const a = issueSecret("ingest");
     const b = issueSecret("ingest");
     expect(a.prefix).not.toBe(b.prefix);
+    // Always the full six characters, whatever the body happens to contain.
+    expect(a.prefix.length).toBe("ck_".length + 6);
+    expect(b.prefix.length).toBe("ck_".length + 6);
     // Six characters of the random part; the other ~220 bits stay secret.
     expect(a.prefix.length).toBeLessThan(a.secret.length / 2);
     expect(a.secret.startsWith(a.prefix)).toBe(true);
@@ -53,11 +56,32 @@ describe("secrets are shown once and stored as digests", () => {
   test("there is real entropy behind them", () => {
     // 32 bytes base64url ≈ 43 characters. A short or padded secret would mean
     // the generator was silently truncating.
-    const body = issueSecret("ingest").secret.split("_")[1]!;
+    // Split at the first underscore only — base64url contains `_`, so
+    // `split("_")[1]` truncates the body and this assertion would fail on
+    // about half of all generated keys.
+    const secret = issueSecret("ingest").secret;
+    const body = secret.slice(secret.indexOf("_") + 1);
     expect(body.length).toBeGreaterThanOrEqual(42);
     expect(body).not.toContain("=");
     expect(body).not.toContain("+");
     expect(body).not.toContain("/");
+  });
+});
+
+describe("the base64url alphabet contains the delimiter", () => {
+  test("a body containing underscores does not shorten the display prefix", () => {
+    // Constructed rather than sampled, so this holds every run instead of
+    // ninety-one percent of them.
+    expect(String(displayPrefix("ck_ab_cd_ef_gh"))).toBe("ck_ab_cd_"); // six body chars: a b _ c d _
+    expect(kindOf("ck_ab_cd_ef")).toBe("ingest");
+  });
+
+  test("across many real keys, every prefix is full length", () => {
+    for (let i = 0; i < 500; i++) {
+      const issued = issueSecret("service");
+      expect(issued.prefix.length).toBe(9);
+      expect(issued.secret.startsWith(issued.prefix)).toBe(true);
+    }
   });
 });
 

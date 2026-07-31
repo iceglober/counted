@@ -17,6 +17,7 @@
     "@counted/application": "workspace:*",
     "@counted/adapter-postgres": "workspace:*",
     "hono": "^4.6.0",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "@counted/adapter-crypto": "workspace:*"
   }
 }
