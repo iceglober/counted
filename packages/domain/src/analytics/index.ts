@@ -4,3 +4,4 @@ export * from "./measure";
 export * from "./window";
 export * from "./analysis";
 export * from "./time-axis";
+export * from "./funnel";
