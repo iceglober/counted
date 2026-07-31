@@ -45,6 +45,16 @@ jobs:
           git diff --exit-code -- packages/claude-code/bin \
             || { echo "::error::packages/claude-code/bin is stale — run 'bun run build' in packages/claude-code and commit"; exit 1; }
 
+      # v2 rewrite: the layering is enforced here, not in review.
+      - name: Architecture rules (v2 layering)
+        run: bun run arch
+
+      - name: Build v2 packages
+        run: bunx tsc --build packages/application
+
+      - name: Test v2 packages
+        run: bun test packages/domain packages/ports packages/application
+
       - name: Typecheck
         run: bun run typecheck
 
