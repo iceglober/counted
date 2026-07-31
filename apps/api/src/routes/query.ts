@@ -156,7 +156,7 @@ const readoutValueToWire = (value: ReadoutValue): unknown => {
   }
 };
 
-const readoutToWire = (readout: Readout): unknown =>
+export const readoutToWire = (readout: Readout): unknown =>
   readout.ok
     ? {
         id: String(readout.tile),
@@ -283,7 +283,7 @@ export const queryRoutes = (deps: Dependencies): readonly RouteDefinition[] => [
 ];
 
 /** A tile's content is already the question. No translation, by design. */
-const questionFromTile = (content: TileContent): Question => {
+export const questionFromTile = (content: TileContent): Question => {
   switch (content.kind) {
     case "analysis":
       return { kind: "analysis", analysis: content.analysis };

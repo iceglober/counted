@@ -26,9 +26,9 @@ import {
   poolConfig,
   type BootReport,
 } from "@counted/adapter-postgres";
-import { idGenerator, secretGenerator } from "@counted/adapter-crypto";
+import { idGenerator, issueGrantToken, secretGenerator } from "@counted/adapter-crypto";
 import { createLogger, type Logger } from "./http/log";
-import type { AccessResolver, AnalyticalStore, EventWriter, IdGenerator, QuotaService, SecretGenerator } from "@counted/ports";
+import type { AccessResolver, AnalyticalStore, EventWriter, GrantIssuer, IdGenerator, QuotaService, SecretGenerator } from "@counted/ports";
 import { Coalescer } from "./ingest/coalescer";
 import { Instant, type Clock } from "@counted/domain";
 
@@ -70,6 +70,7 @@ export type Dependencies = {
   readonly ingest: Coalescer;
   readonly secrets: SecretGenerator;
   readonly ids: IdGenerator;
+  readonly grants: GrantIssuer;
   readonly boot: BootReport;
   readonly config: Config;
   shutdown(): Promise<void>;
@@ -114,6 +115,7 @@ export const compose = async (config: Config): Promise<Dependencies> => {
     log: createLogger({ service: "api", release: config.release }),
     secrets: secretGenerator,
     ids: idGenerator,
+    grants: { issue: issueGrantToken },
     boot,
     config,
     shutdown: async () => {

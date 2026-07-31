@@ -37,11 +37,28 @@ export const uuidv7 = (): string => {
 export const idGenerator = { next: uuidv7 } as const;
 
 /**
+ * The kinds of grant, and how each announces itself.
+ *
+ * Prefixed like a credential, because the API resolves them the same way: the
+ * prefix routes the lookup before any database read, and a token that turns up
+ * in a log or a bug report says what it is.
+ */
+export const GRANT_PREFIXES = {
+  /** A share link. Read-only, one dashboard, expiring. */
+  share: "st",
+  /** Single-use adoption of an unclaimed project. */
+  claim: "ct",
+} as const;
+
+export type GrantKind = keyof typeof GRANT_PREFIXES;
+
+/**
  * A claim or share token. Longer than a credential secret because it travels
  * in a URL, where it may be logged, pasted or shoulder-surfed — and unlike a
  * credential it cannot be scoped down.
  */
-export const issueGrantToken = (): string => randomBytes(32).toString("base64url");
+export const issueGrantToken = (kind: GrantKind = "share"): string =>
+  `${GRANT_PREFIXES[kind]}_${randomBytes(32).toString("base64url")}`;
 
 /**
  * A request id: `req_` and a ULID.

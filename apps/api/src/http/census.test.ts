@@ -30,6 +30,7 @@ const writer: EventWriter = {
 const deps: Dependencies = {
   access: stubAccess(),
   log: silentLogger(),
+  grants: { issue: (kind: "share" | "claim") => `${kind === "share" ? "st" : "ct"}_stubGrantTokenValue000000` },
   ids: { next: () => "00000000-0000-7000-8000-000000000000" },
   quota: { decide: async () => Quota.decide(Entitlement.none(), { used: 0 }) },
   ingest: new Coalescer(writer, { windowMs: 0 }),

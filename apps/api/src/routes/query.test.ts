@@ -83,6 +83,7 @@ const app = (h: Harness = {}) => {
       placements: { [PRJ]: placement, [DASH]: { workspace: WS, project: null } },
     }),
     log: silentLogger(),
+  grants: { issue: (kind: "share" | "claim") => `${kind === "share" ? "st" : "ct"}_stubGrantTokenValue000000` },
   ids: { next: () => "00000000-0000-7000-8000-000000000000" },
     secrets: { issue: () => ({ secret: "", digest: "" as never, prefix: "" as never }), digest: (s) => s as never },
     quota: { decide: async () => ({ kind: "accept", used: 0, limit: null }) },

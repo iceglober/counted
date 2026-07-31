@@ -34,6 +34,8 @@ import {
   UpdateProjectRequestSchema,
   UpdateWorkspaceRequestSchema,
   WorkspaceViewSchema,
+  CreateShareRequestSchema,
+  ShareGrantedSchema,
 } from "./schemas/management";
 import { z } from "./schemas/common";
 
@@ -292,6 +294,62 @@ export const buildRegistry = (): OpenAPIRegistry => {
     params: MonitorPathSchema,
     body: UpdateMonitorRequestSchema,
     ok: { status: 200, description: "The monitor", schema: MonitorViewSchema },
+  });
+
+  // ── Shares ─────────────────────────────────────────────────────────────
+  //
+  // A share link is a real credential: prefixed, hashed, expiring, revocable,
+  // and scoped to reading one dashboard. The two `/v1/shared` endpoints take
+  // no id — the token is the dashboard, so a link cannot name another one.
+
+  const shareToken = registry.registerComponent("securitySchemes", "shareToken", {
+    type: "http",
+    scheme: "bearer",
+    description:
+      "A share link token (st_…). Read-only, bound to one dashboard and the projects its tiles read, and expiring.",
+  });
+
+  managed("post", "/v1/dashboards/{dashboardId}/share", "Mint a share link", {
+    params: DashboardPathSchema,
+    body: CreateShareRequestSchema,
+    description:
+      "Returns the token exactly once. Minting a second link revokes the first, so this is also how a link is rotated.",
+    ok: { status: 201, description: "The link and its expiry", schema: ShareGrantedSchema },
+  });
+  managed("delete", "/v1/dashboards/{dashboardId}/share", "Revoke a share link", {
+    params: DashboardPathSchema,
+    description: "Immediate. Revoking a dashboard that is not shared is not an error.",
+    ok: { status: 204, description: "Revoked" },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/v1/shared/dashboard",
+    summary: "Read the shared dashboard",
+    description:
+      "What the presented share link points at. Responses carry X-Robots-Tag: noindex, nofollow, noarchive.",
+    tags: ["share"],
+    security: [{ [shareToken.name]: [] }],
+    responses: {
+      200: { description: "The dashboard", ...json(DashboardViewSchema) },
+      401: problem("The link is unknown, revoked or expired"),
+      404: problem("The dashboard no longer exists"),
+    },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/v1/shared/dashboard/render",
+    summary: "Render the shared dashboard",
+    description:
+      "Answers every tile in one batch, exactly as the owned render does. Responses carry X-Robots-Tag: noindex, nofollow, noarchive.",
+    tags: ["share"],
+    security: [{ [shareToken.name]: [] }],
+    responses: {
+      200: { description: "One readout per tile", ...json(DashboardDataResponseSchema) },
+      401: problem("The link is unknown, revoked or expired"),
+      404: problem("The dashboard no longer exists"),
+    },
   });
 
   return registry;

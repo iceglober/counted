@@ -98,6 +98,21 @@ export const monitorFromPath = (param = "monitorId") => fromPath("monitor", para
  * scope and the binding, against a placement that is still looked up (so a
  * deleted or unclaimed project stops ingesting).
  */
+/**
+ * The dashboard a share link was issued for.
+ *
+ * The shared endpoints take no id in the path — the token *is* the dashboard.
+ * Deriving the resource from the principal means a share link cannot name a
+ * different dashboard, and it keeps these routes inside the same authorization
+ * function as every other one.
+ */
+export const ownDashboard = () => (c: Context<ApiEnv>): ResourceFor => {
+  const principal = c.get("principal");
+  return principal.kind === "share"
+    ? { kind: "resource", resource: { type: "dashboard", id: principal.dashboard } }
+    : { kind: "wrong_principal" };
+};
+
 export const ownProject = () => (c: Context<ApiEnv>): ResourceFor => {
   const principal = c.get("principal");
   return principal.kind === "ingest"

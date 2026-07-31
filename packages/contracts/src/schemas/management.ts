@@ -234,3 +234,27 @@ export const ProjectListSchema = listOf(ProjectViewSchema).openapi("ProjectList"
 export const CredentialListSchema = listOf(CredentialViewSchema).openapi("CredentialList");
 export const DashboardListSchema = listOf(DashboardViewSchema).openapi("DashboardList");
 export const MonitorListSchema = listOf(MonitorViewSchema).openapi("MonitorList");
+
+// ── Shares ───────────────────────────────────────────────────────────────────
+
+/**
+ * Minting a share link.
+ *
+ * An expiry is mandatory in the sense that there is always one: the default
+ * applies when the caller says nothing, and there is no value meaning "never".
+ * v1's share tokens did not expire at all.
+ */
+export const CreateShareRequestSchema = z
+  .object({
+    expiresInHours: z.number().int().positive().max(24 * 365).default(24 * 30),
+  })
+  .openapi("CreateShareRequest");
+
+export const ShareGrantedSchema = z
+  .object({
+    /** Shown exactly once. Only its digest is stored. */
+    token: z.string().openapi({ description: "Shown exactly once and never retrievable." }),
+    expiresAt: InstantSchema,
+    dashboard: DashboardViewSchema,
+  })
+  .openapi("ShareGranted");

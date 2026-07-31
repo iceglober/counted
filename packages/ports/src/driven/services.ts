@@ -52,3 +52,14 @@ export type Notification =
 export interface Notifier {
   deliver(notification: Notification): Promise<void>;
 }
+
+/**
+ * GrantIssuer — share and claim tokens.
+ *
+ * Separate from `SecretGenerator` because a grant is a different thing: it is
+ * longer (it travels in URLs), it carries no scopes of its own, and it belongs
+ * to the resource it grants access to rather than to a project's key list.
+ */
+export interface GrantIssuer {
+  issue(kind: "share" | "claim"): string;
+}

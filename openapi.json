@@ -36,6 +36,11 @@
         "type": "http",
         "scheme": "bearer",
         "description": "A secret service credential, scoped to the operations it was issued for."
+      },
+      "shareToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A share link token (st_…). Read-only, bound to one dashboard and the projects its tiles read, and expiring."
       }
     },
     "schemas": {
@@ -1866,6 +1871,40 @@
         "required": [
           "enabled"
         ]
+      },
+      "ShareGranted": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Shown exactly once and never retrievable."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO-8601, UTC",
+            "example": "2026-03-17T14:37:00.000Z"
+          },
+          "dashboard": {
+            "$ref": "#/components/schemas/Dashboard"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt",
+          "dashboard"
+        ]
+      },
+      "CreateShareRequest": {
+        "type": "object",
+        "properties": {
+          "expiresInHours": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 8760,
+            "default": 720
+          }
+        }
       }
     },
     "parameters": {}
@@ -3446,6 +3485,232 @@
           },
           "404": {
             "description": "No such resource, or it is not yours",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/dashboards/{dashboardId}/share": {
+      "post": {
+        "summary": "Mint a share link",
+        "description": "Returns the token exactly once. Minting a second link revokes the first, so this is also how a link is rotated.",
+        "tags": [
+          "manage"
+        ],
+        "security": [
+          {
+            "serviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "dashboardId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShareRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The link and its expiry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareGranted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or unknown credential",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or it is not yours",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Revoke a share link",
+        "description": "Immediate. Revoking a dashboard that is not shared is not an error.",
+        "tags": [
+          "manage"
+        ],
+        "security": [
+          {
+            "serviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "dashboardId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "401": {
+            "description": "Missing or unknown credential",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or it is not yours",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/shared/dashboard": {
+      "get": {
+        "summary": "Read the shared dashboard",
+        "description": "What the presented share link points at. Responses carry X-Robots-Tag: noindex, nofollow, noarchive.",
+        "tags": [
+          "share"
+        ],
+        "security": [
+          {
+            "shareToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The dashboard",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dashboard"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The link is unknown, revoked or expired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The dashboard no longer exists",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/shared/dashboard/render": {
+      "post": {
+        "summary": "Render the shared dashboard",
+        "description": "Answers every tile in one batch, exactly as the owned render does. Responses carry X-Robots-Tag: noindex, nofollow, noarchive.",
+        "tags": [
+          "share"
+        ],
+        "security": [
+          {
+            "shareToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One readout per tile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardDataResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The link is unknown, revoked or expired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The dashboard no longer exists",
             "content": {
               "application/problem+json": {
                 "schema": {
