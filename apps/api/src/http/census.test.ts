@@ -20,8 +20,10 @@ import { createApp, allRoutes, routeCensus } from "../server";
 import type { Config, Dependencies } from "../composition";
 import { publicRoute, requires, projectFromPath, census, type RouteDefinition } from "./route";
 import { stubAccess, silentLogger } from "../server.test";
+import { noConsole, noMail } from "../testing/stubs";
 
-const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, release: "test" };
+const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, email: { apiKey: "", from: "Counted <test@counted.test>" }, release: "test" };
+
 
 const writer: EventWriter = {
   append: async () => ({ accepted: 0, deduplicated: 0, written: [], committedAt: Instant.fromEpochMillis(0) }),
@@ -30,6 +32,8 @@ const writer: EventWriter = {
 const deps: Dependencies = {
   access: stubAccess(),
   log: silentLogger(),
+  console: noConsole,
+  notifier: noMail,
   billing: {
     createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),
     createPortalSession: async () => ({ url: "https://portal.stripe.test/session", expiresAt: null }),

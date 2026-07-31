@@ -14,8 +14,10 @@ import { createApp, REQUEST_ID_HEADER } from "./server";
 import { createLogger } from "./http/log";
 import { Coalescer } from "./ingest/coalescer";
 import { configFromEnv, type Config, type Dependencies } from "./composition";
+import { noConsole, noMail } from "./testing/stubs";
 
-const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, release: "test-release" };
+const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, email: { apiKey: "", from: "Counted <test@counted.test>" }, release: "test-release" };
+
 
 const stubStore = (overrides: Partial<AnalyticalStore> = {}): AnalyticalStore => ({
   executeBatch: async () => ({
@@ -61,6 +63,8 @@ export const silentLogger = () => createLogger({ service: "api", sink: () => {} 
 const deps = (overrides: Partial<Dependencies> = {}): Dependencies => ({
   access: stubAccess(),
   log: silentLogger(),
+  console: noConsole,
+  notifier: noMail,
   billing: {
     createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),
     createPortalSession: async () => ({ url: "https://portal.stripe.test/session", expiresAt: null }),

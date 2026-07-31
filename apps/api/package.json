@@ -20,7 +20,8 @@
     "pg": "^8.13.0",
     "@counted/adapter-crypto": "workspace:*",
     "@counted/contracts": "workspace:*",
-    "@counted/adapter-stripe": "workspace:*"
+    "@counted/adapter-stripe": "workspace:*",
+    "@counted/adapter-notify": "workspace:*"
   },
   "devDependencies": {
     "@counted/sdk-js": "workspace:*"

@@ -18,16 +18,21 @@
 
 import type { Context, MiddlewareHandler, Next } from "hono";
 import { Principal, decide, requirements, type Denial, type Facts, type Instant, type Scope } from "@counted/domain";
-import type { AccessResolver, PresentedCredential } from "@counted/ports";
+import type { AccessResolver, ConsoleSessions, PresentedCredential } from "@counted/ports";
 import type { ApiEnv } from "../server";
 import type { Security } from "./route";
 import { sendProblem } from "./respond";
 import type { ErrorCode } from "@counted/contracts";
+import { SESSION_COOKIE, isAllowedOrigin, readCookie, requiresOrigin, type OriginPolicy } from "./session";
 
 export type GuardDeps = {
   readonly access: AccessResolver;
   readonly digest: (secret: string) => string;
   readonly now: () => Instant;
+  /** Resolves the console's own cookie. Absent in tests that do not need it. */
+  readonly console?: ConsoleSessions | undefined;
+  /** Which origins may make a cookie-authenticated mutation. */
+  readonly origins?: OriginPolicy | undefined;
 };
 
 /** Prefix → claimed kind. A hint for the lookup; authority comes from the row. */
@@ -127,14 +132,40 @@ export const createGuard =
   (deps: GuardDeps) =>
   (security: Security): MiddlewareHandler<ApiEnv> =>
   async (c: Context<ApiEnv>, next: Next) => {
+    // A cookie-authenticated mutation must name an origin we recognise.
+    //
+    // Checked before the session is even resolved, so a cross-site request
+    // cannot use the timing of a successful lookup to learn that the victim is
+    // signed in. Bearer requests are exempt — see `requiresOrigin`.
+    if (deps.origins !== undefined && requiresOrigin(c) && !isAllowedOrigin(c.req.header("origin"), deps.origins)) {
+      c.set("principal", Principal.ANONYMOUS);
+      return sendProblem(c, "auth.forbidden", {
+        detail: "A cookie-authenticated request must come from the Counted app.",
+      });
+    }
+
     const secret = presented(c);
-    const principal =
+    let principal =
       secret === null
         ? Principal.ANONYMOUS
         : await deps.access.principalFor(
             { digest: deps.digest(secret), claimedKind: claimedKind(secret) },
             deps.now(),
           );
+
+    // The console cookie, only when no explicit credential was presented. An
+    // Authorization header always wins: a signed-in operator debugging with a
+    // service key must get that key's authority, not their own.
+    if (principal.kind === "anonymous" && deps.console !== undefined) {
+      const cookie = readCookie(c.req.header("cookie"), SESSION_COOKIE);
+      if (cookie !== null) {
+        const account = await deps.console.accountFor(deps.digest(cookie), deps.now());
+        // A cookie that no longer resolves is anonymous, exactly like an
+        // unknown API key — not an error. An expired session should look like
+        // being signed out, because that is what it is.
+        if (account !== null) principal = { kind: "account", account: account.id };
+      }
+    }
 
     // Set before the check, so even a denied request is attributable in logs.
     c.set("principal", principal);

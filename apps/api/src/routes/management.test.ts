@@ -45,6 +45,7 @@ import { createApp } from "../server";
 import { Coalescer } from "../ingest/coalescer";
 import { stubAccess, silentLogger } from "../server.test";
 import type { Config, Dependencies } from "../composition";
+import { noConsole, noMail } from "../testing/stubs";
 
 const NOW = Date.parse("2026-03-17T15:00:00.000Z");
 const at = Instant.fromEpochMillis(NOW);
@@ -130,7 +131,8 @@ const principal: Principal = {
   onBehalfOf: ACC as never,
 };
 
-const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, release: "test" };
+const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, email: { apiKey: "", from: "Counted <test@counted.test>" }, release: "test" };
+
 
 type World = {
   workspaces: Map<string, Workspace>;
@@ -185,6 +187,8 @@ const app = (w: World = world(), who: Principal = principal) => {
       },
     }),
     log: silentLogger(),
+    console: noConsole,
+    notifier: noMail,
   billing: {
     createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),
     createPortalSession: async () => ({ url: "https://portal.stripe.test/session", expiresAt: null }),

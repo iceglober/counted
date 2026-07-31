@@ -28,11 +28,13 @@ import {
   describeBoot,
   poolConfig,
   type BootReport,
+  createConsoleSessions,
 } from "@counted/adapter-postgres";
 import { idGenerator, issueGrantToken, secretGenerator } from "@counted/adapter-crypto";
 import { StripeGateway } from "@counted/adapter-stripe";
+import { createNotifier } from "@counted/adapter-notify";
 import { createLogger, type Logger } from "./http/log";
-import type { AccessResolver, AnalyticalStore, EventWriter, BillingGateway, GrantIssuer, IdGenerator, QuotaService, SecretGenerator, SubscriptionRepository, UsageMeter, WebhookLedger } from "@counted/ports";
+import type { AccessResolver, AnalyticalStore, ConsoleSessions, EventWriter, BillingGateway, GrantIssuer, IdGenerator, Notifier, QuotaService, SecretGenerator, SubscriptionRepository, UsageMeter, WebhookLedger } from "@counted/ports";
 import { Coalescer } from "./ingest/coalescer";
 import { Instant, type Clock } from "@counted/domain";
 
@@ -44,6 +46,8 @@ export type Config = {
   /** Where the web app lives. Checkout and the portal return here. */
   readonly appUrl: string;
   readonly stripe: { readonly secretKey: string; readonly webhookSecret: string; readonly monthlyPrice: string; readonly annualPrice: string };
+  /** Transactional mail. Sign-in links go through this and nothing else. */
+  readonly email: { readonly apiKey: string; readonly from: string };
 };
 
 export const configFromEnv = (env: Record<string, string | undefined>): Config => {
@@ -66,6 +70,12 @@ export const configFromEnv = (env: Record<string, string | undefined>): Config =
       monthlyPrice: env["STRIPE_PRICE_MONTHLY_ID"] ?? "",
       annualPrice: env["STRIPE_PRICE_ANNUAL_ID"] ?? "",
     },
+    email: {
+      // Absent in development: `beginSignIn` still works and the link is in
+      // the log, so sign-in is testable locally without a mail provider.
+      apiKey: env["RESEND_API_KEY"] ?? "",
+      from: env["EMAIL_FROM"] ?? "Counted <hello@auth.counted.dev>",
+    },
   };
 };
 
@@ -80,6 +90,9 @@ export type Dependencies = {
   readonly unitOfWork: PostgresUnitOfWork;
   readonly clock: Clock;
   readonly access: AccessResolver;
+  /** The console's own sign-in. Not a domain concept — see the port. */
+  readonly console: ConsoleSessions;
+  readonly notifier: Notifier;
   readonly log: Logger;
   readonly quota: QuotaService;
   /** Group commit. Every caller awaits its own batch. */
@@ -132,6 +145,15 @@ export const compose = async (config: Config): Promise<Dependencies> => {
     // Authorization reads the control plane, not the analytics pool: a slow
     // dashboard query must never be able to stop requests being authorized.
     access: createAccessResolver(analytics),
+    // The control-plane pool, like authorization: signing in must not queue
+    // behind a slow dashboard query.
+    console: createConsoleSessions(analytics, { newAccountId: () => `acct_${idGenerator.next()}` }),
+    notifier: createNotifier({
+      email: { apiKey: config.email.apiKey, from: config.email.from },
+      // Signing is per-endpoint and supplied by the outbox dispatcher; the
+      // API only ever sends mail through this notifier.
+      webhook: { secret: "" },
+    }),
     log: createLogger({ service: "api", release: config.release }),
     secrets: secretGenerator,
     ids: idGenerator,

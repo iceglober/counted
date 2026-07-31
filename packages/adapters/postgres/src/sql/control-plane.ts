@@ -143,6 +143,37 @@ CREATE TABLE IF NOT EXISTS monitors (
 );
 CREATE INDEX IF NOT EXISTS monitors_project_idx ON monitors (project_id);
 CREATE INDEX IF NOT EXISTS monitors_enabled_idx ON monitors (enabled) WHERE enabled;
+
+-- The console's own sign-in. Not the domain's: an account id is what the
+-- domain sees, and everything below here is how a browser proves it holds one.
+CREATE TABLE IF NOT EXISTS accounts (
+  id         text        PRIMARY KEY,
+  -- Lowercased before storage, so one person cannot end up with two accounts
+  -- by capitalising their address differently.
+  email      text        NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL
+);
+
+-- A mailed sign-in link. Single use, short lived, and stored only as a digest
+-- so a dump of this table cannot be used to sign in as anybody.
+CREATE TABLE IF NOT EXISTS sign_in_tokens (
+  digest     text        PRIMARY KEY,
+  account_id text        NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  expires_at timestamptz NOT NULL,
+  -- Set when spent. A row is kept rather than deleted so that a replayed link
+  -- is recognisably *used* rather than indistinguishable from a forged one.
+  used_at    timestamptz
+);
+CREATE INDEX IF NOT EXISTS sign_in_tokens_expiry_idx ON sign_in_tokens (expires_at);
+
+CREATE TABLE IF NOT EXISTS console_sessions (
+  digest     text        PRIMARY KEY,
+  account_id text        NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL,
+  expires_at timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS console_sessions_account_idx ON console_sessions (account_id);
+CREATE INDEX IF NOT EXISTS console_sessions_expiry_idx ON console_sessions (expires_at);
 `;
 
 export const CONTROL_PLANE_STATEMENTS: readonly string[] = [CREATE_CONTROL_PLANE];

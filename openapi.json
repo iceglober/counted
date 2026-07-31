@@ -135,6 +135,170 @@
           "checkMs"
         ]
       },
+      "FieldError": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "example": "events[1].name"
+          },
+          "code": {
+            "type": "string",
+            "example": "invalid_type"
+          },
+          "message": {
+            "type": "string",
+            "example": "Expected string, received number."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "path",
+          "code",
+          "message"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "https://counted.dev/errors/request.validation_failed"
+          },
+          "title": {
+            "type": "string",
+            "example": "Validation Failed"
+          },
+          "status": {
+            "type": "integer",
+            "example": 422
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "auth.unauthenticated",
+              "auth.forbidden",
+              "resource.not_found",
+              "resource.conflict",
+              "request.malformed",
+              "request.validation_failed",
+              "request.too_large",
+              "request.unsupported_media_type",
+              "quota.exceeded",
+              "rate.limited",
+              "billing.no_account",
+              "billing.provider_unavailable",
+              "query.timeout",
+              "query.unsupported",
+              "internal.unavailable",
+              "internal.error"
+            ],
+            "description": "Stable machine-readable code. Branch on this, not on status or prose.",
+            "example": "request.validation_failed"
+          },
+          "detail": {
+            "type": "string",
+            "example": "2 fields are invalid."
+          },
+          "requestId": {
+            "type": "string",
+            "example": "req_01J8ZQ5S0000000000000000"
+          },
+          "retryable": {
+            "type": "boolean",
+            "example": false
+          },
+          "docs": {
+            "type": "string",
+            "example": "https://counted.dev/docs/errors#request-validation_failed"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            }
+          },
+          "retryAfter": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "detail",
+          "requestId",
+          "retryable",
+          "docs"
+        ]
+      },
+      "SignInRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 320,
+            "format": "email",
+            "example": "you@example.com"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "acct_01J8ZQ"
+              },
+              "email": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "email"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "account",
+          "expiresAt"
+        ]
+      },
+      "RedeemSessionRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
       "IngestOutcome": {
         "oneOf": [
           {
@@ -270,113 +434,6 @@
           "outcomes",
           "quota",
           "committedAt"
-        ]
-      },
-      "FieldError": {
-        "type": "object",
-        "properties": {
-          "path": {
-            "type": "string",
-            "example": "events[1].name"
-          },
-          "code": {
-            "type": "string",
-            "example": "invalid_type"
-          },
-          "message": {
-            "type": "string",
-            "example": "Expected string, received number."
-          },
-          "allowed": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "path",
-          "code",
-          "message"
-        ]
-      },
-      "Problem": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "https://counted.dev/errors/request.validation_failed"
-          },
-          "title": {
-            "type": "string",
-            "example": "Validation Failed"
-          },
-          "status": {
-            "type": "integer",
-            "example": 422
-          },
-          "code": {
-            "type": "string",
-            "enum": [
-              "auth.unauthenticated",
-              "auth.forbidden",
-              "resource.not_found",
-              "resource.conflict",
-              "request.malformed",
-              "request.validation_failed",
-              "request.too_large",
-              "request.unsupported_media_type",
-              "quota.exceeded",
-              "rate.limited",
-              "billing.no_account",
-              "billing.provider_unavailable",
-              "query.timeout",
-              "query.unsupported",
-              "internal.unavailable",
-              "internal.error"
-            ],
-            "description": "Stable machine-readable code. Branch on this, not on status or prose.",
-            "example": "request.validation_failed"
-          },
-          "detail": {
-            "type": "string",
-            "example": "2 fields are invalid."
-          },
-          "requestId": {
-            "type": "string",
-            "example": "req_01J8ZQ5S0000000000000000"
-          },
-          "retryable": {
-            "type": "boolean",
-            "example": false
-          },
-          "docs": {
-            "type": "string",
-            "example": "https://counted.dev/docs/errors#request-validation_failed"
-          },
-          "instance": {
-            "type": "string"
-          },
-          "fields": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FieldError"
-            }
-          },
-          "retryAfter": {
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        "required": [
-          "type",
-          "title",
-          "status",
-          "code",
-          "detail",
-          "requestId",
-          "retryable",
-          "docs"
         ]
       },
       "IngestEvent": {
@@ -2154,6 +2211,91 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/v1/auth/sign-in": {
+      "post": {
+        "summary": "Request a sign-in link",
+        "description": "Mails a single-use link. Answers 202 for any valid address whether or not an account exists — telling the two apart would be an oracle for discovering who uses Counted. Signing up and signing in are one flow.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "The link has been sent, if the address can receive mail."
+          },
+          "422": {
+            "description": "Not a valid email address",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/session": {
+      "post": {
+        "summary": "Redeem a sign-in link",
+        "description": "Spends the token once and sets an HttpOnly session cookie on the registrable domain, so the console and the API share it. An unknown token and an expired one are refused identically.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The link is expired, spent, or was never issued",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Sign out",
+        "description": "Ends this session and clears the cookie. Succeeds even if the session had already expired.",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "204": {
+            "description": "Signed out"
           }
         }
       }

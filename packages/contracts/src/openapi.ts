@@ -15,6 +15,7 @@ import { ProblemSchema } from "./schemas/common";
 import { IngestReceiptSchema, IngestRequestSchema } from "./schemas/ingest";
 import { QueryRequestSchema, QueryResponseSchema } from "./schemas/query";
 import { LivenessSchema, PrincipalSchema, ReadinessSchema } from "./schemas/health";
+import { RedeemSessionRequestSchema, SessionSchema, SignInRequestSchema } from "./schemas/auth";
 import { DashboardDataResponseSchema } from "./schemas/query";
 import {
   CreateDashboardRequestSchema,
@@ -94,6 +95,45 @@ export const buildRegistry = (): OpenAPIRegistry => {
       200: { description: "Ready", ...json(ReadinessSchema) },
       503: { description: "Not ready", ...json(ReadinessSchema) },
     },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/v1/auth/sign-in",
+    summary: "Request a sign-in link",
+    description:
+      "Mails a single-use link. Answers 202 for any valid address whether or not an account exists — telling " +
+      "the two apart would be an oracle for discovering who uses Counted. Signing up and signing in are one flow.",
+    tags: ["auth"],
+    request: { body: { content: json(SignInRequestSchema).content } },
+    responses: {
+      202: { description: "The link has been sent, if the address can receive mail." },
+      422: problem("Not a valid email address"),
+    },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/v1/auth/session",
+    summary: "Redeem a sign-in link",
+    description:
+      "Spends the token once and sets an HttpOnly session cookie on the registrable domain, so the console " +
+      "and the API share it. An unknown token and an expired one are refused identically.",
+    tags: ["auth"],
+    request: { body: { content: json(RedeemSessionRequestSchema).content } },
+    responses: {
+      200: { description: "Signed in", ...json(SessionSchema) },
+      401: problem("The link is expired, spent, or was never issued"),
+    },
+  });
+
+  registry.registerPath({
+    method: "delete",
+    path: "/v1/auth/session",
+    summary: "Sign out",
+    description: "Ends this session and clears the cookie. Succeeds even if the session had already expired.",
+    tags: ["auth"],
+    responses: { 204: { description: "Signed out" } },
   });
 
   registry.registerPath({

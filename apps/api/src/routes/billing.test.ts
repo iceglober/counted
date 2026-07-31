@@ -14,6 +14,7 @@ import { createApp } from "../server";
 import { Coalescer } from "../ingest/coalescer";
 import { stubAccess, silentLogger } from "../server.test";
 import type { Config, Dependencies } from "../composition";
+import { noConsole, noMail } from "../testing/stubs";
 
 const NOW = Date.parse("2026-03-17T15:00:00.000Z");
 const at = Instant.fromEpochMillis(NOW);
@@ -21,11 +22,13 @@ const WS = WorkspaceId("22222222-2222-2222-2222-222222222222");
 const KEY = "sk_billing_key";
 
 const config: Config = {
+
   databaseUrl: "postgres://stub",
   port: 8080,
   release: "test",
   appUrl: "https://app.counted.test",
   stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" },
+  email: { apiKey: "", from: "Counted <test@counted.test>" },
 };
 
 const owner: Principal = {
@@ -56,6 +59,8 @@ const app = (h: Harness = {}) => {
   const deps: Dependencies = {
     access: stubAccess({ principals: { [KEY]: h.principal ?? owner }, placements: { [WS]: { workspace: WS, project: null } } }),
     log: silentLogger(),
+    console: noConsole,
+    notifier: noMail,
     billing: {
       createCheckoutSession: async () => {
         if (h.checkoutFails === true) throw new Error("stripe 500: down");

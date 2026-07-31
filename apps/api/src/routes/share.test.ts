@@ -28,6 +28,7 @@ import { createApp } from "../server";
 import { Coalescer } from "../ingest/coalescer";
 import { stubAccess, silentLogger } from "../server.test";
 import type { Config, Dependencies } from "../composition";
+import { noConsole, noMail } from "../testing/stubs";
 
 const NOW = Date.parse("2026-03-17T15:00:00.000Z");
 const at = Instant.fromEpochMillis(NOW);
@@ -40,7 +41,8 @@ const OTHER_DASH = DashboardId("55555555-5555-5555-5555-555555555599");
 const OWNER_KEY = "sk_owner_key_value";
 const SHARE_TOKEN = "st_stubGrantTokenValue000000";
 
-const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, release: "test" };
+const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, email: { apiKey: "", from: "Counted <test@counted.test>" }, release: "test" };
+
 
 const owner: Principal = {
   kind: "service",
@@ -113,6 +115,8 @@ const app = (h: Harness = {}) => {
       },
     }),
     log: silentLogger(),
+    console: noConsole,
+    notifier: noMail,
   billing: {
     createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),
     createPortalSession: async () => ({ url: "https://portal.stripe.test/session", expiresAt: null }),

@@ -29,6 +29,7 @@ import { createApp } from "../server";
 import { Coalescer } from "../ingest/coalescer";
 import { stubAccess, silentLogger } from "../server.test";
 import type { Config, Dependencies } from "../composition";
+import { noConsole, noMail } from "../testing/stubs";
 
 const NOW = Date.parse("2026-03-17T15:00:00.000Z");
 const PRJ = ProjectId("33333333-3333-3333-3333-333333333333");
@@ -47,7 +48,8 @@ const servicePrincipal: Principal = {
   onBehalfOf: "acc_1" as never,
 };
 
-const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, release: "test" };
+const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, email: { apiKey: "", from: "Counted <test@counted.test>" }, release: "test" };
+
 
 type Harness = {
   answer?: (r: StoreRequest) => Outcome<StoreResult>;
@@ -83,6 +85,8 @@ const app = (h: Harness = {}) => {
       placements: { [PRJ]: placement, [DASH]: { workspace: WS, project: null } },
     }),
     log: silentLogger(),
+    console: noConsole,
+    notifier: noMail,
   billing: {
     createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),
     createPortalSession: async () => ({ url: "https://portal.stripe.test/session", expiresAt: null }),

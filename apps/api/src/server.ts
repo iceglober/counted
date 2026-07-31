@@ -20,11 +20,13 @@ import { queryRoutes } from "./routes/query";
 import { managementRoutes } from "./routes/management";
 import { shareRoutes } from "./routes/share";
 import { billingRoutes } from "./routes/billing";
+import { authRoutes } from "./routes/auth";
 import { createGuard } from "./http/guard";
 import { census, mount, type RouteDefinition } from "./http/route";
 import { sendProblem } from "./http/respond";
 import { traceContextFrom, type TraceContext } from "./http/trace";
 import type { Logger } from "./http/log";
+import { corsHeadersFor, originPolicyFor } from "./http/session";
 
 /**
  * Per-request state. Declared so `c.get`/`c.set` are typed rather than any.
@@ -53,6 +55,42 @@ export const REQUEST_ID_HEADER = "counted-request-id";
 
 export const createApp = (deps: Dependencies): Hono<ApiEnv> => {
   const app = new Hono<ApiEnv>();
+  const origins = originPolicyFor(deps.config.appUrl);
+
+  /**
+   * CORS, for the console only.
+   *
+   * The origin is echoed from an allowlist rather than reflected, and never
+   * `*` — with `Allow-Credentials: true` a browser refuses `*` outright, so
+   * the lazy version does not merely weaken this, it silently signs every
+   * request out.
+   *
+   * Ingest is deliberately not covered by the allowlist: `POST /v1/events` is
+   * called from every customer's own origin, which is why it authenticates
+   * with a key rather than a cookie and needs no credentialled CORS.
+   */
+  app.use("*", async (c, next) => {
+    const headers = corsHeadersFor(c.req.header("origin"), origins);
+
+    if (c.req.method === "OPTIONS") {
+      // Answered here rather than by a route: a preflight names the method it
+      // is asking about, and there is no handler for OPTIONS on any path.
+      const preflight = new Response(null, { status: 204 });
+      for (const [name, value] of Object.entries(headers)) preflight.headers.set(name, value);
+      if (Object.keys(headers).length > 0) {
+        preflight.headers.set("access-control-allow-methods", "GET, POST, PATCH, DELETE, OPTIONS");
+        preflight.headers.set(
+          "access-control-allow-headers",
+          `content-type, authorization, if-match, traceparent, ${REQUEST_ID_HEADER}`,
+        );
+        preflight.headers.set("access-control-max-age", "600");
+      }
+      return preflight;
+    }
+
+    await next();
+    for (const [name, value] of Object.entries(headers)) c.res.headers.set(name, value);
+  });
 
   app.use("*", async (c, next) => {
     // An id supplied by a caller is accepted only if it looks like one of
@@ -95,6 +133,8 @@ export const createApp = (deps: Dependencies): Hono<ApiEnv> => {
     access: deps.access,
     digest: deps.secrets.digest,
     now: () => deps.clock.now(),
+    console: deps.console,
+    origins,
   }));
 
   app.notFound((c) => sendProblem(c, "resource.not_found", { detail: `No route for ${c.req.method} ${c.req.path}.` }));
@@ -122,6 +162,7 @@ export const allRoutes = (deps: Dependencies): readonly RouteDefinition[] => [
   ...managementRoutes(deps),
   ...shareRoutes(deps),
   ...billingRoutes(deps),
+  ...authRoutes(deps),
 ];
 
 export const routeCensus = (deps: Dependencies) => census(allRoutes(deps));

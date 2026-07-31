@@ -54,6 +54,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@counted/adapter-crypto": "workspace:*",
+        "@counted/adapter-notify": "workspace:*",
         "@counted/adapter-postgres": "workspace:*",
         "@counted/adapter-stripe": "workspace:*",
         "@counted/application": "workspace:*",
