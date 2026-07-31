@@ -12,7 +12,8 @@
   "workspaces": [
     "packages/*",
     "packages/adapters/*",
-    "apps/*"
+    "apps/*",
+    "contract/conformance"
   ],
   "scripts": {
     "dev": "next dev --turbopack",
@@ -21,7 +22,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
-    "conformance": "bun test tests/conformance/conformance.test.ts",
+    "conformance": "bun test contract/conformance",
     "test:migrate": "bun test tests/migrate/migrate.e2e.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -37,10 +38,12 @@
     "release": "npx @changesets/cli publish",
     "arch": "depcruise packages/domain/src packages/contracts/src packages/ports/src packages/application/src packages/adapters apps --config .dependency-cruiser.cjs",
     "build:v2": "tsc --build tsconfig.build.json",
-    "test:v2": "bun test packages/domain packages/contracts packages/ports packages/application packages/adapters packages/sdk-js apps",
+    "test:v2": "bun test packages/domain packages/contracts packages/ports packages/application packages/adapters packages/sdk-js apps contract/conformance",
     "openapi:generate": "bun scripts/generate-openapi.ts",
     "openapi:check": "bun scripts/generate-openapi.ts && git diff --exit-code -- openapi.json",
-    "typecheck:v2": "tsc -p tsconfig.typecheck.json"
+    "typecheck:v2": "tsc -p tsconfig.typecheck.json",
+    "contract:generate": "bun scripts/generate-contract.ts",
+    "contract:check": "bun scripts/generate-contract.ts && git diff --exit-code -- packages/sdk-js/src/gen"
   },
   "dependencies": {
     "@counted/api": "workspace:*",

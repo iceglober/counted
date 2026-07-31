@@ -1,0 +1,24 @@
+{
+  "id": "SDK-090",
+  "title": "the body is always {events: [...]}, even for one event",
+  "script": [
+    {
+      "do": "track",
+      "name": "only"
+    },
+    {
+      "do": "flush"
+    },
+    {
+      "expect": "request",
+      "events": [
+        "only"
+      ]
+    },
+    {
+      "expect": "field",
+      "path": "name",
+      "equals": "only"
+    }
+  ]
+}

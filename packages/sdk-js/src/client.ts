@@ -15,6 +15,7 @@
  * at-least-once delivery safe rather than a source of double counting.
  */
 
+import { FATAL_STATUSES } from "./gen/contract";
 import { EventQueue, type QueuedEvent } from "./queue";
 import { detectSystem, type SystemProperties } from "./platform";
 import { sendBatch, sendBeacon, type IngestReceipt, type SendOutcome } from "./transport";
@@ -43,6 +44,8 @@ export type CountedOptions = {
 
 export type Diagnostic =
   | { readonly kind: "refused"; readonly status: number; readonly detail: string }
+  /** The credential is not usable. Nothing further will be sent. */
+  | { readonly kind: "disabled"; readonly status: number; readonly detail: string; readonly discarded: number }
   | { readonly kind: "dropped"; readonly events: number; readonly reason: "queue_full" }
   | { readonly kind: "rejected"; readonly events: number; readonly reasons: readonly string[] }
   | { readonly kind: "quota"; readonly state: string; readonly used: number; readonly limit: number | null };
@@ -67,6 +70,7 @@ export class Counted {
   private inFlight: Promise<void> | null = null;
   private pausedUntil = 0;
   private closed = false;
+  private disabled = false;
   private readonly warned = new Set<number>();
 
   constructor(options: CountedOptions) {
@@ -115,7 +119,7 @@ export class Counted {
   }
 
   track(name: string, properties?: Readonly<Record<string, PropertyValue>>): void {
-    if (this.closed) return;
+    if (this.closed || this.disabled) return;
 
     const before = this.queue.droppedCount;
     this.queue.push({
@@ -164,7 +168,7 @@ export class Counted {
   }
 
   private async drain(): Promise<void> {
-    if (this.queue.size === 0) return;
+    if (this.disabled || this.queue.size === 0) return;
     // A 429 told us when to come back. Honour it rather than hammering.
     if (this.now() < this.pausedUntil) return;
 
@@ -187,8 +191,22 @@ export class Counted {
     }
 
     if (outcome.kind === "refused") {
-      // Resending cannot help — a malformed batch, a revoked key. v1 retried
-      // these until the buffer filled. Dropped, and the developer told.
+      // A credential that is missing, revoked or unauthorised will not become
+      // valid by being tried again. Everything after this would be a request
+      // that cannot succeed, so the client stops: the buffer is discarded and
+      // nothing further is sent or queued. v1 retried these until the buffer
+      // filled, which turned one misconfiguration into a busy loop.
+      if (FATAL_STATUSES.includes(outcome.status)) {
+        const discarded = this.queue.size;
+        this.queue.take(this.queue.size);
+        this.disabled = true;
+        this.warnOnce(outcome.status, outcome.detail);
+        this.report({ kind: "disabled", status: outcome.status, detail: outcome.detail, discarded });
+        return;
+      }
+
+      // Resending cannot help — a malformed batch. Dropped, and the developer
+      // told, but the client keeps working: the next batch may be fine.
       this.warnOnce(outcome.status, outcome.detail);
       this.report({ kind: "refused", status: outcome.status, detail: outcome.detail });
       return;

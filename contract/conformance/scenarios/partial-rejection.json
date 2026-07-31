@@ -1,0 +1,26 @@
+{
+  "id": "SDK-040",
+  "title": "a rejected event is settled, not retried",
+  "script": [
+    { "do": "track", "name": "good" },
+    { "do": "track", "name": "bad" },
+    { "do": "flush" },
+    { "expect": "request", "events": ["good", "bad"] },
+    {
+      "respond": {
+        "status": 202,
+        "body": {
+          "accepted": 1,
+          "deduplicated": 0,
+          "rejected": 1,
+          "outcomes": [
+            { "index": 0, "accepted": true, "deduplicated": false },
+            { "index": 1, "accepted": false, "reason": "An event name is required." }
+          ]
+        }
+      }
+    },
+    { "do": "flush" },
+    { "expect": "no-request" }
+  ]
+}

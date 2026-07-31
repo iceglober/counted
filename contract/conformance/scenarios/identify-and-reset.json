@@ -1,0 +1,88 @@
+{
+  "id": "SDK-062",
+  "title": "identify attributes subsequent events; reset clears the person and the visit",
+  "script": [
+    {
+      "do": "track",
+      "name": "anonymous"
+    },
+    {
+      "do": "flush"
+    },
+    {
+      "expect": "request",
+      "events": [
+        "anonymous"
+      ]
+    },
+    {
+      "expect": "field-absent",
+      "path": "userId"
+    },
+    {
+      "respond": {
+        "status": 202,
+        "body": {
+          "accepted": 1,
+          "deduplicated": 0,
+          "rejected": 0
+        }
+      }
+    },
+    {
+      "do": "identify",
+      "userId": "usr_42"
+    },
+    {
+      "do": "track",
+      "name": "identified"
+    },
+    {
+      "do": "flush"
+    },
+    {
+      "expect": "request",
+      "events": [
+        "identified"
+      ]
+    },
+    {
+      "expect": "field",
+      "path": "userId",
+      "equals": "usr_42"
+    },
+    {
+      "checkpoint": "before-reset"
+    },
+    {
+      "respond": {
+        "status": 202,
+        "body": {
+          "accepted": 1,
+          "deduplicated": 0,
+          "rejected": 0
+        }
+      }
+    },
+    {
+      "do": "reset"
+    },
+    {
+      "do": "track",
+      "name": "after-reset"
+    },
+    {
+      "do": "flush"
+    },
+    {
+      "expect": "request",
+      "events": [
+        "after-reset"
+      ]
+    },
+    {
+      "expect": "field-absent",
+      "path": "userId"
+    }
+  ]
+}

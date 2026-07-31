@@ -78,6 +78,13 @@
         "pg": "^8.13.1",
       },
     },
+    "contract/conformance": {
+      "name": "@counted/conformance",
+      "version": "0.0.0",
+      "dependencies": {
+        "@counted/sdk-js": "workspace:*",
+      },
+    },
     "packages/adapters/crypto": {
       "name": "@counted/adapter-crypto",
       "version": "0.0.0",
@@ -350,6 +357,8 @@
     "@counted/claude-code": ["@counted/claude-code@workspace:packages/claude-code"],
 
     "@counted/codex-cli": ["@counted/codex-cli@workspace:packages/codex-cli"],
+
+    "@counted/conformance": ["@counted/conformance@workspace:contract/conformance"],
 
     "@counted/contracts": ["@counted/contracts@workspace:packages/contracts"],
 

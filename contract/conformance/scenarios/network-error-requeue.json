@@ -1,0 +1,14 @@
+{
+  "id": "SDK-021",
+  "title": "a transport failure returns the batch to the head, in order",
+  "script": [
+    { "do": "track", "name": "first" },
+    { "do": "flush" },
+    { "expect": "request", "events": ["first"] },
+    { "respond": "network-error" },
+
+    { "do": "track", "name": "second" },
+    { "do": "flush" },
+    { "expect": "request", "events": ["first", "second"] }
+  ]
+}

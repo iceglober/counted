@@ -1,0 +1,22 @@
+{
+  "id": "SDK-041",
+  "title": "a 429 honours Retry-After, and the retry reuses the same idempotency key",
+  "script": [
+    { "do": "track", "name": "a" },
+    { "do": "flush" },
+    { "expect": "request", "events": ["a"] },
+    { "checkpoint": "first-attempt" },
+    { "respond": { "status": 429, "headers": { "retry-after": "5" } } },
+
+    { "advance": "4s" },
+    { "expect": "no-request" },
+
+    { "advance": "2s" },
+    { "expect": "request", "events": ["a"] },
+    { "expect": "same-as", "path": "idempotencyKey", "checkpoint": "first-attempt" },
+    { "expect": "same-as", "path": "occurredAt", "checkpoint": "first-attempt" },
+
+    { "do": "flush" },
+    { "expect": "no-request" }
+  ]
+}

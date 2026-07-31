@@ -1,0 +1,40 @@
+{
+  "contractVersion": "2026-08-01",
+  "osNames": [
+    "macos", "windows", "linux", "ios", "ipados", "android",
+    "tvos", "watchos", "visionos", "chromeos", "freebsd", "other"
+  ],
+  "osAliases": {
+    "macos": "macos", "macosx": "macos", "mac": "macos", "darwin": "macos", "osx": "macos",
+    "windows": "windows", "win": "windows", "win32": "windows", "win64": "windows", "winnt": "windows",
+    "linux": "linux", "gnulinux": "linux", "ubuntu": "linux", "debian": "linux", "fedora": "linux", "arch": "linux",
+    "ios": "ios", "iphoneos": "ios", "iphone": "ios",
+    "ipados": "ipados", "ipad": "ipados",
+    "android": "android",
+    "tvos": "tvos", "appletvos": "tvos",
+    "watchos": "watchos",
+    "visionos": "visionos", "xros": "visionos",
+    "chromeos": "chromeos", "chromiumos": "chromeos", "cros": "chromeos",
+    "freebsd": "freebsd", "openbsd": "freebsd", "netbsd": "freebsd",
+    "other": "other", "unknown": "other"
+  },
+  "defaults": {
+    "flushIntervalMs": 5000,
+    "maxBatchSize": 50,
+    "maxBufferEvents": 1000,
+    "visitTimeoutMs": 1800000,
+    "requestTimeoutMs": 15000,
+    "maxBodyBytes": 1048576
+  },
+  "backoff": {
+    "baseMs": 500,
+    "maxMs": 60000,
+    "factor": 2,
+    "jitter": "full"
+  },
+  "endpoints": {
+    "ingest": "/v1/events"
+  },
+  "retryableStatuses": [408, 425, 429, 500, 502, 503, 504],
+  "fatalStatuses": [401, 403]
+}

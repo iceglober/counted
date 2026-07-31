@@ -165,6 +165,42 @@ describe("a refusal is not retried; a failure is", () => {
     expect(diagnostics[0]).toMatchObject({ kind: "refused", status: 400 });
   });
 
+  test("a 401 disables the client and discards the buffer", async () => {
+    // A credential that is missing or revoked will not become valid by being
+    // tried again. v1 retried until the buffer filled, turning one
+    // misconfiguration into a busy loop. Found by the conformance suite.
+    const capture: Capture = { requests: [] };
+    const { counted, diagnostics } = client(capture, () =>
+      new Response(JSON.stringify({ retryable: false, detail: "No credential was presented." }), { status: 401 }),
+    );
+
+    counted.track("a");
+    await counted.flush();
+    expect(capture.requests).toHaveLength(1);
+
+    // Nothing further is sent, and nothing further is even queued.
+    counted.track("b");
+    await counted.flush();
+    expect(capture.requests).toHaveLength(1);
+
+    const disabled = diagnostics.find((d) => d.kind === "disabled");
+    expect(disabled).toMatchObject({ status: 401, discarded: 0 });
+  });
+
+  test("a 400 does not disable — the next batch may be fine", async () => {
+    // Only a credential problem is fatal. A malformed batch is dropped and the
+    // client keeps working.
+    const capture: Capture = { requests: [] };
+    const { counted } = client(capture, () =>
+      new Response(JSON.stringify({ retryable: false, detail: "not JSON" }), { status: 400 }),
+    );
+    counted.track("a");
+    await counted.flush();
+    counted.track("b");
+    await counted.flush();
+    expect(capture.requests).toHaveLength(2);
+  });
+
   test("the server's own answer beats the status code", async () => {
     // A 500 the server calls permanent is permanent; a 400 it calls retryable
     // is retried. The envelope knows more than the number does.

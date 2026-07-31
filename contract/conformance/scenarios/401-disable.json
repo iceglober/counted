@@ -1,0 +1,17 @@
+{
+  "id": "SDK-043",
+  "title": "a fatal status disables the client and discards the buffer",
+  "script": [
+    { "do": "track", "name": "a" },
+    { "do": "flush" },
+    { "expect": "request", "events": ["a"] },
+    { "respond": { "status": 401, "body": { "retryable": false, "detail": "No credential was presented." } } },
+
+    { "do": "flush" },
+    { "expect": "no-request" },
+
+    { "do": "track", "name": "b" },
+    { "do": "flush" },
+    { "expect": "no-request" }
+  ]
+}

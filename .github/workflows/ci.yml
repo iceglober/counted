@@ -82,6 +82,11 @@ jobs:
       - name: Typecheck v2 (including tests)
         run: bun run typecheck:v2
 
+      # The generated SDK constants are committed. Regenerating must be a
+      # no-op, or the four languages are reading different numbers.
+      - name: Contract drift
+        run: bun run contract:check
+
       - name: Test v2 packages
         run: bun run test:v2
         env:
