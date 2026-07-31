@@ -6,3 +6,4 @@ export * from "./analysis";
 export * from "./time-axis";
 export * from "./funnel";
 export * from "./retention";
+export * from "./trend";
