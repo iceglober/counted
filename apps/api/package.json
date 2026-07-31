@@ -1,0 +1,22 @@
+{
+  "name": "@counted/api-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The HTTP API. The only network door to the domain.",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "tsc --build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@counted/domain": "workspace:*",
+    "@counted/ports": "workspace:*",
+    "@counted/application": "workspace:*",
+    "@counted/adapter-postgres": "workspace:*",
+    "hono": "^4.6.0",
+    "pg": "^8.13.0"
+  }
+}
