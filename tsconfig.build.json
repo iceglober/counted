@@ -8,6 +8,7 @@
     { "path": "packages/adapters/postgres" },
     { "path": "packages/adapters/crypto" },
     { "path": "packages/adapters/stripe" },
-    { "path": "apps/api" }
+    { "path": "apps/api" },
+    { "path": "apps/worker" }
   ]
 }

@@ -1,0 +1,109 @@
+/**
+ * Background work.
+ *
+ * The worker exists because three things the product advertises are impossible
+ * without one: retention purging, rollups, and evaluating alerts without
+ * blocking a request. v1 had no worker, so retention was never implemented at
+ * all and alerts were evaluated by an HTTP endpoint guarded by a bearer secret
+ * in a query string.
+ *
+ * Two properties everything here is built around:
+ *
+ *   **Claiming is safe with several replicas.** `FOR UPDATE SKIP LOCKED` means
+ *   two workers never take the same job, and a lease means a worker that dies
+ *   mid-job does not strand it.
+ *
+ *   **Every job is idempotent.** Not as a convention but as a requirement: a
+ *   lease can expire while work is still running, so a job *will* eventually
+ *   run twice. Designing for that is cheaper than trying to prevent it.
+ */
+
+import type { Instant } from "@counted/domain";
+
+/** Names are a closed set so a typo cannot silently enqueue nothing. */
+export type JobName =
+  | "partitions.ensure"
+  | "retention.purge"
+  | "rollups.refresh"
+  | "monitors.evaluate"
+  | "outbox.dispatch";
+
+export const JOB_NAMES: readonly JobName[] = [
+  "partitions.ensure",
+  "retention.purge",
+  "rollups.refresh",
+  "monitors.evaluate",
+  "outbox.dispatch",
+];
+
+export type Job = {
+  readonly id: string;
+  readonly name: JobName;
+  /**
+   * Deduplicates. At most one uncompleted job exists per (name, key), so a
+   * scheduler that runs on every replica enqueues one job, not one per replica.
+   */
+  readonly key: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly runAfter: Instant;
+  /** How many times this has been claimed, including the current attempt. */
+  readonly attempts: number;
+};
+
+export type JobOutcome =
+  | { readonly kind: "done"; readonly detail?: string }
+  /** Ran, found nothing to do. Distinguished so the logs are readable. */
+  | { readonly kind: "noop"; readonly detail?: string }
+  /** Failed; retry after the backoff unless attempts are exhausted. */
+  | { readonly kind: "failed"; readonly error: string; readonly retryable: boolean };
+
+export type EnqueueRequest = {
+  readonly name: JobName;
+  readonly key: string;
+  readonly payload?: Readonly<Record<string, unknown>>;
+  readonly runAfter: Instant;
+};
+
+export type ClaimOptions = {
+  readonly limit: number;
+  /** Identifies the claimant, so a stuck job can be traced to a replica. */
+  readonly worker: string;
+  /**
+   * How long a claim is honoured before another worker may take it. Must
+   * exceed the longest a job can legitimately run, or two workers overlap on
+   * purpose rather than by accident.
+   */
+  readonly leaseMs: number;
+  /**
+   * Only claim jobs whose key hashes into this shard. Absent means all of
+   * them. Lets several replicas divide fan-out work without coordinating.
+   */
+  readonly shard?: { readonly index: number; readonly total: number };
+};
+
+export interface JobQueue {
+  /**
+   * Add a job unless an uncompleted one with the same (name, key) exists.
+   * Returns false when it already did, which is the normal case for a
+   * scheduler running on every replica.
+   */
+  enqueue(request: EnqueueRequest, at: Instant): Promise<boolean>;
+
+  /** Take up to `limit` due jobs, marking them claimed. */
+  claim(options: ClaimOptions, at: Instant): Promise<readonly Job[]>;
+
+  /** Record the outcome: completed, or scheduled for another attempt. */
+  settle(job: Job, outcome: JobOutcome, at: Instant, retryAfterMs: number): Promise<void>;
+
+  /** For readiness and for a "why is nothing running" question. */
+  stats(at: Instant): Promise<JobStats>;
+}
+
+export type JobStats = {
+  readonly pending: number;
+  /** Due but unclaimed. Growing means the workers cannot keep up. */
+  readonly due: number;
+  /** Claimed with an expired lease — a worker died holding these. */
+  readonly stalled: number;
+  readonly failed: number;
+};

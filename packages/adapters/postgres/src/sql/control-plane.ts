@@ -42,6 +42,39 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   processed_at timestamptz
 );
 
+-- Background work.
+--
+-- The unique index on (name, key) is the whole idempotency story at enqueue
+-- time, and it is deliberately *not* partial. An earlier version excluded
+-- completed jobs, which looked right and was not: a replica that enqueued,
+-- claimed, ran and completed a job in one tick left nothing for the index to
+-- conflict with, so the next replica enqueued the same job again and it ran
+-- twice. The key already encodes the time bucket, so uniqueness over all time
+-- is exactly the rule wanted — a given (name, bucket) runs once, ever.
+--
+-- Re-running is expressed by using a different key, and a retry reuses the
+-- same row by moving run_after, so neither needs a second insert.
+CREATE TABLE IF NOT EXISTS jobs (
+  id           uuid        PRIMARY KEY,
+  name         text        NOT NULL,
+  key          text        NOT NULL,
+  payload      jsonb       NOT NULL DEFAULT '{}'::jsonb,
+  run_after    timestamptz NOT NULL,
+  claimed_at   timestamptz,
+  claimed_by   text,
+  attempts     integer     NOT NULL DEFAULT 0,
+  last_error   text,
+  completed_at timestamptz,
+  outcome      text
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS jobs_one_per_key ON jobs (name, key);
+
+-- The claim query's index. Partial, because completed jobs are the vast
+-- majority of the table and none of them are ever claimed again.
+CREATE INDEX IF NOT EXISTS jobs_claimable_idx
+  ON jobs (run_after) WHERE completed_at IS NULL;
+
 CREATE TABLE IF NOT EXISTS workspace_members (
   workspace_id uuid        NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   account_id   text        NOT NULL,

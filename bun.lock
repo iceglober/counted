@@ -62,6 +62,18 @@
         "pg": "^8.13.0",
       },
     },
+    "apps/worker": {
+      "name": "@counted/worker",
+      "version": "0.0.0",
+      "dependencies": {
+        "@counted/adapter-crypto": "workspace:*",
+        "@counted/adapter-postgres": "workspace:*",
+        "@counted/application": "workspace:*",
+        "@counted/domain": "workspace:*",
+        "@counted/ports": "workspace:*",
+        "pg": "^8.13.1",
+      },
+    },
     "packages/adapters/crypto": {
       "name": "@counted/adapter-crypto",
       "version": "0.0.0",
@@ -336,6 +348,8 @@
     "@counted/react": ["@counted/react@workspace:packages/react"],
 
     "@counted/sdk": ["@counted/sdk@workspace:packages/sdk"],
+
+    "@counted/worker": ["@counted/worker@workspace:apps/worker"],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 

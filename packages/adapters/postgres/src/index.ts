@@ -13,6 +13,7 @@ export * from "./pool";
 export * from "./access-resolver";
 export * from "./quota";
 export * from "./billing";
+export * from "./jobs";
 export * from "./compile/params";
 export * from "./compile/numeric";
 export * from "./compile/column-map";

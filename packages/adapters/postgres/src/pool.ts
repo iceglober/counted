@@ -14,7 +14,7 @@
  * one with a longer timeout, and neither can exhaust the other.
  */
 
-export type PoolRole = "ingest" | "analytics";
+export type PoolRole = "ingest" | "analytics" | "worker";
 
 export type PoolSettings = {
   readonly max: number;
@@ -58,8 +58,36 @@ export const ANALYTICS_POOL: PoolSettings = {
   idleInTransactionTimeoutMs: 15_000,
 };
 
-export const settingsFor = (role: PoolRole): PoolSettings =>
-  role === "ingest" ? INGEST_POOL : ANALYTICS_POOL;
+/**
+ * Worker: few connections, long statements.
+ *
+ * Maintenance work is nothing like a request. Dropping an expired partition,
+ * refreshing a rollup or purging a month can legitimately take minutes, and a
+ * thirty-second cap would kill them halfway — leaving the job to be retried
+ * and killed again. Small `max` because a worker is one loop, not a server.
+ *
+ * The statement timeout is still finite. A maintenance query that runs for an
+ * hour is a bug, and a job whose lease has already lapsed is doing work a
+ * second worker has begun repeating.
+ */
+export const WORKER_POOL: PoolSettings = {
+  max: 4,
+  statementTimeoutMs: 10 * 60_000,
+  connectionTimeoutMs: 10_000,
+  idleTimeoutMs: 60_000,
+  idleInTransactionTimeoutMs: 60_000,
+};
+
+export const settingsFor = (role: PoolRole): PoolSettings => {
+  switch (role) {
+    case "ingest":
+      return INGEST_POOL;
+    case "analytics":
+      return ANALYTICS_POOL;
+    case "worker":
+      return WORKER_POOL;
+  }
+};
 
 /**
  * Session parameters applied to every connection as it is handed out.

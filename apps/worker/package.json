@@ -1,0 +1,16 @@
+{
+  "name": "@counted/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Scheduled and queued background work. Retention, partitions, rollups, alerts, outbox.",
+  "scripts": { "build": "tsc --build", "start": "bun src/index.ts", "test": "bun test", "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "@counted/domain": "workspace:*",
+    "@counted/ports": "workspace:*",
+    "@counted/application": "workspace:*",
+    "@counted/adapter-postgres": "workspace:*",
+    "@counted/adapter-crypto": "workspace:*",
+    "pg": "^8.13.1"
+  }
+}
