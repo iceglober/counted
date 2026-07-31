@@ -107,3 +107,39 @@ export type JobStats = {
   readonly stalled: number;
   readonly failed: number;
 };
+
+/**
+ * Maintaining the event table's partitions.
+ *
+ * Separate from the job queue because it is a different concern with a
+ * different failure mode: the queue losing a job is an inconvenience, and
+ * partitions falling behind is ingestion stopping at midnight on the 1st.
+ */
+export interface PartitionMaintenance {
+  /** What the database actually has, parsed back into bounds. */
+  list(): Promise<readonly PartitionSpec[]>;
+  /** Idempotent — `CREATE TABLE IF NOT EXISTS`. */
+  create(spec: PartitionSpec): Promise<void>;
+  /**
+   * How many rows are sitting in the default partition.
+   *
+   * Non-zero means partition creation fell behind and events were written
+   * outside every month we had made. They are not lost, but they are not
+   * pruned by retention either, and no query that relies on partition pruning
+   * will be fast.
+   */
+  countDefault(): Promise<number>;
+  /**
+   * Move rows out of the default partition into the month they belong to.
+   *
+   * Returns how many moved. Bounded per call so one enormous backlog does not
+   * hold a transaction open for an hour.
+   */
+  drainDefault(limit: number): Promise<number>;
+}
+
+export type PartitionSpec = {
+  readonly name: string;
+  readonly from: Instant;
+  readonly to: Instant;
+};

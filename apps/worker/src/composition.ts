@@ -7,9 +7,10 @@
 
 import { Pool } from "pg";
 import { Instant, type Clock } from "@counted/domain";
-import { createJobQueue, poolConfig } from "@counted/adapter-postgres";
+import { createJobQueue, createPartitionMaintenance, poolConfig } from "@counted/adapter-postgres";
 import type { JobQueue } from "@counted/ports";
 import type { Handler, Logger } from "./runtime";
+import type { JobDependencies } from "./handlers";
 import type { JobName } from "@counted/ports";
 
 export type WorkerConfig = {
@@ -55,9 +56,10 @@ export type WorkerDependencies = {
 export const compose = async (
   config: WorkerConfig,
   log: Logger,
-  handlers: Readonly<Partial<Record<JobName, Handler>>>,
+  buildHandlers: (deps: JobDependencies) => Readonly<Partial<Record<JobName, Handler>>>,
 ): Promise<WorkerDependencies> => {
   const pool = new Pool(poolConfig(config.databaseUrl, "worker"));
+  const handlers = buildHandlers({ partitions: createPartitionMaintenance(pool) });
 
   return {
     queue: createJobQueue(pool),

@@ -14,16 +14,11 @@
  */
 
 import { Instant, step, truncTo } from "@counted/domain";
+import type { PartitionSpec } from "@counted/ports";
 import { EVENTS_TABLE } from "./sql/schema";
 
-export type PartitionSpec = {
-  /** e.g. `events_2026_03` */
-  readonly name: string;
-  /** Inclusive lower bound. */
-  readonly from: Instant;
-  /** Exclusive upper bound. */
-  readonly to: Instant;
-};
+/** Re-exported from the port so there is one definition, not two. */
+export type { PartitionSpec } from "@counted/ports";
 
 const pad = (n: number): string => (n < 10 ? `0${n}` : String(n));
 

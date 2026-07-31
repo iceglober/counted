@@ -9,7 +9,7 @@
 
 import { compose, configFromEnv } from "./composition";
 import { WorkerRuntime } from "./runtime";
-import { handlers } from "./handlers";
+import { buildHandlers } from "./handlers";
 
 const log = {
   write: (level: string, event: string, fields: Record<string, unknown> = {}) => {
@@ -23,7 +23,7 @@ const log = {
 };
 
 const config = configFromEnv(process.env);
-const deps = await compose(config, log, handlers);
+const deps = await compose(config, log, buildHandlers);
 
 const runtime = new WorkerRuntime({
   queue: deps.queue,

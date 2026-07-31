@@ -1,13 +1,19 @@
 /**
  * The registry of job handlers.
  *
- * Empty for now by design: the runtime lands first, and each job arrives with
- * its own issue and its own tests. A name with no handler here is simply never
- * enqueued — the scheduler skips it — so shipping the runtime alone does not
- * fill the queue with work nothing will claim.
+ * A name with no handler here is never enqueued — the scheduler skips it — so
+ * a job can land in its own issue without filling the queue with work nothing
+ * will claim.
  */
 
-import type { JobName } from "@counted/ports";
+import type { JobName, PartitionMaintenance } from "@counted/ports";
 import type { Handler } from "./runtime";
+import { partitionsEnsure } from "./jobs/partitions-ensure";
 
-export const handlers: Readonly<Partial<Record<JobName, Handler>>> = {};
+export type JobDependencies = {
+  readonly partitions: PartitionMaintenance;
+};
+
+export const buildHandlers = (deps: JobDependencies): Readonly<Partial<Record<JobName, Handler>>> => ({
+  "partitions.ensure": partitionsEnsure(deps.partitions),
+});
