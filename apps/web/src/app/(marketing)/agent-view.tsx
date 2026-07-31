@@ -12,7 +12,7 @@ export function AgentView() {
 
       <h2>API</h2>
       <ul>
-        <li><b>Base URL:</b> <code>https://app.counted.dev/api/v0</code></li>
+        <li><b>Base URL:</b> <code>https://api.counted.dev/v1</code></li>
         <li><b>Provision a key (no signup):</b> <code>POST /api/v0/provision</code> → <code>ck_</code> client key + claim link</li>
         <li><b>Ingest an event:</b> <code>POST /api/v0/event</code> (header <code>Project-Key: ck_…</code>)</li>
         <li><b>Query metrics:</b> <code>POST /api/v0/query</code> (header <code>Authorization: Bearer sk_…</code>)</li>

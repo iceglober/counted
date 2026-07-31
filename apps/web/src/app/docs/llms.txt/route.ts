@@ -3,9 +3,10 @@
 // end to end. Kept terse and copy-pasteable on purpose.
 
 import { AGENT_PROMPT } from "@/lib/agent-prompt";
+import { API_URL, SITE_URL } from "@/lib/urls";
 
-const API = "https://app.counted.dev";
-const SITE = "https://app.counted.dev";
+const API = API_URL;
+const SITE = SITE_URL;
 
 const CONTENT = `# Counted — privacy-first product analytics for AI agents
 

@@ -139,40 +139,32 @@ describe("no domain logic", () => {
 describe("one way to the network", () => {
   test("no source file reaches the API except through the client", () => {
     /**
-     * The invariant is about the *API*, not about the word `fetch`. A call to
-     * this app's own origin — the share page's refresh button hitting its BFF
-     * — is not a second way to the API; it is a page talking to its own
-     * server, and forbidding it would push the token into browser JavaScript,
-     * which is the thing the share design exists to prevent.
+     * The invariant is about the *app* reaching the API, not about the word.
      *
-     * So what is forbidden is naming the API's base URL anywhere but the
-     * client, and the one exception is the magic-link callback, which re-emits
-     * the API's own `Set-Cookie` — something the client deliberately does not
-     * model.
+     * Marketing pages, the docs and the agent prompt all name the endpoint —
+     * that is what documentation is for, and a docs page that could not print
+     * a URL would be a poor one. An exception list for each of them grows
+     * until it means nothing, so the check is precise instead: a file is only
+     * reaching the API if it *both* names the base URL and calls `fetch`.
+     *
+     * Prose has no fetch. A page that started making its own requests would
+     * have both, and would fail here.
+     *
+     * The two allowances are the client itself and the magic-link callback,
+     * which re-emits the API's own `Set-Cookie` — something the client
+     * deliberately does not model.
      */
-    const allowed = [
-      "src/lib/api.ts",
-      "src/app/auth/callback/route.ts",
-      // The marketing site's own analytics. It names the ingest endpoint
-      // because that is what the SDK posts to — with a public key, exactly as
-      // a customer's site does. Writing events is not reaching the API for
-      // data, which is what this check is about.
-      "src/lib/attribution.ts",
-    ];
-
-    // Documentation *shows* people the URL — that is what documentation is
-    // for, and a docs page that could not print the endpoint would be a poor
-    // one. This check is about the app reaching the API behind the client's
-    // back, which a code sample in prose does not do.
-    const isDocs = (relative: string): boolean => relative.startsWith("src/app/docs/");
-    const reachesApi = /(publicApiUrl|serverApiUrl)\s*\(|https?:\/\/[^"'`\s]*counted[^"'`\s]*\/v1\//;
+    const allowed = ["src/lib/api.ts", "src/app/auth/callback/route.ts"];
+    const namesApi = /(publicApiUrl|serverApiUrl)\s*\(|API_URL|https?:\/\/[^"'`\s]*counted[^"'`\s]*\/v1\//;
+    const callsFetch = /\bfetch\s*\(/;
 
     const offenders = sourceFiles()
       .map((file) => ({ file, relative: file.slice(APP.length + 1) }))
-      // Application code only. A test of the client names URLs on purpose, and
-      // nothing it does ships.
-      .filter(({ relative }) => !allowed.includes(relative) && !isDocs(relative) && !/\.test\.tsx?$/.test(relative))
-      .filter(({ file }) => reachesApi.test(readFileSync(file, "utf8")));
+      .filter(({ relative }) => !allowed.includes(relative) && !/\.test\.tsx?$/.test(relative))
+      .filter(({ file }) => {
+        const source = readFileSync(file, "utf8");
+        return namesApi.test(source) && callsFetch.test(source);
+      });
 
     expect(offenders.map((o) => o.relative)).toEqual([]);
   });

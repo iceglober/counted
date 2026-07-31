@@ -29,7 +29,7 @@ const HOMEPAGE_FAQ = [
   },
   {
     q: "Can an agent use Counted without a signup?",
-    a: "Yes. POST https://app.counted.dev/api/v0/provision returns a write-only client key and a claim link with no human in the loop.",
+    a: "Yes. POST https://api.counted.dev/v1/provision returns a write-only client key and a claim link with no human in the loop.",
   },
 ];
 

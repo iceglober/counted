@@ -97,7 +97,7 @@ export default function VsAptabasePage() {
   --source-clickhouse "http://default:PASSWORD@your-aptabase-host:8123" \\
   --app-id "YOUR_APTABASE_APP_ID" \\
   --target-key "ck_your_project_key" \\
-  --target-host "https://app.counted.dev"`}</CodeBlock>
+  --target-host "https://api.counted.dev"`}</CodeBlock>
 
         <p>
           <b>2. Swap the SDK.</b>{" "}Change one import. The drop-in shim keeps Aptabase&apos;s{" "}

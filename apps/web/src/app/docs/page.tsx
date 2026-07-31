@@ -82,7 +82,7 @@ export default function DocsPage() {
         one from your terminal, no signup:
       </p>
       <div className="mt-3">
-        <CodeBlock>{`curl -X POST https://app.counted.dev/api/v0/provision`}</CodeBlock>
+        <CodeBlock>{`curl -X POST https://api.counted.dev/v1/provision`}</CodeBlock>
       </div>
 
       <H2 id="quickstart">Quickstart</H2>
