@@ -22,7 +22,7 @@
  * a different one.
  */
 
-import { DashboardId, Duration, Instant, type Principal } from "@counted/domain";
+import { DashboardId, Duration, Instant, ReadoutId, type Principal } from "@counted/domain";
 import { runQuestions, type Ask } from "@counted/application";
 import { CreateShareRequestSchema, fieldsFrom, validationDetail } from "@counted/contracts";
 import type { Context } from "hono";
@@ -151,7 +151,7 @@ export const shareRoutes = (deps: Dependencies): readonly RouteDefinition[] => [
       if (dashboard === null) return sendProblem(c, "resource.not_found");
 
       const asks: readonly Ask[] = dashboard.tiles.map((tile) => ({
-        id: tile.id,
+        id: ReadoutId(String(tile.id)),
         project: tile.project,
         question: questionFromTile(tile.content),
       }));

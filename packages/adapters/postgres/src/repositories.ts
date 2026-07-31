@@ -365,6 +365,22 @@ const enqueue = async (client: PoolClient, events: readonly { kind: string }[]):
 };
 
 export const outboxRepo = {
+  /**
+   * Enqueue directly.
+   *
+   * Repository saves already write their aggregate's events on the same
+   * connection, so this exists for events that belong to no aggregate — a
+   * billing transition, say.
+   */
+  async enqueue(client: PoolClient, events: readonly DomainEventEnvelope[]): Promise<void> {
+    for (const event of events) {
+      await client.query(
+        `INSERT INTO outbox (id, type, payload, occurred_at) VALUES ($1,$2,$3,$4)`,
+        [event.id, event.type, JSON.stringify(event.payload), Instant.toDate(event.occurredAt)],
+      );
+    }
+  },
+
   /** Claim undispatched events for delivery. SKIP LOCKED so replicas do not collide. */
   async claim(client: PoolClient, limit: number): Promise<readonly DomainEventEnvelope[]> {
     const rows = (

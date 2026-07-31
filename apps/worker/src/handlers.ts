@@ -6,20 +6,31 @@
  * will claim.
  */
 
-import type { JobName, PartitionMaintenance, RetentionMaintenance, RollupMaintenance } from "@counted/ports";
+import type {
+  AnalyticalStore,
+  JobName,
+  PartitionMaintenance,
+  RetentionMaintenance,
+  RollupMaintenance,
+  UnitOfWork,
+} from "@counted/ports";
 import type { Handler } from "./runtime";
 import { partitionsEnsure } from "./jobs/partitions-ensure";
 import { retentionPurge } from "./jobs/retention-purge";
 import { rollupsRefresh } from "./jobs/rollups-refresh";
+import { monitorsEvaluate } from "./jobs/monitors-evaluate";
 
 export type JobDependencies = {
   readonly partitions: PartitionMaintenance;
   readonly retention: RetentionMaintenance;
   readonly rollups: RollupMaintenance;
+  readonly store: AnalyticalStore;
+  readonly unitOfWork: UnitOfWork;
 };
 
 export const buildHandlers = (deps: JobDependencies): Readonly<Partial<Record<JobName, Handler>>> => ({
   "partitions.ensure": partitionsEnsure(deps.partitions),
   "retention.purge": retentionPurge({ partitions: deps.partitions, retention: deps.retention }),
   "rollups.refresh": rollupsRefresh(deps.rollups),
+  "monitors.evaluate": monitorsEvaluate({ store: deps.store, unitOfWork: deps.unitOfWork }),
 });

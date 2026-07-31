@@ -22,16 +22,16 @@ import {
   type Instant,
   type ProjectId,
   type Result,
-  type TileId,
+  type ReadoutId,
 } from "@counted/domain";
 import { RequestId, type AnalyticalStore, type StoreRequest } from "@counted/ports";
 import { assemble, failureFrom, failureFromAssemble } from "./assemble";
 import { explainPlanError, planQuestion, type Plan, type PlanError, type Question } from "./plan";
 
-/** One thing to answer: a tile, or a single ad-hoc query. */
+/** One thing to answer: a tile, a monitor, or a single ad-hoc query. */
 export type Ask = {
-  /** Identifies the answer in the response. A tile id, or a synthetic one. */
-  readonly id: TileId;
+  /** Correlates the answer back to whatever asked for it. */
+  readonly id: ReadoutId;
   readonly project: ProjectId;
   readonly question: Question;
 };
@@ -61,7 +61,7 @@ export const runQuestions = async (
   asks: readonly Ask[],
   options: RunOptions,
 ): Promise<Answers> => {
-  const planned = new Map<TileId, Plan>();
+  const planned = new Map<ReadoutId, Plan>();
   const failed: Readout[] = [];
   const requests: StoreRequest[] = [];
 
@@ -93,13 +93,13 @@ export const runQuestions = async (
   });
 
   const answered: Readout[] = [];
-  for (const [tile, plan] of planned) {
+  for (const [id, plan] of planned) {
     const outcome = batch.results.get(plan.request.id);
     if (outcome === undefined) {
       // The store must answer every request it was given. If it did not, say
       // so — do not quietly render a blank.
       answered.push(
-        Readout.failed(tile, {
+        Readout.failed(id, {
           code: "store_unavailable",
           detail: "The store returned no answer for this question.",
           retriable: true,
@@ -109,25 +109,25 @@ export const runQuestions = async (
     }
 
     if (!outcome.ok) {
-      answered.push(Readout.failed(tile, failureFrom(outcome.error)));
+      answered.push(Readout.failed(id, failureFrom(outcome.error)));
       continue;
     }
 
     const value = assemble(plan, outcome.value);
     answered.push(
       value.ok
-        ? Readout.answered(tile, value.value, outcome.computedAt)
-        : Readout.failed(tile, failureFromAssemble(value.error)),
+        ? Readout.answered(id, value.value, outcome.computedAt)
+        : Readout.failed(id, failureFromAssemble(value.error)),
     );
   }
 
   // Back in the order the caller asked, so a dashboard renders its tiles in
   // its own order rather than in whichever order the store answered.
-  const byTile = new Map<TileId, Readout>();
-  for (const readout of [...failed, ...answered]) byTile.set(readout.tile, readout);
+  const byId = new Map<ReadoutId, Readout>();
+  for (const readout of [...failed, ...answered]) byId.set(readout.id, readout);
 
   return {
-    readouts: asks.map((a) => byTile.get(a.id)).filter((r): r is Readout => r !== undefined),
+    readouts: asks.map((a) => byId.get(a.id)).filter((r): r is Readout => r !== undefined),
     statements: batch.stats.statements,
   };
 };

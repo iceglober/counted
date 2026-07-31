@@ -18,7 +18,7 @@ import {
   Instant,
   Measure,
   DashboardId,
-  TileId,
+  ReadoutId,
   Window,
   type Funnel,
   type Grain,
@@ -159,12 +159,12 @@ const readoutValueToWire = (value: ReadoutValue): unknown => {
 export const readoutToWire = (readout: Readout): unknown =>
   readout.ok
     ? {
-        id: String(readout.tile),
+        id: String(readout.id),
         ok: true,
         value: readoutValueToWire(readout.value),
         computedAt: Instant.toISO(readout.computedAt),
       }
-    : { id: String(readout.tile), ok: false, failure: readout.failure };
+    : { id: String(readout.id), ok: false, failure: readout.failure };
 
 /** HTTP status for a readout that failed. A timeout is not a 500. */
 const statusFor = (readout: Extract<Readout, { ok: false }>) => {
@@ -202,7 +202,7 @@ export const queryRoutes = (deps: Dependencies): readonly RouteDefinition[] => [
 
       const project = c.req.param("projectId") as ProjectId;
       const ask: Ask = {
-        id: TileId("query"),
+        id: ReadoutId("query"),
         project,
         question: toQuestion(parsed.data.question),
       };
@@ -253,7 +253,7 @@ export const queryRoutes = (deps: Dependencies): readonly RouteDefinition[] => [
       // against the dashboard; the tiles cannot widen it, because they are the
       // thing that defined it.
       const asks: readonly Ask[] = tiles.map((tile) => ({
-        id: tile.id,
+        id: ReadoutId(String(tile.id)),
         project: tile.project,
         question: questionFromTile(tile.content),
       }));

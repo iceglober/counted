@@ -14,9 +14,17 @@
 
 import type { Pool, PoolClient } from "pg";
 import type { Instant } from "@counted/domain";
+import type { Repositories, UnitOfWork } from "@counted/ports";
 import { dashboardRepo, monitorRepo, outboxRepo, projectRepo, workspaceRepo } from "./repositories";
 
-/** Repositories bound to one open transaction. */
+/**
+ * Repositories bound to one open transaction.
+ *
+ * Declared here *and* checked against the port below. An earlier version was
+ * only declared here, and it quietly drifted: the port promised
+ * `listForWorkspace` and `delete` that this facade did not expose, so no route
+ * could call them and nothing said so until one tried.
+ */
 export type BoundRepositories = {
   readonly workspaces: {
     find: (id: Parameters<typeof workspaceRepo.find>[1]) => ReturnType<typeof workspaceRepo.find>;
@@ -56,6 +64,7 @@ export type BoundRepositories = {
     save: (m: Parameters<typeof monitorRepo.save>[1], e: Parameters<typeof monitorRepo.save>[2]) => Promise<void>;
   };
   readonly outbox: {
+    enqueue: (events: Parameters<typeof outboxRepo.enqueue>[1]) => Promise<void>;
     claim: (limit: number) => ReturnType<typeof outboxRepo.claim>;
     markDispatched: (ids: readonly string[], at: Instant) => Promise<void>;
     pendingCount: () => Promise<number>;
@@ -88,16 +97,24 @@ const bind = (client: PoolClient): BoundRepositories => ({
     save: (m, e) => monitorRepo.save(client, m, e),
   },
   outbox: {
+    enqueue: (events) => outboxRepo.enqueue(client, events),
     claim: (limit) => outboxRepo.claim(client, limit),
     markDispatched: (ids, at) => outboxRepo.markDispatched(client, ids, at),
     pendingCount: () => outboxRepo.pendingCount(client),
   },
 });
 
-export class PostgresUnitOfWork {
+/**
+ * Checked, not assumed.
+ *
+ * `implements UnitOfWork` is what makes the facade and the port impossible to
+ * drift apart — a method the port declares and this does not expose is now a
+ * compile error rather than a runtime surprise.
+ */
+export class PostgresUnitOfWork implements UnitOfWork {
   constructor(private readonly pool: Pool) {}
 
-  async transact<T>(work: (repos: BoundRepositories) => Promise<T>): Promise<T> {
+  async transact<T>(work: (repos: Repositories) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");

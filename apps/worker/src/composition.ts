@@ -7,7 +7,7 @@
 
 import { Pool } from "pg";
 import { Instant, type Clock } from "@counted/domain";
-import { createJobQueue, createPartitionMaintenance, createRetentionMaintenance, createRollupMaintenance, poolConfig } from "@counted/adapter-postgres";
+import { createJobQueue, createPartitionMaintenance, createRetentionMaintenance, createRollupMaintenance, poolConfig, bootStore, PostgresAnalyticalStore, PostgresUnitOfWork } from "@counted/adapter-postgres";
 import type { JobQueue } from "@counted/ports";
 import type { Handler, Logger } from "./runtime";
 import type { JobDependencies } from "./handlers";
@@ -59,10 +59,18 @@ export const compose = async (
   buildHandlers: (deps: JobDependencies) => Readonly<Partial<Record<JobName, Handler>>>,
 ): Promise<WorkerDependencies> => {
   const pool = new Pool(poolConfig(config.databaseUrl, "worker"));
+
+  // The worker probes the store for the same reason the API does: a capability
+  // it assumes and does not have is a query that throws at three in the
+  // morning with nobody watching.
+  const boot = await bootStore(pool);
+
   const handlers = buildHandlers({
     partitions: createPartitionMaintenance(pool),
     retention: createRetentionMaintenance(pool),
     rollups: createRollupMaintenance(pool),
+    store: new PostgresAnalyticalStore(pool, boot.capabilities),
+    unitOfWork: new PostgresUnitOfWork(pool),
   });
 
   return {

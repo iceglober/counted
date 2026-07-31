@@ -21,7 +21,7 @@ import {
   Instant,
   Measure,
   ProjectId,
-  TileId,
+  ReadoutId,
   TimeAxis,
   Window,
   type Funnel,
@@ -296,7 +296,7 @@ const answered = (value: number): Outcome<StoreResult> => ({
 
 const asks = (count: number): Ask[] =>
   Array.from({ length: count }, (_, i) => ({
-    id: TileId(`tile_${i}`),
+    id: ReadoutId(`tile_${i}`),
     project: PRJ,
     question: analysisQuestion(Analysis.countOverWindow(Window.lastDays(7))),
   }));
@@ -322,15 +322,15 @@ describe("a whole dashboard is one call to the store", () => {
   test("answers come back in the order the caller asked", async () => {
     const store = stubStore((r) => answered(Number(String(r.id).slice(1))));
     const { readouts } = await runQuestions(store, asks(5), { now: NOW, deadlineMs: 5_000, traceId: "t" });
-    expect(readouts.map((r) => String(r.tile))).toEqual(["tile_0", "tile_1", "tile_2", "tile_3", "tile_4"]);
+    expect(readouts.map((r) => String(r.id))).toEqual(["tile_0", "tile_1", "tile_2", "tile_3", "tile_4"]);
   });
 
   test("two tiles asking the identical question still get their own answers", async () => {
     const store = stubStore(() => answered(7));
-    const same = [asks(1)[0]!, { ...asks(1)[0]!, id: TileId("other") }];
+    const same = [asks(1)[0]!, { ...asks(1)[0]!, id: ReadoutId("other") }];
     const { readouts } = await runQuestions(store, same, { now: NOW, deadlineMs: 5_000, traceId: "t" });
     expect(readouts).toHaveLength(2);
-    expect(readouts.map((r) => String(r.tile)).sort()).toEqual(["other", "tile_0"]);
+    expect(readouts.map((r) => String(r.id)).sort()).toEqual(["other", "tile_0"]);
   });
 });
 
@@ -371,7 +371,7 @@ describe("a failure is a readout, never a blank chart", () => {
     const mixed: Ask[] = [
       asks(1)[0]!,
       {
-        id: TileId("broken"),
+        id: ReadoutId("broken"),
         project: PRJ,
         question: analysisQuestion({ measure: Measure.count(), window: Window.lastDays(7), events: [""] }),
       },
@@ -382,7 +382,7 @@ describe("a failure is a readout, never a blank chart", () => {
     // One request, not two: the broken tile was never asked.
     expect(calls[0]).toHaveLength(1);
     expect(readouts).toHaveLength(2);
-    expect(readouts.find((r) => String(r.tile) === "broken")!.ok).toBe(false);
+    expect(readouts.find((r) => String(r.id) === "broken")!.ok).toBe(false);
   });
 
   test("a store that answers fewer requests than it was given is caught", async () => {

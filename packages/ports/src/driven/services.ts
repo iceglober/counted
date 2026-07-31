@@ -43,6 +43,8 @@ export interface Outbox {
   enqueue(events: readonly DomainEventEnvelope[]): Promise<void>;
   claim(limit: number): Promise<readonly DomainEventEnvelope[]>;
   markDispatched(ids: readonly string[], at: Instant): Promise<void>;
+  /** Undispatched events. A growing count means dispatch has stalled. */
+  pendingCount(): Promise<number>;
 }
 
 export type Notification =

@@ -17,7 +17,18 @@ import type { Instant } from "../shared/instant";
 import type { FunnelResult } from "../analytics/funnel";
 import type { RetentionGrid } from "../analytics/retention";
 import type { Trend } from "../analytics/trend";
-import type { TileId } from "./tile";
+import type { Brand } from "../shared/brand";
+
+/**
+ * What an answer belongs to.
+ *
+ * A tile id, usually — but a monitor asks the same questions through the same
+ * planner, and its answer is not a tile's. Keeping this an opaque correlation
+ * id rather than a `TileId` is what lets those two share one query path
+ * without either of them pretending to be the other.
+ */
+export type ReadoutId = Brand<string, "ReadoutId">;
+export const ReadoutId = (raw: string): ReadoutId => raw as ReadoutId;
 
 export type SeriesPoint = { readonly bucketStart: Instant; readonly value: number };
 
@@ -36,15 +47,15 @@ export type ReadoutFailure = {
 
 /** Either an answer or a stated reason there is none. Never a silent blank. */
 export type Readout =
-  | { readonly tile: TileId; readonly ok: true; readonly value: ReadoutValue; readonly computedAt: Instant }
-  | { readonly tile: TileId; readonly ok: false; readonly failure: ReadoutFailure };
+  | { readonly id: ReadoutId; readonly ok: true; readonly value: ReadoutValue; readonly computedAt: Instant }
+  | { readonly id: ReadoutId; readonly ok: false; readonly failure: ReadoutFailure };
 
 export const Readout = {
-  answered: (tile: TileId, value: ReadoutValue, computedAt: Instant): Readout => ({
-    tile,
+  answered: (id: ReadoutId, value: ReadoutValue, computedAt: Instant): Readout => ({
+    id,
     ok: true,
     value,
     computedAt,
   }),
-  failed: (tile: TileId, failure: ReadoutFailure): Readout => ({ tile, ok: false, failure }),
+  failed: (id: ReadoutId, failure: ReadoutFailure): Readout => ({ id, ok: false, failure }),
 } as const;
