@@ -14,3 +14,4 @@ export * from "./workspace";
 export * from "./project";
 export * from "./identity";
 export * from "./analytics";
+export * from "./dashboard";
