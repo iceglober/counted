@@ -28,6 +28,9 @@ import { dashboardRepo, monitorRepo, outboxRepo, projectRepo, workspaceRepo } fr
 export type BoundRepositories = {
   readonly workspaces: {
     find: (id: Parameters<typeof workspaceRepo.find>[1]) => ReturnType<typeof workspaceRepo.find>;
+    listForAccount: (
+      account: Parameters<typeof workspaceRepo.listForAccount>[1],
+    ) => ReturnType<typeof workspaceRepo.listForAccount>;
     save: (
       w: Parameters<typeof workspaceRepo.save>[1],
       e: Parameters<typeof workspaceRepo.save>[2],
@@ -75,6 +78,7 @@ export type BoundRepositories = {
 const bind = (client: PoolClient): BoundRepositories => ({
   workspaces: {
     find: (id) => workspaceRepo.find(client, id),
+    listForAccount: (account) => workspaceRepo.listForAccount(client, account),
     save: (w, e) => workspaceRepo.save(client, w, e),
   },
   projects: {

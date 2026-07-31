@@ -17,7 +17,7 @@ import type { ConsoleSessions, Redemption } from "@counted/ports";
 import { createApp } from "../server";
 import type { Config, Dependencies } from "../composition";
 import { silentLogger } from "../server.test";
-import { noConsole, recordingMail } from "../testing/stubs";
+import { emptyUnitOfWork, noConsole, recordingMail } from "../testing/stubs";
 import { SESSION_COOKIE } from "../http/session";
 
 const NOW = Instant.fromEpochMillis(Date.parse("2026-04-01T09:00:00Z"));
@@ -39,6 +39,7 @@ const build = (over: Partial<ConsoleSessions> = {}, mail = recordingMail()) => {
     console: console_,
     notifier: mail,
     clock: { now: () => NOW },
+    unitOfWork: emptyUnitOfWork,
     secrets: { digest: (s: string) => `digest:${s}`, issue: () => ({ secret: "", digest: "", prefix: "" }) },
     access: { principalFor: async () => Principal.ANONYMOUS, placementOf: async () => null, roleOf: async () => null },
     config,
@@ -279,5 +280,44 @@ describe("describing a signed-in caller", () => {
     const { app } = build();
     const body = (await (await app.request("/v1/me")).json()) as { scopeSource: string };
     expect(body.scopeSource).toBe("none");
+  });
+});
+
+describe("where a caller may go", () => {
+  const withWorkspaces = (workspaces: readonly { id: string; name: string; role: string }[]) => {
+    const deps = {
+      log: silentLogger(),
+      console: { ...noConsole, accountFor: async () => ({ id: ACCOUNT, email: "a@b.c", createdAt: NOW }) },
+      notifier: recordingMail(),
+      clock: { now: () => NOW },
+      unitOfWork: {
+        transact: async (work: (r: Record<string, unknown>) => unknown) =>
+          work({ workspaces: { listForAccount: async () => workspaces } }),
+      },
+      secrets: { digest: (s: string) => `digest:${s}`, issue: () => ({ secret: "", digest: "", prefix: "" }) },
+      access: { principalFor: async () => Principal.ANONYMOUS, placementOf: async () => null, roleOf: async () => null },
+      config,
+    } as unknown as Dependencies;
+    return createApp(deps);
+  };
+
+  test("an account is told its workspaces and the role it holds in each", async () => {
+    // Without this the console cannot start: an account can belong to several,
+    // and remembering "the current one" anywhere would be a fourth piece of
+    // state free to disagree with the other three.
+    const app = withWorkspaces([{ id: "ws_1", name: "Acme", role: "owner" }]);
+    const body = (await (await app.request("/v1/me", { headers: { cookie: `${SESSION_COOKIE}=x` } })).json()) as {
+      workspaces: { id: string; name: string; role: string }[];
+    };
+    expect(body.workspaces).toEqual([{ id: "ws_1", name: "Acme", role: "owner" }]);
+  });
+
+  test("a credential is told nothing about the tenancy above it", async () => {
+    // An ingest key ships in a browser bundle. Telling its holder the
+    // workspace's name — or that there are others — discloses the customer's
+    // own structure to anybody who views source.
+    const app = withWorkspaces([{ id: "ws_1", name: "Acme", role: "owner" }]);
+    const body = (await (await app.request("/v1/me")).json()) as { workspaces: unknown[] };
+    expect(body.workspaces).toEqual([]);
   });
 });

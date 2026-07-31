@@ -35,5 +35,19 @@ export const PrincipalSchema = z
     /** Where the scopes come from: a credential, a membership, or nowhere. */
     scopeSource: z.enum(["none", "credential", "membership"]),
     scopes: z.array(z.string()),
+    /**
+     * Where this caller may go.
+     *
+     * Empty for anything but a signed-in account: a credential is already
+     * bound to one workspace, and listing it would tell the holder of an
+     * ingest key about the tenancy above it.
+     */
+    workspaces: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        role: z.enum(["owner", "admin", "member"]),
+      }),
+    ),
   })
   .openapi("PrincipalDescription");

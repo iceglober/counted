@@ -1332,13 +1332,41 @@
             "items": {
               "type": "string"
             }
+          },
+          "workspaces": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "owner",
+                    "admin",
+                    "member"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "role"
+              ]
+            }
           }
         },
         "required": [
           "principal",
           "kind",
           "scopeSource",
-          "scopes"
+          "scopes",
+          "workspaces"
         ]
       },
       "Member": {

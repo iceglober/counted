@@ -37,3 +37,20 @@ export const recordingMail = (): Notifier & { readonly sent: { to: string; body:
     },
   };
 };
+
+/**
+ * A unit of work whose repositories are all empty.
+ *
+ * Enough for routes that need the port present without exercising storage —
+ * `/v1/me` reads an account's workspaces, and every route test would otherwise
+ * have to build one.
+ */
+export const emptyUnitOfWork = {
+  transact: async <T,>(work: (repos: Record<string, unknown>) => Promise<T> | T): Promise<T> =>
+    work({
+      workspaces: { find: async () => null, listForAccount: async () => [], save: async () => {} },
+      projects: { find: async () => null, listForWorkspace: async () => [], save: async () => {} },
+      dashboards: { find: async () => null, listForWorkspace: async () => [], save: async () => {} },
+      monitors: { find: async () => null, listForProject: async () => [], listEnabled: async () => [], save: async () => {} },
+    }),
+} as unknown as import("@counted/ports").UnitOfWork;

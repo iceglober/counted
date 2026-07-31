@@ -78,14 +78,30 @@ export const healthRoutes = (deps: Dependencies): readonly RouteDefinition[] => 
     // Public in the sense that anyone may ask; the answer is about the caller
     // and nothing else, and for an anonymous caller it is "you are anonymous".
     security: publicRoute("Describes the caller to itself. Reveals nothing the caller did not present."),
-    handler: (c) => {
+    handler: async (c) => {
       const principal = c.get("principal");
+
+      // Where this caller may go, with the role it holds in each. Reported
+      // here rather than from a separate endpoint because "who am I" and
+      // "where do I belong" are one question for anybody starting a session,
+      // and a console that had to guess would be doing something no
+      // integrator could.
+      //
+      // Only for an account: a credential is bound to one workspace already,
+      // and listing it would tell the holder of an ingest key about the
+      // tenancy above it.
+      const workspaces =
+        principal.kind === "account"
+          ? await deps.unitOfWork.transact((repos) => repos.workspaces.listForAccount(principal.account))
+          : [];
+
       return c.json({
         principal: Principal.describe(principal),
         kind: principal.kind,
         // What this caller may do, so an integrator can debug a 403 without
         // guessing. v1 had no way to ask this at all.
         ...effectiveScopes(principal),
+        workspaces: workspaces.map((w) => ({ id: w.id, name: w.name, role: w.role })),
       });
     },
   },

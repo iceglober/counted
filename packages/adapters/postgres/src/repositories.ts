@@ -76,6 +76,27 @@ export const workspaceRepo = {
     });
   },
 
+  async listForAccount(client: PoolClient, account: AccountId) {
+    // A join rather than two queries: the membership row is what makes the
+    // workspace visible at all, so fetching workspaces and then filtering
+    // would read rows this account may not see.
+    const rows = (
+      await client.query(
+        `SELECT w.id, w.name, m.role
+           FROM workspace_members m
+           JOIN workspaces w ON w.id = m.workspace_id
+          WHERE m.account_id = $1
+          ORDER BY w.name, w.id`,
+        [account],
+      )
+    ).rows;
+    return rows.map((row) => ({
+      id: WorkspaceId(String(row.id)),
+      name: String(row.name),
+      role: String(row.role) as Role,
+    }));
+  },
+
   async save(client: PoolClient, workspace: Workspace, events: readonly WorkspaceEvent[]): Promise<void> {
     const s = workspace.snapshot();
     await client.query(

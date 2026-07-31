@@ -25,12 +25,34 @@ import type {
   WorkspaceEvent,
   WorkspaceId,
   CredentialDigest,
+  Role,
+  AccountId,
 } from "@counted/domain";
 
 export interface WorkspaceRepository {
   find(id: WorkspaceId): Promise<Workspace | null>;
+  /**
+   * Every workspace an account belongs to, with the role it holds there.
+   *
+   * The console needs this to know where to start: an account can belong to
+   * several, and remembering "the current one" anywhere would be a fourth
+   * piece of state free to disagree with the other three. Returning the role
+   * too means one round trip answers both "where may I go" and "what may I do
+   * when I get there".
+   *
+   * Not a full `Workspace` — hydrating each would load every member and every
+   * project to render a list of names.
+   */
+  listForAccount(account: AccountId): Promise<readonly WorkspaceMembership[]>;
   save(workspace: Workspace, events: readonly WorkspaceEvent[]): Promise<void>;
 }
+
+/** One line of "where do I belong". */
+export type WorkspaceMembership = {
+  readonly id: WorkspaceId;
+  readonly name: string;
+  readonly role: Role;
+};
 
 export interface ProjectRepository {
   find(id: ProjectId): Promise<Project | null>;
