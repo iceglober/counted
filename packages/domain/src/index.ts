@@ -15,3 +15,4 @@ export * from "./project";
 export * from "./identity";
 export * from "./analytics";
 export * from "./dashboard";
+export * from "./monitor";
