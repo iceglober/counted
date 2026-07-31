@@ -23,3 +23,4 @@ export * from "./analytical-store";
 export * from "./sql/control-plane";
 export * from "./repositories";
 export * from "./unit-of-work";
+export * from "./capabilities";
