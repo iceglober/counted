@@ -13,6 +13,7 @@ import type { WorkspaceLimits } from "./workspace";
 
 export type WorkspaceEvent =
   | { kind: "WorkspaceOpened"; workspace: WorkspaceId; founder: AccountId; at: Instant }
+  | { kind: "WorkspaceRenamed"; workspace: WorkspaceId; name: string; at: Instant }
   | { kind: "MemberAdmitted"; workspace: WorkspaceId; account: AccountId; role: Role; at: Instant }
   | { kind: "RoleChanged"; workspace: WorkspaceId; account: AccountId; from: Role; to: Role; at: Instant }
   | { kind: "MemberRemoved"; workspace: WorkspaceId; account: AccountId; at: Instant }

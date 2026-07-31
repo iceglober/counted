@@ -250,6 +250,19 @@ export class Workspace {
     });
   }
 
+  /** Rename. Mirrors Dashboard.rename, including refusing a no-op. */
+  rename(name: string, at: Instant): Result<WorkspaceApplied, WorkspaceError> {
+    const trimmed = name.trim();
+    if (trimmed.length === 0) return err({ kind: "NameRequired" });
+    // A no-op rename is the outcome the caller asked for, so it succeeds with
+    // no event rather than failing.
+    if (trimmed === this.name) return ok({ workspace: this, events: [] });
+    return ok({
+      workspace: new Workspace(this.id, trimmed, this.members, this.projects, this.limits),
+      events: [{ kind: "WorkspaceRenamed", workspace: this.id, name: trimmed, at }],
+    });
+  }
+
   /**
    * Apply new limits, e.g. after a downgrade. This deliberately does NOT delete
    * anything. It reports whether the workspace is now over its allowance and

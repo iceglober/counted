@@ -30,6 +30,7 @@ const writer: EventWriter = {
 const deps: Dependencies = {
   access: stubAccess(),
   log: silentLogger(),
+  ids: { next: () => "00000000-0000-7000-8000-000000000000" },
   quota: { decide: async () => Quota.decide(Entitlement.none(), { used: 0 }) },
   ingest: new Coalescer(writer, { windowMs: 0 }),
   secrets: { issue: () => ({ secret: "", digest: "" as never, prefix: "" as never }), digest: (s) => s as never },

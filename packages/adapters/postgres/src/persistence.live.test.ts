@@ -264,3 +264,66 @@ describe("one default dashboard per workspace", () => {
     await expect(uow!.transact(async (r) => r.dashboards.save(second.dashboard, second.events))).rejects.toThrow();
   });
 });
+
+describe("the list and delete methods the ports declared", () => {
+  /**
+   * These were declared in `packages/ports` and never implemented, and nothing
+   * noticed because nothing called them until the management endpoints did.
+   * Same shape of gap as a `SecretGenerator` whose adapter was never typed
+   * against its port: a promise in an interface with no implementation behind
+   * it.
+   */
+  dbTest("projects list for their workspace, with their credentials", async () => {
+    await clean();
+    const opened = must(Workspace.open(WS, "Acme", alice, WorkspaceLimits.UNLIMITED, t0));
+    await uow!.transact(async (r) => r.workspaces.save(opened.workspace, opened.events));
+
+    const first = must(Project.create(PRJ, "Web", WS, ingestCredential("1"), t0));
+    const second = must(
+      Project.create(ProjectId("33333333-3333-3333-3333-333333333334"), "Docs", WS, ingestCredential("2"), t0),
+    );
+    await uow!.transact(async (r) => {
+      await r.projects.save(first.project, first.events);
+      await r.projects.save(second.project, second.events);
+    });
+
+    const listed = await uow!.transact(async (r) => r.projects.listForWorkspace(WS));
+    expect(listed).toHaveLength(2);
+    // Credentials come with them, or the management list would show none.
+    expect(listed.every((p) => p.snapshot().credentials.length === 1)).toBe(true);
+  });
+
+  dbTest("a project in another workspace is not listed", async () => {
+    await clean();
+    const opened = must(Workspace.open(WS, "Acme", alice, WorkspaceLimits.UNLIMITED, t0));
+    await uow!.transact(async (r) => r.workspaces.save(opened.workspace, opened.events));
+    const listed = await uow!.transact(async (r) =>
+      r.projects.listForWorkspace(WorkspaceId("22222222-2222-2222-2222-222222222299")),
+    );
+    expect(listed).toHaveLength(0);
+  });
+
+  dbTest("dashboards list default-first, and delete removes them", async () => {
+    await clean();
+    const opened = must(Workspace.open(WS, "Acme", alice, WorkspaceLimits.UNLIMITED, t0));
+    await uow!.transact(async (r) => r.workspaces.save(opened.workspace, opened.events));
+
+    const plain = must(Dashboard.create(DashboardId("55555555-5555-5555-5555-555555555551"), WS, "Zebra", t0));
+    const preferred = must(
+      Dashboard.create(DashboardId("55555555-5555-5555-5555-555555555552"), WS, "Aardvark", t0, true),
+    );
+    await uow!.transact(async (r) => {
+      await r.dashboards.save(plain.dashboard, plain.events);
+      await r.dashboards.save(preferred.dashboard, preferred.events);
+    });
+
+    const listed = await uow!.transact(async (r) => r.dashboards.listForWorkspace(WS));
+    // Default first even though its name sorts later: a list a human reads
+    // should open on the one they meant.
+    expect(listed.map((d) => d.snapshot().name)).toEqual(["Aardvark", "Zebra"]);
+
+    await uow!.transact(async (r) => r.dashboards.delete(DashboardId("55555555-5555-5555-5555-555555555551")));
+    const after = await uow!.transact(async (r) => r.dashboards.listForWorkspace(WS));
+    expect(after).toHaveLength(1);
+  });
+});

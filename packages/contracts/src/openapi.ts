@@ -16,10 +16,32 @@ import { IngestReceiptSchema, IngestRequestSchema } from "./schemas/ingest";
 import { QueryRequestSchema, QueryResponseSchema } from "./schemas/query";
 import { LivenessSchema, PrincipalSchema, ReadinessSchema } from "./schemas/health";
 import { DashboardDataResponseSchema } from "./schemas/query";
+import {
+  CreateDashboardRequestSchema,
+  CreateProjectRequestSchema,
+  CredentialListSchema,
+  DashboardListSchema,
+  DashboardViewSchema,
+  IssueCredentialRequestSchema,
+  IssuedCredentialSchema,
+  MonitorListSchema,
+  MonitorViewSchema,
+  ProjectListSchema,
+  ProjectViewSchema,
+  RotateCredentialRequestSchema,
+  UpdateDashboardRequestSchema,
+  UpdateMonitorRequestSchema,
+  UpdateProjectRequestSchema,
+  UpdateWorkspaceRequestSchema,
+  WorkspaceViewSchema,
+} from "./schemas/management";
 import { z } from "./schemas/common";
 
 const ProjectPathSchema = z.object({ projectId: z.string().uuid() });
 const DashboardPathSchema = z.object({ dashboardId: z.string().uuid() });
+const WorkspacePathSchema = z.object({ workspaceId: z.string().uuid() });
+const MonitorPathSchema = z.object({ monitorId: z.string().uuid() });
+const CredentialPathSchema = z.object({ projectId: z.string().uuid(), credentialId: z.string().uuid() });
 
 export const OPENAPI_VERSION = "3.1.0";
 export const API_VERSION = "0.1.0";
@@ -137,6 +159,139 @@ export const buildRegistry = (): OpenAPIRegistry => {
     responses: {
       200: { description: "The caller", ...json(PrincipalSchema) },
     },
+  });
+
+  // ── Management ─────────────────────────────────────────────────────────
+  //
+  // Every representation here comes from `schemas/management.ts`, whose types
+  // have no field a secret could occupy. The two endpoints that can disclose a
+  // secret both return `IssuedCredential`, and both say so in their summary.
+
+  const managed = (
+    method: "get" | "post" | "patch" | "delete",
+    path: string,
+    summary: string,
+    options: {
+      params?: z.AnyZodObject;
+      body?: z.ZodTypeAny;
+      ok?: { status: number; description: string; schema?: z.ZodTypeAny };
+      description?: string;
+    },
+  ) =>
+    registry.registerPath({
+      method,
+      path,
+      summary,
+      ...(options.description === undefined ? {} : { description: options.description }),
+      tags: ["manage"],
+      security: [{ [serviceKey.name]: [] }],
+      request: {
+        ...(options.params === undefined ? {} : { params: options.params }),
+        ...(options.body === undefined ? {} : { body: json(options.body) }),
+      },
+      responses: {
+        [options.ok?.status ?? 200]:
+          options.ok?.schema === undefined
+            ? { description: options.ok?.description ?? "Done" }
+            : { description: options.ok.description, ...json(options.ok.schema) },
+        401: problem("Missing or unknown credential"),
+        403: problem("The credential lacks the required scope"),
+        404: problem("No such resource, or it is not yours"),
+      },
+    });
+
+  managed("get", "/v1/workspaces/{workspaceId}", "Read a workspace", {
+    params: WorkspacePathSchema,
+    ok: { status: 200, description: "The workspace", schema: WorkspaceViewSchema },
+  });
+  managed("patch", "/v1/workspaces/{workspaceId}", "Rename a workspace", {
+    params: WorkspacePathSchema,
+    body: UpdateWorkspaceRequestSchema,
+    ok: { status: 200, description: "The workspace", schema: WorkspaceViewSchema },
+  });
+
+  managed("get", "/v1/workspaces/{workspaceId}/projects", "List projects", {
+    params: WorkspacePathSchema,
+    description:
+      "Metadata only. Credentials appear as prefixes and scopes; no secret, digest or claim token is ever included.",
+    ok: { status: 200, description: "The workspace's projects", schema: ProjectListSchema },
+  });
+  managed("post", "/v1/workspaces/{workspaceId}/projects", "Create a project", {
+    params: WorkspacePathSchema,
+    body: CreateProjectRequestSchema,
+    description: "Returns the project and its first ingest credential. The secret is shown exactly once.",
+    ok: { status: 201, description: "The project and its first credential", schema: IssuedCredentialSchema },
+  });
+  managed("get", "/v1/projects/{projectId}", "Read a project", {
+    params: ProjectPathSchema,
+    ok: { status: 200, description: "The project", schema: ProjectViewSchema },
+  });
+  managed("patch", "/v1/projects/{projectId}", "Rename a project", {
+    params: ProjectPathSchema,
+    body: UpdateProjectRequestSchema,
+    ok: { status: 200, description: "The project", schema: ProjectViewSchema },
+  });
+
+  managed("get", "/v1/projects/{projectId}/credentials", "List credentials", {
+    params: ProjectPathSchema,
+    description: "Metadata only — prefix, scopes and status. A secret is never retrievable after it is issued.",
+    ok: { status: 200, description: "The project's credentials", schema: CredentialListSchema },
+  });
+  managed("post", "/v1/projects/{projectId}/credentials", "Issue a credential", {
+    params: ProjectPathSchema,
+    body: IssueCredentialRequestSchema,
+    description: "The secret is returned once, here, and never again.",
+    ok: { status: 201, description: "The credential and its secret", schema: IssuedCredentialSchema },
+  });
+  managed("post", "/v1/projects/{projectId}/credentials/{credentialId}/rotate", "Rotate a credential", {
+    params: CredentialPathSchema,
+    body: RotateCredentialRequestSchema,
+    description:
+      "Issues a replacement while the old secret keeps working for the overlap window, so deployed clients are not broken at the instant of the click.",
+    ok: { status: 201, description: "The new credential and its secret", schema: IssuedCredentialSchema },
+  });
+  managed("delete", "/v1/projects/{projectId}/credentials/{credentialId}", "Revoke a credential", {
+    params: CredentialPathSchema,
+    ok: { status: 204, description: "Revoked" },
+  });
+
+  managed("get", "/v1/workspaces/{workspaceId}/dashboards", "List dashboards", {
+    params: WorkspacePathSchema,
+    ok: { status: 200, description: "The workspace's dashboards", schema: DashboardListSchema },
+  });
+  managed("post", "/v1/workspaces/{workspaceId}/dashboards", "Create a dashboard", {
+    params: WorkspacePathSchema,
+    body: CreateDashboardRequestSchema,
+    description: "Created empty. Tiles are added deliberately rather than guessed at.",
+    ok: { status: 201, description: "The dashboard", schema: DashboardViewSchema },
+  });
+  managed("get", "/v1/dashboards/{dashboardId}", "Read a dashboard", {
+    params: DashboardPathSchema,
+    ok: { status: 200, description: "The dashboard", schema: DashboardViewSchema },
+  });
+  managed("patch", "/v1/dashboards/{dashboardId}", "Rename a dashboard", {
+    params: DashboardPathSchema,
+    body: UpdateDashboardRequestSchema,
+    ok: { status: 200, description: "The dashboard", schema: DashboardViewSchema },
+  });
+  managed("delete", "/v1/dashboards/{dashboardId}", "Delete a dashboard", {
+    params: DashboardPathSchema,
+    ok: { status: 204, description: "Deleted" },
+  });
+
+  managed("get", "/v1/projects/{projectId}/monitors", "List monitors", {
+    params: ProjectPathSchema,
+    description: "Delivery targets are reduced to a host or a masked address; a webhook URL can carry a token.",
+    ok: { status: 200, description: "The project's monitors", schema: MonitorListSchema },
+  });
+  managed("get", "/v1/monitors/{monitorId}", "Read a monitor", {
+    params: MonitorPathSchema,
+    ok: { status: 200, description: "The monitor", schema: MonitorViewSchema },
+  });
+  managed("patch", "/v1/monitors/{monitorId}", "Enable or disable a monitor", {
+    params: MonitorPathSchema,
+    body: UpdateMonitorRequestSchema,
+    ok: { status: 200, description: "The monitor", schema: MonitorViewSchema },
   });
 
   return registry;

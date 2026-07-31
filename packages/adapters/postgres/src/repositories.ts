@@ -164,6 +164,16 @@ export const projectRepo = {
     return toProject(row, await loadCredentials(client, ProjectId(String(row.id))));
   },
 
+  async listForWorkspace(client: PoolClient, workspace: WorkspaceId): Promise<readonly Project[]> {
+    const rows = (
+      await client.query(`SELECT * FROM projects WHERE workspace_id = $1 ORDER BY created_at, id`, [workspace])
+    ).rows;
+    // Credentials are loaded per project rather than in one join: a project
+    // holds few of them, and a join would make every row of the list carry a
+    // copy of the project.
+    return Promise.all(rows.map(async (row) => toProject(row, await loadCredentials(client, ProjectId(String(row.id))))));
+  },
+
   async save(client: PoolClient, project: Project, events: readonly ProjectEvent[]): Promise<void> {
     const s = project.snapshot();
     const unclaimed = s.ownership.state === "unclaimed" ? s.ownership.grant : null;
@@ -224,6 +234,22 @@ export const dashboardRepo = {
     return row === undefined ? null : hydrateDashboard(row);
   },
 
+  async listForWorkspace(client: PoolClient, workspace: WorkspaceId): Promise<readonly Dashboard[]> {
+    const rows = (
+      await client.query(
+        // Default first, then by name: a list a human reads should open on the
+        // one they meant.
+        `SELECT * FROM dashboards WHERE workspace_id = $1 ORDER BY is_default DESC, name, id`,
+        [workspace],
+      )
+    ).rows;
+    return rows.map(hydrateDashboard);
+  },
+
+  async delete(client: PoolClient, id: DashboardId): Promise<void> {
+    await client.query(`DELETE FROM dashboards WHERE id = $1`, [id]);
+  },
+
   async save(client: PoolClient, dashboard: Dashboard, events: readonly DashboardEvent[]): Promise<void> {
     const s = dashboard.snapshot();
     await client.query(
@@ -268,6 +294,11 @@ export const monitorRepo = {
   async find(client: PoolClient, id: MonitorId): Promise<Monitor | null> {
     const row = (await client.query(`SELECT * FROM monitors WHERE id = $1`, [id])).rows[0];
     return row === undefined ? null : hydrateMonitor(row);
+  },
+
+  async listForProject(client: PoolClient, project: ProjectId): Promise<readonly Monitor[]> {
+    const rows = (await client.query(`SELECT * FROM monitors WHERE project_id = $1 ORDER BY name, id`, [project])).rows;
+    return rows.map(hydrateMonitor);
   },
 
   async listEnabled(client: PoolClient, limit: number): Promise<readonly Monitor[]> {

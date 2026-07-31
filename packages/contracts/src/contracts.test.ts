@@ -243,14 +243,18 @@ describe("the generated document", () => {
 
   test("it describes every endpoint the code implements", () => {
     expect(doc.openapi).toBe("3.1.0");
-    expect(Object.keys(doc.paths).sort()).toEqual([
-      "/health",
-      "/health/ready",
-      "/v1/dashboards/{dashboardId}/data",
-      "/v1/events",
-      "/v1/me",
-      "/v1/projects/{projectId}/query",
-    ]);
+    // Deliberately not an exact list. Keeping one here in step with the routes
+    // means maintaining the same set in two places, and it went stale twice
+    // before this comment was written. The real gate is in the API package,
+    // where the routes the app actually serves are compared with the paths
+    // this document describes, in both directions — a check this file cannot
+    // make, because `contracts` is an inner layer and cannot import the route
+    // table.
+    const paths = Object.keys(doc.paths);
+    expect(paths.length).toBeGreaterThan(5);
+    for (const expected of ["/health", "/v1/events", "/v1/projects/{projectId}/query"]) {
+      expect(paths).toContain(expected);
+    }
   });
 
   test("schemas come from the same definitions the server validates with", () => {

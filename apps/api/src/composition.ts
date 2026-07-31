@@ -26,9 +26,9 @@ import {
   poolConfig,
   type BootReport,
 } from "@counted/adapter-postgres";
-import { secretGenerator } from "@counted/adapter-crypto";
+import { idGenerator, secretGenerator } from "@counted/adapter-crypto";
 import { createLogger, type Logger } from "./http/log";
-import type { AccessResolver, AnalyticalStore, EventWriter, QuotaService, SecretGenerator } from "@counted/ports";
+import type { AccessResolver, AnalyticalStore, EventWriter, IdGenerator, QuotaService, SecretGenerator } from "@counted/ports";
 import { Coalescer } from "./ingest/coalescer";
 import { Instant, type Clock } from "@counted/domain";
 
@@ -69,6 +69,7 @@ export type Dependencies = {
   /** Group commit. Every caller awaits its own batch. */
   readonly ingest: Coalescer;
   readonly secrets: SecretGenerator;
+  readonly ids: IdGenerator;
   readonly boot: BootReport;
   readonly config: Config;
   shutdown(): Promise<void>;
@@ -112,6 +113,7 @@ export const compose = async (config: Config): Promise<Dependencies> => {
     access: createAccessResolver(analytics),
     log: createLogger({ service: "api", release: config.release }),
     secrets: secretGenerator,
+    ids: idGenerator,
     boot,
     config,
     shutdown: async () => {

@@ -30,6 +30,9 @@ export type BoundRepositories = {
     findByCredentialDigest: (
       d: Parameters<typeof projectRepo.findByCredentialDigest>[1],
     ) => ReturnType<typeof projectRepo.findByCredentialDigest>;
+    listForWorkspace: (
+      w: Parameters<typeof projectRepo.listForWorkspace>[1],
+    ) => ReturnType<typeof projectRepo.listForWorkspace>;
     findByClaimDigest: (
       d: Parameters<typeof projectRepo.findByClaimDigest>[1],
     ) => ReturnType<typeof projectRepo.findByClaimDigest>;
@@ -38,10 +41,17 @@ export type BoundRepositories = {
   readonly dashboards: {
     find: (id: Parameters<typeof dashboardRepo.find>[1]) => ReturnType<typeof dashboardRepo.find>;
     findByShareDigest: (d: string) => ReturnType<typeof dashboardRepo.findByShareDigest>;
+    listForWorkspace: (
+      w: Parameters<typeof dashboardRepo.listForWorkspace>[1],
+    ) => ReturnType<typeof dashboardRepo.listForWorkspace>;
+    delete: (id: Parameters<typeof dashboardRepo.delete>[1]) => Promise<void>;
     save: (d: Parameters<typeof dashboardRepo.save>[1], e: Parameters<typeof dashboardRepo.save>[2]) => Promise<void>;
   };
   readonly monitors: {
     find: (id: Parameters<typeof monitorRepo.find>[1]) => ReturnType<typeof monitorRepo.find>;
+    listForProject: (
+      p: Parameters<typeof monitorRepo.listForProject>[1],
+    ) => ReturnType<typeof monitorRepo.listForProject>;
     listEnabled: (limit: number) => ReturnType<typeof monitorRepo.listEnabled>;
     save: (m: Parameters<typeof monitorRepo.save>[1], e: Parameters<typeof monitorRepo.save>[2]) => Promise<void>;
   };
@@ -61,15 +71,19 @@ const bind = (client: PoolClient): BoundRepositories => ({
     find: (id) => projectRepo.find(client, id),
     findByCredentialDigest: (d) => projectRepo.findByCredentialDigest(client, d),
     findByClaimDigest: (d) => projectRepo.findByClaimDigest(client, d),
+    listForWorkspace: (w) => projectRepo.listForWorkspace(client, w),
     save: (p, e) => projectRepo.save(client, p, e),
   },
   dashboards: {
     find: (id) => dashboardRepo.find(client, id),
     findByShareDigest: (d) => dashboardRepo.findByShareDigest(client, d),
+    listForWorkspace: (w) => dashboardRepo.listForWorkspace(client, w),
+    delete: (id) => dashboardRepo.delete(client, id),
     save: (d, e) => dashboardRepo.save(client, d, e),
   },
   monitors: {
     find: (id) => monitorRepo.find(client, id),
+    listForProject: (p) => monitorRepo.listForProject(client, p),
     listEnabled: (limit) => monitorRepo.listEnabled(client, limit),
     save: (m, e) => monitorRepo.save(client, m, e),
   },
