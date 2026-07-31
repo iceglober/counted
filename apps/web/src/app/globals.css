@@ -1,0 +1,134 @@
+/**
+ * The plain house style.
+ *
+ * Verdana, square corners, no shadows, no animation. ARCHITECTURE.md lists
+ * animation, decorative gradients and flash under "Not doing", and this is
+ * where that is enforced rather than remembered: there are no tokens for them,
+ * so reaching for one is a missing variable rather than a judgement call.
+ *
+ * The one gradient in the product is the area fill under a chart line. That is
+ * a data-encoding device, not decoration — it says "this magnitude, fading to
+ * the baseline" — and it is declared inside the chart's own SVG.
+ */
+
+:root {
+  --font-sans: Verdana, Geneva, Tahoma, sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
+
+  --surface-0: #ffffff;
+  --surface-1: #f5f5f5;
+  --surface-2: #e8e8e8;
+
+  --border: #999999;
+  --border-strong: #555555;
+
+  --text-primary: #000000;
+  --text-secondary: #333333;
+  --text-tertiary: #666666;
+
+  --accent: #0000cc;
+  --accent-hover: #3333cc;
+  --success: #007700;
+  --error: #cc0000;
+  --warning: #996600;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1.5rem;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--surface-0);
+}
+
+a {
+  color: var(--accent);
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0 0 0.75rem;
+}
+h2 {
+  font-size: 15px;
+  margin: 0 0 0.5rem;
+}
+
+/* Tiles sit on a twelfth-based grid, which is what `Tile.width` counts in. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+
+.tile {
+  border: 1px solid var(--border);
+  background: var(--surface-0);
+  padding: 0.75rem;
+  min-height: 8rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.tile-title {
+  font-size: 12px;
+  font-weight: bold;
+  margin: 0 0 0.5rem;
+}
+
+.tile-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* A failure is not a quiet state. It is bordered, coloured, and named. */
+.tile-error {
+  border-left: 3px solid var(--error);
+  padding-left: 0.5rem;
+  color: var(--error);
+}
+
+.tile-error-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* Deliberately different from an error: grey, unbordered, and explanatory. */
+.tile-empty {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.scalar {
+  font-size: 28px;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.2rem 0.4rem;
+  border-bottom: 1px solid var(--surface-2);
+}
+td.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
