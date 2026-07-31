@@ -21,5 +21,8 @@
     "@counted/adapter-crypto": "workspace:*",
     "@counted/contracts": "workspace:*",
     "@counted/adapter-stripe": "workspace:*"
+  },
+  "devDependencies": {
+    "@counted/sdk-js": "workspace:*"
   }
 }

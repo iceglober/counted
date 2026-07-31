@@ -42,6 +42,29 @@ const references = (): readonly string[] => {
 };
 
 /**
+ * Which directories the typecheck config actually reads.
+ *
+ * A separate list from the build references, and they drifted: the SDK was
+ * built but not typechecked, so its tests were never checked at all and a
+ * null-safety bug in its source survived until `tsc --build` found it. Two
+ * lists describing the same set is the shape that always goes stale, so they
+ * are compared rather than trusted.
+ */
+const typecheckIncludes = (): readonly string[] => {
+  const raw = readFileSync(join(ROOT, "tsconfig.typecheck.json"), "utf8");
+  const config = JSON.parse(raw.replace(/^\s*\/\/.*$/gm, "")) as { include?: string[] };
+  return config.include ?? [];
+};
+
+/** `packages/domain/src/**\/*` and `packages/adapters/*\/src/**\/*` both cover a package. */
+const isCoveredByTypecheck = (pkg: string, includes: readonly string[]): boolean =>
+  includes.some((pattern) => {
+    const prefix = pattern.split("/src/")[0] ?? pattern;
+    const expression = new RegExp(`^${prefix.replace(/\*/g, "[^/]+")}$`);
+    return expression.test(pkg);
+  });
+
+/**
  * Whether a package belongs to the v2 build.
  *
  * Depending on the domain is the test, because that is what "part of the
@@ -66,6 +89,18 @@ describe("the build graph covers the workspace", () => {
       if (!isV2Package(pkg)) continue;
       expect({ package: pkg, referenced: [...referenced] }).toMatchObject({
         referenced: expect.arrayContaining([pkg]),
+      });
+    }
+  });
+
+  test("everything the build compiles is also typechecked", () => {
+    // Including its tests, which `tsc --build` deliberately excludes so they
+    // are not emitted into dist. A package in one list and not the other is
+    // half-checked, and the half that is missing is the half nobody notices.
+    const includes = typecheckIncludes();
+    for (const pkg of references()) {
+      expect({ package: pkg, typechecked: isCoveredByTypecheck(pkg, includes) }).toMatchObject({
+        typechecked: true,
       });
     }
   });

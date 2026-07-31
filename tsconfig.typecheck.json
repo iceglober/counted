@@ -39,6 +39,7 @@
     "packages/ports/src/**/*",
     "packages/application/src/**/*",
     "packages/adapters/*/src/**/*",
+    "packages/sdk-js/src/**/*",
     "apps/*/src/**/*"
   ]
 }

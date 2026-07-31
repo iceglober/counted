@@ -9,6 +9,7 @@
     { "path": "packages/adapters/crypto" },
     { "path": "packages/adapters/stripe" },
     { "path": "packages/adapters/notify" },
+    { "path": "packages/sdk-js" },
     { "path": "apps/api" },
     { "path": "apps/worker" }
   ]

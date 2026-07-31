@@ -61,6 +61,9 @@
         "hono": "^4.6.0",
         "pg": "^8.13.0",
       },
+      "devDependencies": {
+        "@counted/sdk-js": "workspace:*",
+      },
     },
     "apps/worker": {
       "name": "@counted/worker",
@@ -227,6 +230,10 @@
         "typescript": "^5.7.3",
       },
     },
+    "packages/sdk-js": {
+      "name": "@counted/sdk-js",
+      "version": "0.0.0",
+    },
   },
   "overrides": {
     "kysely": "0.28.17",
@@ -359,6 +366,8 @@
     "@counted/react": ["@counted/react@workspace:packages/react"],
 
     "@counted/sdk": ["@counted/sdk@workspace:packages/sdk"],
+
+    "@counted/sdk-js": ["@counted/sdk-js@workspace:packages/sdk-js"],
 
     "@counted/worker": ["@counted/worker@workspace:apps/worker"],
 
