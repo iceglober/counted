@@ -1,81 +1,58 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from "react";
-import { Analytics, type AnalyticsOptions, type EventProperties } from "@counted/sdk";
+/**
+ * The Counted provider.
+ *
+ * A thin context around `useCounted`. Everything about the lifecycle — when a
+ * client is rebuilt, what happens to queued events, what survives a rebuild —
+ * is decided in `use-counted.ts` and shared with the Aptabase shim.
+ */
 
-type AnalyticsContextValue = {
-  track: (eventName: string, props?: EventProperties) => void;
-  register: (props: EventProperties) => void;
-};
+import { createContext, useContext, type ReactNode } from "react";
+import { useCounted, type CountedCallbacks, type CountedConfig, type CountedHandle } from "./use-counted";
 
-const AnalyticsContext = createContext<AnalyticsContextValue | null>(null);
+const AnalyticsContext = createContext<CountedHandle | null>(null);
 
-type QueuedCall =
-  | { type: "track"; eventName: string; props?: EventProperties }
-  | { type: "register"; props: EventProperties };
+export type AnalyticsProviderProps = Omit<CountedConfig, "key"> &
+  CountedCallbacks & {
+    /**
+     * Your public ingest key.
+     *
+     * Named `projectKey` rather than the SDK's `key` because `key` is reserved
+     * by React: `<AnalyticsProvider key="ck_live_…">` would be consumed as a
+     * list key, never reach this component, and construct a client with no
+     * credential at all.
+     */
+     readonly projectKey: string;
+    readonly children: ReactNode;
+  };
 
+/**
+ * ```tsx
+ * <AnalyticsProvider projectKey="ck_live_…">
+ *   <App />
+ * </AnalyticsProvider>
+ * ```
+ *
+ * Changing any option rebuilds the client and flushes whatever the old one
+ * still held. Re-rendering with the same options does not.
+ */
 export function AnalyticsProvider({
   children,
-  ...options
-}: AnalyticsOptions & { children: ReactNode }) {
-  const analyticsRef = useRef<Analytics | null>(null);
-  // Calls made before the instance exists (or during SSR) are queued and
-  // replayed once the effect constructs it.
-  const queueRef = useRef<QueuedCall[]>([]);
-
-  useEffect(() => {
-    // SSR guard: never construct Analytics on the server (no timers/listeners
-    // leaked per request). This also drives the StrictMode-safe lifecycle:
-    // mount → cleanup (destroy + null ref) → mount recreates a live instance.
-    if (typeof window === "undefined") return;
-
-    const instance = new Analytics(options);
-    analyticsRef.current = instance;
-
-    for (const call of queueRef.current) {
-      if (call.type === "track") instance.track(call.eventName, call.props);
-      else instance.register(call.props);
-    }
-    queueRef.current = [];
-
-    return () => {
-      analyticsRef.current = null;
-      void instance.destroy();
-    };
-    // Construct once for the provider's lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const value = useMemo<AnalyticsContextValue>(
-    () => ({
-      track: (eventName, props) => {
-        if (analyticsRef.current) analyticsRef.current.track(eventName, props);
-        else queueRef.current.push({ type: "track", eventName, props });
-      },
-      register: (props) => {
-        if (analyticsRef.current) analyticsRef.current.register(props);
-        else queueRef.current.push({ type: "register", props });
-      },
-    }),
-    [],
-  );
-
-  return (
-    <AnalyticsContext.Provider value={value}>
-      {children}
-    </AnalyticsContext.Provider>
-  );
+  projectKey,
+  fetch,
+  now,
+  random,
+  onDiagnostic,
+  ...rest
+}: AnalyticsProviderProps) {
+  const handle = useCounted({ ...rest, key: projectKey }, { fetch, now, random, onDiagnostic });
+  return <AnalyticsContext.Provider value={handle}>{children}</AnalyticsContext.Provider>;
 }
 
-export function useAnalytics(): AnalyticsContextValue {
-  const ctx = useContext(AnalyticsContext);
-  if (!ctx) {
+/** `{ track, identify, reset, flush }`. Stable across renders. */
+export function useAnalytics(): CountedHandle {
+  const context = useContext(AnalyticsContext);
+  if (context === null) {
     throw new Error("useAnalytics must be used within <AnalyticsProvider>");
   }
-  return ctx;
+  return context;
 }

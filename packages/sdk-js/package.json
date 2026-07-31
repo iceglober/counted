@@ -1,10 +1,16 @@
 {
   "name": "@counted/sdk-js",
-  "version": "0.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "The reference SDK. Every other language is asserted against the traces this one produces.",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "build": "tsc --build", "test": "bun test", "typecheck": "tsc --noEmit" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {}
 }

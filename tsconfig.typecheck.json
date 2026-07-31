@@ -30,8 +30,12 @@
       ],
       "@counted/adapter-crypto": [
         "./packages/adapters/crypto/src/index.ts"
+      ],
+      "@counted/sdk-js": [
+        "./packages/sdk-js/src/index.ts"
       ]
-    }
+    },
+    "jsx": "react-jsx"
   },
   "include": [
     "packages/domain/src/**/*",
@@ -40,6 +44,8 @@
     "packages/application/src/**/*",
     "packages/adapters/*/src/**/*",
     "packages/sdk-js/src/**/*",
-    "apps/*/src/**/*"
+    "apps/*/src/**/*",
+    "packages/react/src/**/*",
+    "packages/react/test/**/*"
   ]
 }
