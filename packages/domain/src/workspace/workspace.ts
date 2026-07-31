@@ -61,7 +61,7 @@ export type WorkspaceSnapshot = {
 };
 
 /** What a command produced: the new state plus the events it emitted. */
-export type Applied = { readonly workspace: Workspace; readonly events: readonly WorkspaceEvent[] };
+export type WorkspaceApplied = { readonly workspace: Workspace; readonly events: readonly WorkspaceEvent[] };
 
 export class Workspace {
   private constructor(
@@ -82,7 +82,7 @@ export class Workspace {
     founder: AccountId,
     limits: WorkspaceLimits,
     at: Instant,
-  ): Result<Applied, WorkspaceError> {
+  ): Result<WorkspaceApplied, WorkspaceError> {
     const trimmed = name.trim();
     if (trimmed.length === 0) return err({ kind: "NameRequired" });
 
@@ -158,7 +158,7 @@ export class Workspace {
    * different call sites — v1 enforced its project cap in exactly one of the
    * three creation paths, so provisioning and claiming both bypassed it.
    */
-  admit(account: AccountId, role: Role, at: Instant): Result<Applied, WorkspaceError> {
+  admit(account: AccountId, role: Role, at: Instant): Result<WorkspaceApplied, WorkspaceError> {
     if (this.members.has(account)) return err({ kind: "AlreadyAMember", account });
 
     const { maxSeats } = this.limits;
@@ -174,7 +174,7 @@ export class Workspace {
     });
   }
 
-  changeRole(account: AccountId, role: Role, at: Instant): Result<Applied, WorkspaceError> {
+  changeRole(account: AccountId, role: Role, at: Instant): Result<WorkspaceApplied, WorkspaceError> {
     const current = this.members.get(account);
     if (current === undefined) return err({ kind: "NotAMember", account });
     if (current.role === role) return err({ kind: "RoleUnchanged", account, role });
@@ -193,7 +193,7 @@ export class Workspace {
     });
   }
 
-  remove(account: AccountId, at: Instant): Result<Applied, WorkspaceError> {
+  remove(account: AccountId, at: Instant): Result<WorkspaceApplied, WorkspaceError> {
     const current = this.members.get(account);
     if (current === undefined) return err({ kind: "NotAMember", account });
 
@@ -219,7 +219,7 @@ export class Workspace {
     id: ProjectId,
     name: string,
     at: Instant,
-  ): Result<Applied, WorkspaceError> {
+  ): Result<WorkspaceApplied, WorkspaceError> {
     const trimmed = name.trim();
     if (trimmed.length === 0) return err({ kind: "NameRequired" });
     if (this.projects.some((p) => p.id === id)) return err({ kind: "ProjectExists", project: id });
@@ -236,7 +236,7 @@ export class Workspace {
     });
   }
 
-  archiveProject(id: ProjectId, at: Instant): Result<Applied, WorkspaceError> {
+  archiveProject(id: ProjectId, at: Instant): Result<WorkspaceApplied, WorkspaceError> {
     const entry = this.projects.find((p) => p.id === id);
     if (entry === undefined) return err({ kind: "NoSuchProject", project: id });
     if (entry.state === "archived") return err({ kind: "ProjectAlreadyArchived", project: id });
@@ -256,7 +256,7 @@ export class Workspace {
    * lets a policy decide what happens — silently destroying a customer's
    * projects because a card expired is not a decision an aggregate should make.
    */
-  applyLimits(limits: WorkspaceLimits, at: Instant): Applied {
+  applyLimits(limits: WorkspaceLimits, at: Instant): WorkspaceApplied {
     const events: WorkspaceEvent[] = [
       { kind: "LimitsChanged", workspace: this.id, limits, at },
     ];
