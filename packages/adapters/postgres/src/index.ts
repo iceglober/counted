@@ -16,3 +16,4 @@ export * from "./compile/column-map";
 export * from "./compile/predicate";
 export * from "./compile/measure";
 export * from "./compile/statements";
+export * from "./compile/sequence";
