@@ -6,6 +6,7 @@
     { "path": "packages/ports" },
     { "path": "packages/application" },
     { "path": "packages/adapters/postgres" },
+    { "path": "packages/adapters/crypto" },
     { "path": "apps/api" }
   ]
 }

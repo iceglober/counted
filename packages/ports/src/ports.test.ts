@@ -11,6 +11,9 @@ import {
 
 const t0 = Instant.fromEpochMillis(1_700_000_000_000);
 const prj = ProjectId("prj_1");
+/** Requests carry resolved bounds; the application resolves relative
+ *  windows once, against the Clock port, never the store. */
+const bounds = { from: Instant.fromEpochMillis(1_699_000_000_000), to: t0 };
 
 /**
  * A stand-in store. That this is possible at all is the point of the port:
@@ -44,8 +47,8 @@ describe("the store answers every request it was given", () => {
     );
 
     const requests: StoreRequest[] = [
-      { id: a, kind: "scalar", project: prj, analysis: Analysis.countOverWindow(Window.lastDays(7)) },
-      { id: b, kind: "scalar", project: prj, analysis: Analysis.countOverWindow(Window.lastDays(30)) },
+      { id: a, kind: "scalar", project: prj, analysis: Analysis.countOverWindow(Window.lastDays(7)), bounds },
+      { id: b, kind: "scalar", project: prj, analysis: Analysis.countOverWindow(Window.lastDays(30)), bounds },
     ];
 
     const outcome = await store.executeBatch(requests, { deadlineMs: 1_000, traceId: "t" });
@@ -63,7 +66,7 @@ describe("the store answers every request it was given", () => {
     );
     const result = (
       await store.executeBatch(
-        [{ id, kind: "scalar", project: prj, analysis: Analysis.countOverWindow(Window.lastDays(1)) }],
+        [{ id, kind: "scalar", project: prj, analysis: Analysis.countOverWindow(Window.lastDays(1)), bounds }],
         { deadlineMs: 100, traceId: "t" },
       )
     ).results.get(id)!;
@@ -117,6 +120,7 @@ describe("the store is handed bucket edges, it does not bucket", () => {
       project: prj,
       analysis: Analysis.timeSeries(Measure.count(), Window.lastDays(3), "day"),
       axis,
+      bounds,
     };
 
     expect(request.kind).toBe("series");

@@ -1,0 +1,10 @@
+{
+  "name": "@counted/adapter-crypto",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Secret minting, hashing and id generation — the non-determinism the domain forbids itself.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "build": "tsc --build", "test": "bun test", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@counted/domain": "workspace:*", "@counted/ports": "workspace:*" }
+}

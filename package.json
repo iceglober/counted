@@ -39,7 +39,8 @@
     "build:v2": "tsc --build tsconfig.build.json",
     "test:v2": "bun test packages/domain packages/contracts packages/ports packages/application packages/adapters apps",
     "openapi:generate": "bun scripts/generate-openapi.ts",
-    "openapi:check": "bun scripts/generate-openapi.ts && git diff --exit-code -- openapi.json"
+    "openapi:check": "bun scripts/generate-openapi.ts && git diff --exit-code -- openapi.json",
+    "typecheck:v2": "tsc -p tsconfig.typecheck.json"
   },
   "dependencies": {
     "@counted/api": "workspace:*",

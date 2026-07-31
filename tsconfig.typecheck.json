@@ -1,0 +1,44 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "types": [
+      "bun"
+    ],
+    "paths": {
+      "@counted/domain": [
+        "./packages/domain/src/index.ts"
+      ],
+      "@counted/contracts": [
+        "./packages/contracts/src/index.ts"
+      ],
+      "@counted/ports": [
+        "./packages/ports/src/index.ts"
+      ],
+      "@counted/ports/contract": [
+        "./packages/ports/src/contract/index.ts"
+      ],
+      "@counted/application": [
+        "./packages/application/src/index.ts"
+      ],
+      "@counted/adapter-postgres": [
+        "./packages/adapters/postgres/src/index.ts"
+      ],
+      "@counted/adapter-crypto": [
+        "./packages/adapters/crypto/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "packages/domain/src/**/*",
+    "packages/contracts/src/**/*",
+    "packages/ports/src/**/*",
+    "packages/application/src/**/*",
+    "packages/adapters/*/src/**/*",
+    "apps/*/src/**/*"
+  ]
+}

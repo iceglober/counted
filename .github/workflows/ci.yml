@@ -75,6 +75,13 @@ jobs:
       - name: Build v2 packages
         run: bun run build:v2
 
+      # Separate from the build because `tsc --build` excludes *.test.ts (they
+      # would otherwise be emitted into dist/ and run twice). That exclusion
+      # left test files untypechecked from #29 to #44 — this step is what
+      # closes it.
+      - name: Typecheck v2 (including tests)
+        run: bun run typecheck:v2
+
       - name: Test v2 packages
         run: bun run test:v2
         env:

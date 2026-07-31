@@ -118,7 +118,7 @@ describe("the bucket contract is verified against the live database", () => {
     expect(Number(row.ix)).not.toBe(TimeAxis.assign(axis, at));
   });
 
-  dbTest("a violation refuses the boot rather than degrading quietly", () => {
+  dbTest("a violation refuses the boot rather than degrading quietly", async () => {
     const error = new BucketContractViolation([
       { grain: "day", instant: "2026-01-03T00:30:00.000Z", domainSays: 2, storeSays: 1 },
     ]);
