@@ -8,3 +8,5 @@
 
 export * from "./sql/schema";
 export * from "./partitions";
+export * from "./sql/indexes";
+export * from "./pool";
