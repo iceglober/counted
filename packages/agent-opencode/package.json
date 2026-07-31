@@ -1,0 +1,40 @@
+{
+  "name": "@counted/opencode",
+  "version": "2.0.0",
+  "description": "Counted analytics plugin for OpenCode \u2014 track AI agent actions privately",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "bun run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iceglober/counted.git",
+    "directory": "packages/agent-opencode"
+  },
+  "devDependencies": {
+    "@counted/sdk": "workspace:*",
+    "tsup": "^8.0.0"
+  },
+  "dependencies": {
+    "@counted/agent": "workspace:*",
+    "@counted/agent-core": "workspace:*"
+  }
+}

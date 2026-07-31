@@ -30,6 +30,7 @@ import type { Instant } from "../shared/instant";
 import type { ProjectId } from "../shared/ids";
 import { Quota, type QuotaDecision } from "../billing/quota";
 import { readPlatform, type Platform } from "./platform";
+import { validateAgentEvent } from "./gen/vocabulary";
 
 /** Limits the domain owns. The wire schema enforces its own; these are truth. */
 export const MAX_EVENTS_PER_BATCH = 250;
@@ -61,7 +62,8 @@ export type RefusalReason =
   | { readonly code: "too_many_properties"; readonly count: number; readonly max: number }
   | { readonly code: "person_id_invalid"; readonly detail: string }
   | { readonly code: "occurred_at_in_future"; readonly skewMs: number }
-  | { readonly code: "occurred_at_too_old"; readonly ageMs: number };
+  | { readonly code: "occurred_at_too_old"; readonly ageMs: number }
+  | { readonly code: "agent_vocabulary"; readonly detail: string };
 
 export type Warning =
   | { readonly index: number; readonly code: "platform_unrecognised"; readonly detail: string }
@@ -141,6 +143,17 @@ const validate = (
   }
 
   if (trimmed(event.visitId).length === 0) return { ok: false, reason: { code: "visit_missing" } };
+
+  // Anything claiming the `agent_` prefix is held to the agent vocabulary,
+  // whatever sent it. The SDK checks this too, on the developer's machine,
+  // where a wrong event fails next to the line that wrote it — but a check
+  // that only the SDK performs is a check an old client, a curl, or somebody's
+  // own script skips, and the agent dashboards are built on these names
+  // meaning one thing. Both sides read the same generated module.
+  const vocabulary = validateAgentEvent(name, event.properties ?? {});
+  if (vocabulary !== null) {
+    return { ok: false, reason: { code: "agent_vocabulary", detail: vocabulary.problems.join("; ") } };
+  }
 
   const propertyCount = Object.keys(event.properties ?? {}).length;
   if (propertyCount > MAX_PROPERTIES) {
@@ -263,5 +276,7 @@ export const explainRefusal = (reason: RefusalReason): string => {
       return `occurredAt is ${Math.round(reason.skewMs / 1000)}s in the future; check the device clock.`;
     case "occurred_at_too_old":
       return `occurredAt is ${Math.round(reason.ageMs / 86_400_000)} days old, beyond the ingestion window.`;
+    case "agent_vocabulary":
+      return `The event uses the reserved \`agent_\` prefix but does not match the agent vocabulary: ${reason.detail}`;
   }
 };

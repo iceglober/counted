@@ -1,0 +1,23 @@
+{
+  "name": "@counted/agent",
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Counted's agent telemetry hook: one binary for every host that speaks stdin.",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": { "counted-agent": "bin/counted-agent.mjs" },
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "require": "./dist/index.cjs" }
+  },
+  "files": ["dist", "bin", "README.md"],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "bun run build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/iceglober/counted.git", "directory": "packages/agent-cli" },
+  "dependencies": { "@counted/agent-core": "workspace:*" }
+}

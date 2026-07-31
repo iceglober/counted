@@ -1,0 +1,47 @@
+{
+  "name": "@counted/claude-code",
+  "version": "2.0.0",
+  "description": "Counted analytics for Claude Code \u2014 privacy-safe agent session telemetry.",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./hooks.json": "./hooks/hooks.json",
+    "./plugin": "./.claude-plugin/plugin.json"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "hooks",
+    ".claude-plugin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "bun run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iceglober/counted.git",
+    "directory": "packages/agent-claude-code"
+  },
+  "devDependencies": {
+    "@counted/sdk": "workspace:*",
+    "tsup": "^8.0.0"
+  },
+  "bin": {
+    "counted-claude-code-hook": "bin/counted-hook.mjs"
+  },
+  "dependencies": {
+    "@counted/agent": "workspace:*"
+  }
+}

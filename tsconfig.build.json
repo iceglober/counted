@@ -1,16 +1,41 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/domain" },
-    { "path": "packages/contracts" },
-    { "path": "packages/ports" },
-    { "path": "packages/application" },
-    { "path": "packages/adapters/postgres" },
-    { "path": "packages/adapters/crypto" },
-    { "path": "packages/adapters/stripe" },
-    { "path": "packages/adapters/notify" },
-    { "path": "packages/sdk-js" },
-    { "path": "apps/api" },
-    { "path": "apps/worker" }
+    {
+      "path": "packages/domain"
+    },
+    {
+      "path": "packages/contracts"
+    },
+    {
+      "path": "packages/ports"
+    },
+    {
+      "path": "packages/application"
+    },
+    {
+      "path": "packages/adapters/postgres"
+    },
+    {
+      "path": "packages/adapters/crypto"
+    },
+    {
+      "path": "packages/adapters/stripe"
+    },
+    {
+      "path": "packages/adapters/notify"
+    },
+    {
+      "path": "packages/sdk-js"
+    },
+    {
+      "path": "apps/api"
+    },
+    {
+      "path": "apps/worker"
+    },
+    {
+      "path": "packages/agent-core"
+    }
   ]
 }

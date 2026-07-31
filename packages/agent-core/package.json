@@ -1,0 +1,10 @@
+{
+  "name": "@counted/agent-core",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The shared port behind Counted's agent integrations: vocabulary, redaction, setup fingerprint.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "test": "bun test", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@counted/sdk-js": "workspace:*" }
+}

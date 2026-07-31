@@ -33,6 +33,12 @@
       ],
       "@counted/sdk-js": [
         "./packages/sdk-js/src/index.ts"
+      ],
+      "@counted/agent-core": [
+        "./packages/agent-core/src/index.ts"
+      ],
+      "@counted/agent": [
+        "./packages/agent-cli/src/index.ts"
       ]
     },
     "jsx": "react-jsx"
@@ -46,6 +52,8 @@
     "packages/sdk-js/src/**/*",
     "apps/*/src/**/*",
     "packages/react/src/**/*",
-    "packages/react/test/**/*"
+    "packages/react/test/**/*",
+    "packages/agent-core/src/**/*",
+    "packages/agent-cli/src/**/*"
   ]
 }

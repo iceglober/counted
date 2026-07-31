@@ -1,7 +1,7 @@
 {
   "name": "@counted/sdk",
   "version": "0.1.2",
-  "description": "Privacy-focused analytics SDK — lightweight event tracking with no cookies",
+  "description": "Privacy-focused analytics SDK \u2014 lightweight event tracking with no cookies",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -39,7 +39,6 @@
     "directory": "packages/sdk"
   },
   "devDependencies": {
-    "tsup": "^8.0.0",
-    "typescript": "^5.7.3"
+    "tsup": "^8.0.0"
   }
 }

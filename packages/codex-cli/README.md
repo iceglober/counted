@@ -1,43 +1,16 @@
-# @counted/codex-cli
+# @counted/codex-cli — deprecated
 
-Privacy-first analytics helpers for [Counted](https://counted.dev), sized for
-Codex CLI agent sessions. Track what an agent does — tool use, file edits,
-commands, session boundaries — without ever sending code, content, or PII.
+This package never functioned as an integration. It contained a copy of the SDK
+wrapper and no hook, so installing it registered nothing with codex and
+produced no events. It was byte-identical to its sibling package, which is the
+clearest evidence that neither held anything host-specific.
 
-> **Status: thin wrapper, not a native plugin yet.** This package is a small
-> typed helper API over [`@counted/sdk`](https://www.npmjs.com/package/@counted/sdk)
-> (explicit session ids, `sessionTimeout: 0`, flush-on-exit). A **native Codex
-> CLI integration is coming**; until then you wire the calls into your own
-> harness. If you want a drop-in plugin today, use
-> [`@counted/claude-code`](https://www.npmjs.com/package/@counted/claude-code)
-> or [`@counted/opencode`](https://www.npmjs.com/package/@counted/opencode).
+Use [`@counted/agent`](../agent-cli) instead:
 
-## Install
-
-```bash
-npm install @counted/codex-cli @counted/sdk
+```sh
+npm i -g @counted/agent
+export COUNTED_AGENT_KEY=ck_live_...
 ```
 
-## Usage
-
-```typescript
-import { init, trackSessionStart, trackToolUse, trackFileEdit, trackCommand, trackSessionEnd } from "@counted/codex-cli";
-
-init({ projectKey: "ck_...", sessionId: runId });
-
-trackSessionStart({ model: "gpt-5", mode: "agent" });
-trackToolUse({ tool: "search", outcome: "success" });
-trackFileEdit({ filePath: "src/index.ts", action: "edit", language: "typescript" });
-trackCommand({ command: "npm", exitCode: 0 });
-trackSessionEnd({});
-```
-
-## Privacy
-
-- File **paths** only (keep them repo-relative), never contents or diffs.
-- Command **binary name** only — no arguments, no output.
-- No prompt text, no AI responses, no PII.
-
-## License
-
-MIT
+Then wire `counted-agent --host codex` into codex's own hook
+configuration, passing the event JSON on stdin.

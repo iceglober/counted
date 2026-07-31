@@ -336,3 +336,67 @@ describe("admission is pure", () => {
     expect(JSON.stringify(events)).toBe(before);
   });
 });
+
+describe("the agent vocabulary is enforced at ingest, not only in the SDK", () => {
+  // The SDK validates too, on the developer's machine, where a wrong event
+  // fails next to the line that wrote it. But a check only the SDK performs is
+  // a check that an old client, a curl, or somebody's own script skips — and
+  // the agent dashboards are built on these names meaning exactly one thing.
+  // Both sides read the same generated module, so they cannot disagree about
+  // what is valid.
+
+  const reasonOf = (d: Disposition): string =>
+    d.kind === "rejected" ? d.reason.code : d.kind;
+
+  test("a valid agent event is admitted", () => {
+    const result = run([
+      event({ name: "agent_tool_use", properties: { tool: "Bash", outcome: "success" } }),
+    ]);
+    expect(kindsOf(result.dispositions)).toEqual(["accepted"]);
+  });
+
+  test("an invented agent_ name is rejected", () => {
+    // Storing it would put a series in the agent dashboards that no host emits.
+    const result = run([event({ name: "agent_vibes", properties: {} })]);
+    expect(reasonOf(result.dispositions[0]!)).toBe("agent_vocabulary");
+    expect(result.admitted).toEqual([]);
+  });
+
+  test("a known agent event with the wrong properties is rejected", () => {
+    const result = run([event({ name: "agent_tool_use", properties: { tool: "Bash" } })]);
+    expect(reasonOf(result.dispositions[0]!)).toBe("agent_vocabulary");
+  });
+
+  test("an enum outside its values is rejected", () => {
+    const result = run([
+      event({ name: "agent_tool_use", properties: { tool: "Bash", outcome: "maybe" } }),
+    ]);
+    expect(reasonOf(result.dispositions[0]!)).toBe("agent_vocabulary");
+  });
+
+  test("the refusal says what was wrong with it", () => {
+    const result = run([event({ name: "agent_file_edit", properties: { path: "a.ts" } })]);
+    const disposition = result.dispositions[0]!;
+    if (disposition.kind !== "rejected") throw new Error("expected a rejection");
+    expect(explainRefusal(disposition.reason)).toContain("action is required");
+  });
+
+  test("a customer's own event is never held to it", () => {
+    // The prefix is the claim. A product that validated its customers' event
+    // names would be refusing the data it is paid to store.
+    const result = run([
+      event({ name: "session_start", properties: { anything: "goes" } }),
+      event({ name: "checkout_completed", properties: { total: 42 } }),
+    ]);
+    expect(kindsOf(result.dispositions)).toEqual(["accepted", "accepted"]);
+  });
+
+  test("one bad agent event does not reject the batch", () => {
+    const result = run([
+      event({ name: "agent_tool_use", properties: { tool: "Bash", outcome: "success" } }),
+      event({ name: "agent_nope", properties: {} }),
+      event({ name: "checkout_completed", properties: {} }),
+    ]);
+    expect(kindsOf(result.dispositions)).toEqual(["accepted", "rejected", "accepted"]);
+  });
+});

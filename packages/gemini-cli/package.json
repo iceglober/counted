@@ -1,7 +1,7 @@
 {
   "name": "@counted/gemini-cli",
-  "version": "0.1.3",
-  "description": "Counted analytics hooks for Gemini CLI — track AI agent actions privately",
+  "version": "2.0.0",
+  "description": "Deprecated \u2014 use @counted/agent (counted-agent --host gemini).",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -28,12 +28,9 @@
     "url": "git+https://github.com/iceglober/counted.git",
     "directory": "packages/gemini-cli"
   },
-  "peerDependencies": {
-    "@counted/sdk": "^0.1.2"
-  },
   "devDependencies": {
     "@counted/sdk": "workspace:*",
-    "tsup": "^8.0.0",
-    "typescript": "^5.7.3"
-  }
+    "tsup": "^8.0.0"
+  },
+  "deprecated": "Never functioned as an integration. Use @counted/agent: counted-agent --host gemini."
 }

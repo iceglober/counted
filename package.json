@@ -38,13 +38,14 @@
     "release": "npx @changesets/cli publish",
     "arch": "depcruise packages/domain/src packages/contracts/src packages/ports/src packages/application/src packages/adapters apps --config .dependency-cruiser.cjs",
     "build:v2": "tsc --build tsconfig.build.json",
-    "test:v2": "bun test packages/domain packages/contracts packages/ports packages/application packages/adapters packages/sdk-js apps contract/conformance && bun run --cwd packages/react test",
+    "test:v2": "bun run agents:build && bun test packages/domain packages/contracts packages/ports packages/application packages/adapters packages/sdk-js packages/agent-core packages/agent-cli apps contract/conformance && bun run --cwd packages/react test",
     "openapi:generate": "bun scripts/generate-openapi.ts",
     "openapi:check": "bun scripts/generate-openapi.ts && git diff --exit-code -- openapi.json",
     "typecheck:v2": "tsc -p tsconfig.typecheck.json",
     "contract:generate": "bun scripts/generate-contract.ts",
-    "contract:check": "bun scripts/generate-contract.ts && git diff --exit-code -- packages/sdk-js/src/gen packages/python/counted/_contract.py packages/go/contract_gen.go packages/rust/src/contract.rs",
-    "conformance:build": "cd packages/rust && cargo build --bin conformance && cd ../go && go build -o bin/conformance ./cmd/conformance"
+    "contract:check": "bun scripts/generate-contract.ts && git diff --exit-code -- packages/sdk-js/src/gen packages/python/counted/_contract.py packages/go/contract_gen.go packages/rust/src/contract.rs packages/agent-core/src/gen packages/domain/src/ingest/gen",
+    "conformance:build": "cd packages/rust && cargo build --bin conformance && cd ../go && go build -o bin/conformance ./cmd/conformance",
+    "agents:build": "bun run --cwd packages/agent-cli build && bun run --cwd packages/agent-claude-code build && bun run --cwd packages/agent-opencode build"
   },
   "dependencies": {
     "@counted/api": "workspace:*",

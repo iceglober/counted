@@ -1,0 +1,40 @@
+{
+  "_comment": "The agent telemetry vocabulary. One source; the generator emits an identical module into packages/agent-core (which validates before sending) and packages/domain (which validates at ingest). Neither hand-maintains a copy of this list.",
+  "setupSpec": "counted.setup/1",
+  "hosts": ["claude-code", "opencode", "codex", "gemini", "generic"],
+  "prefix": "agent_",
+  "events": {
+    "agent_session_start": {
+      "model": { "type": "string", "optional": true, "maxLength": 120 },
+      "mode": { "type": "string", "optional": true, "maxLength": 40 },
+      "host": { "type": "enum", "values": ["claude-code", "opencode", "codex", "gemini", "generic"] }
+    },
+    "agent_session_end": {
+      "durationMs": { "type": "integer", "optional": true, "min": 0 },
+      "toolUseCount": { "type": "integer", "optional": true, "min": 0 },
+      "fileEditCount": { "type": "integer", "optional": true, "min": 0 }
+    },
+    "agent_tool_use": {
+      "tool": { "type": "string", "maxLength": 80 },
+      "outcome": { "type": "enum", "values": ["success", "error", "denied"] },
+      "durationMs": { "type": "integer", "optional": true, "min": 0 }
+    },
+    "agent_file_edit": {
+      "path": { "type": "string", "maxLength": 400 },
+      "action": { "type": "enum", "values": ["create", "edit", "delete"] },
+      "language": { "type": "string", "optional": true, "maxLength": 40 }
+    },
+    "agent_command_run": {
+      "command": { "type": "string", "maxLength": 64 },
+      "exitCode": { "type": "integer", "optional": true }
+    }
+  },
+  "context": {
+    "_comment": "Registered once per session and stamped on every event. Not part of an event's own properties, so it is validated separately.",
+    "setupHash": { "type": "string", "maxLength": 64 },
+    "setupSpec": { "type": "string", "maxLength": 40 },
+    "setupHostSpec": { "type": "string", "maxLength": 60 },
+    "model": { "type": "string", "optional": true, "maxLength": 120 },
+    "setupLabel": { "type": "string", "optional": true, "maxLength": 80 }
+  }
+}
