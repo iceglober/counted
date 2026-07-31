@@ -1,7 +1,28 @@
 # Dev database only — for self-hosting Counted see self-host/ (full app + db + cron).
 services:
   db:
-    image: timescale/timescaledb:2.27.1-pg17
+    # Stock Postgres, deliberately.
+    #
+    # ARCHITECTURE.md makes plain PostgreSQL the baseline and TimescaleDB
+    # supported-but-never-required, CI runs the suite on `postgres:17-alpine`,
+    # and production is Railway's stock Postgres. This image was the only place
+    # still running the extension, so local development was the one environment
+    # testing an engine nothing deploys.
+    #
+    # It was not a theoretical mismatch. TimescaleDB starts a background worker
+    # **per database**, and the live suites create a database per file — so a
+    # run held a dozen workers on top of its own pools, against a default
+    # `max_connections` of 25. Leftover databases from an interrupted run kept
+    # theirs forever. The symptom was never "out of connections": it was live
+    # tests failing on five-second `beforeEach` timeouts, which reads like a
+    # slow machine.
+    image: postgres:17
+    command:
+      - postgres
+      # The live suites run concurrently, each with its own database and pool.
+      # 25 is the built-in default and leaves no room for that.
+      - -c
+      - max_connections=200
     ports:
       - "5434:5432"
     environment:
@@ -10,7 +31,11 @@ services:
       POSTGRES_DB: counted
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # A new volume, because a data directory initialised by the TimescaleDB
+      # image carries `shared_preload_libraries = 'timescaledb'` and stock
+      # Postgres refuses to start against it. The old `pgdata` volume is left
+      # on disk rather than deleted; `bun run seed` refills a fresh one.
+      - pgdata-stock:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U counted"]
       interval: 2s
@@ -18,4 +43,7 @@ services:
       retries: 10
 
 volumes:
+  pgdata-stock:
+  # The pre-cutover TimescaleDB volume. Kept so nothing local is lost by the
+  # image change; remove it once you are sure you want it gone.
   pgdata:

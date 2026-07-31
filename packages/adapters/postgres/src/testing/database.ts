@@ -26,24 +26,68 @@ export type LiveDatabase = {
   drop(): Promise<void>;
 };
 
+/**
+ * `DROP DATABASE` blocks while any session is connected, and a live suite that
+ * was interrupted — a timeout, a killed run — leaves one behind. So the drop
+ * evicts whatever is still attached first.
+ *
+ * That matters more than tidiness, and the reason is worth recording because the
+ * symptom does not name its own cause. The dev image used to be TimescaleDB,
+ * which starts a background worker **per database**, so every undropped test
+ * database permanently cost one of `max_connections` (25 by default). Eleven
+ * leftovers had taken eleven of them, and what that looked like was not "out of
+ * connections" — it was twenty-one live tests failing on a five-second
+ * `beforeEach` timeout, which reads like a slow machine rather than a leak.
+ *
+ * `docker-compose.yml` is stock Postgres now, so the per-database worker is
+ * gone. Evicting sessions before the drop is not: a run interrupted mid-test
+ * still leaves a connected session behind, and `DROP DATABASE` waits on it
+ * forever.
+ */
+const dropDatabase = async (admin: Pool, name: string): Promise<void> => {
+  await admin.query(
+    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+      WHERE datname = $1 AND pid <> pg_backend_pid()`,
+    [name],
+  );
+  await admin.query(`DROP DATABASE IF EXISTS ${name}`);
+};
+
 /** Create a throwaway database and return a pool on it. */
 export const createDatabase = async (name: string): Promise<LiveDatabase> => {
   const admin = new Pool({ connectionString: adminUrl(), connectionTimeoutMillis: 2_000 });
   try {
-    await admin.query(`DROP DATABASE IF EXISTS ${name}`);
+    await dropDatabase(admin, name);
     await admin.query(`CREATE DATABASE ${name}`);
+  } catch (error) {
+    // 53300 is `too_many_connections`. Left as-is it arrives as a hook timeout
+    // in whichever test happened to run first, which points at that test rather
+    // than at the server — the diagnosis that cost an hour the first time.
+    if ((error as { code?: string }).code === "53300") {
+      throw new Error(
+        `Postgres refused a connection for test database "${name}": the server is out of connections. ` +
+          `The suite runs its files concurrently and each one takes a database and a pool, so a server left ` +
+          `at the built-in \`max_connections\` of 25 cannot hold a full run — docker-compose.yml sets 200. ` +
+          `Check with \`show max_connections\`, and list leftover databases from interrupted runs with ` +
+          `\`select datname from pg_database\`, dropping any that are not "counted".`,
+      );
+    }
+    throw error;
   } finally {
     await admin.end();
   }
 
   const url = databaseUrl(name);
   return {
-    pool: new Pool({ connectionString: url }),
+    // Bounded: bun runs test files concurrently and each file may hold one of
+    // these, so the default (10 per pool) multiplies into the server's limit.
+    // No live suite here needs more than a handful at once.
+    pool: new Pool({ connectionString: url, max: 4 }),
     url,
     drop: async () => {
       const a = new Pool({ connectionString: adminUrl(), connectionTimeoutMillis: 2_000 });
       try {
-        await a.query(`DROP DATABASE IF EXISTS ${name}`);
+        await dropDatabase(a, name);
       } catch {
         /* best effort */
       } finally {
