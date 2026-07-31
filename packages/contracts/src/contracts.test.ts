@@ -25,17 +25,28 @@ describe("the schemas validate, not just describe", () => {
     expect(parsed.success).toBe(true);
   });
 
-  test("an empty batch and an oversized one are both rejected", () => {
+  test("an empty batch and one past the cap are both rejected", () => {
+    // The batch cap stays in the schema: it bounds the work one request can
+    // ask for, and no per-event verdict can express "there were too many".
     expect(IngestRequestSchema.safeParse({ events: [] }).success).toBe(false);
-    const many = Array.from({ length: 51 }, () => ({ name: "e", visitId: "v" }));
+    const many = Array.from({ length: 251 }, () => ({ name: "e", visitId: "v" }));
     expect(IngestRequestSchema.safeParse({ events: many }).success).toBe(false);
   });
 
-  test("more than fifty properties is rejected", () => {
+  test("per-event business rules are not enforced here — the domain does that", () => {
+    // The schema guards shape; `admit()` guards meaning. An empty name or a
+    // 51st property refuses *that event* and returns a 202 with the rest
+    // stored. Enforcing it here would reject the whole batch, which is exactly
+    // the v1 behaviour the endpoint exists to remove.
     const properties = Object.fromEntries(Array.from({ length: 51 }, (_, i) => [`k${i}`, i]));
     expect(
       IngestRequestSchema.safeParse({ events: [{ name: "e", visitId: "v", properties }] }).success,
-    ).toBe(false);
+    ).toBe(true);
+    expect(IngestRequestSchema.safeParse({ events: [{ name: "", visitId: "v" }] }).success).toBe(true);
+  });
+
+  test("shape is still enforced — a non-string name is a batch-level failure", () => {
+    expect(IngestRequestSchema.safeParse({ events: [{ name: 7, visitId: "v" }] }).success).toBe(false);
   });
 
   test("userId is optional and never required", () => {

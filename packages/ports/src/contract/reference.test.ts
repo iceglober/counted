@@ -39,8 +39,8 @@ const makeReference = (project: ProjectId): StoreFixture => {
 
   const writer: EventWriter = {
     append: async (events): Promise<AppendReceipt> => {
-      let accepted = 0;
       let deduplicated = 0;
+      const written: { idempotencyKey: string; occurredAt: Instant }[] = [];
       for (const e of events) {
         const key = `${e.project}:${e.idempotencyKey}`;
         if (seen.has(key)) {
@@ -49,9 +49,9 @@ const makeReference = (project: ProjectId): StoreFixture => {
         }
         seen.add(key);
         rows.push(e);
-        accepted++;
+        written.push({ idempotencyKey: e.idempotencyKey, occurredAt: e.occurredAt });
       }
-      return { accepted, deduplicated, committedAt: Instant.fromEpochMillis(Date.now()) };
+      return { accepted: written.length, deduplicated, written, committedAt: Instant.fromEpochMillis(Date.now()) };
     },
   };
 

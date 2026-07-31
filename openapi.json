@@ -226,6 +226,31 @@
           "quota": {
             "$ref": "#/components/schemas/QuotaState"
           },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "platform_unrecognised",
+                    "occurred_at_missing"
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "index",
+                "code"
+              ]
+            }
+          },
           "committedAt": {
             "type": "string",
             "format": "date-time",
@@ -294,6 +319,7 @@
               "resource.conflict",
               "request.malformed",
               "request.validation_failed",
+              "request.too_large",
               "request.unsupported_media_type",
               "quota.exceeded",
               "rate.limited",
@@ -351,18 +377,15 @@
         "properties": {
           "name": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 200
+            "maxLength": 1000
           },
           "visitId": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 100
+            "maxLength": 500
           },
           "userId": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 200
+            "maxLength": 500
           },
           "occurredAt": {
             "type": "string",
@@ -422,7 +445,7 @@
               "$ref": "#/components/schemas/IngestEvent"
             },
             "minItems": 1,
-            "maxItems": 50
+            "maxItems": 250
           }
         },
         "required": [

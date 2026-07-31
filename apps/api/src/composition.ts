@@ -21,13 +21,15 @@ import {
   PostgresUnitOfWork,
   bootStore,
   createAccessResolver,
+  createQuotaService,
   describeBoot,
   poolConfig,
   type BootReport,
 } from "@counted/adapter-postgres";
 import { secretGenerator } from "@counted/adapter-crypto";
 import { createLogger, type Logger } from "./http/log";
-import type { AccessResolver, AnalyticalStore, EventWriter, SecretGenerator } from "@counted/ports";
+import type { AccessResolver, AnalyticalStore, EventWriter, QuotaService, SecretGenerator } from "@counted/ports";
+import { Coalescer } from "./ingest/coalescer";
 import { Instant, type Clock } from "@counted/domain";
 
 export type Config = {
@@ -63,6 +65,9 @@ export type Dependencies = {
   readonly clock: Clock;
   readonly access: AccessResolver;
   readonly log: Logger;
+  readonly quota: QuotaService;
+  /** Group commit. Every caller awaits its own batch. */
+  readonly ingest: Coalescer;
   readonly secrets: SecretGenerator;
   readonly boot: BootReport;
   readonly config: Config;
@@ -89,9 +94,17 @@ export const compose = async (config: Config): Promise<Dependencies> => {
     throw e;
   }
 
+  const writer = new PostgresEventWriter(ingest);
+
   return {
     store: new PostgresAnalyticalStore(analytics, boot.capabilities),
-    writer: new PostgresEventWriter(ingest),
+    writer,
+    // Group commit. Concurrent requests share one INSERT, and each awaits its
+    // own batch's commit before it is answered.
+    ingest: new Coalescer(writer),
+    // Quota reads the ingest pool: it is on the ingest path, and a saturated
+    // analytics pool must not be able to stop events being accepted.
+    quota: createQuotaService(ingest),
     unitOfWork: new PostgresUnitOfWork(analytics),
     clock: { now: () => Instant.fromEpochMillis(Date.now()) },
     // Authorization reads the control plane, not the analytics pool: a slow

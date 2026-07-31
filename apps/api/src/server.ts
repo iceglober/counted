@@ -15,6 +15,7 @@ import type { Principal } from "@counted/domain";
 import { requestId as mintRequestId } from "@counted/adapter-crypto";
 import type { Dependencies } from "./composition";
 import { healthRoutes } from "./routes/health";
+import { ingestRoutes } from "./routes/ingest";
 import { createGuard } from "./http/guard";
 import { census, mount, type RouteDefinition } from "./http/route";
 import { sendProblem } from "./http/respond";
@@ -110,6 +111,9 @@ export const createApp = (deps: Dependencies): Hono<ApiEnv> => {
 };
 
 /** Every route definition, in one list, so the census can be exhaustive. */
-export const allRoutes = (deps: Dependencies): readonly RouteDefinition[] => [...healthRoutes(deps)];
+export const allRoutes = (deps: Dependencies): readonly RouteDefinition[] => [
+  ...healthRoutes(deps),
+  ...ingestRoutes(deps),
+];
 
 export const routeCensus = (deps: Dependencies) => census(allRoutes(deps));

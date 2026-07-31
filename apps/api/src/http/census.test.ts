@@ -12,7 +12,8 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { Instant, ALL_SCOPES } from "@counted/domain";
+import { CredentialId, Entitlement, Instant, ProjectId, Quota, ALL_SCOPES, type Principal } from "@counted/domain";
+import { Coalescer } from "../ingest/coalescer";
 import type { AnalyticalStore, EventWriter } from "@counted/ports";
 import { createApp, allRoutes, routeCensus } from "../server";
 import type { Config, Dependencies } from "../composition";
@@ -21,15 +22,21 @@ import { stubAccess, silentLogger } from "../server.test";
 
 const config: Config = { databaseUrl: "postgres://stub", port: 8080, release: "test" };
 
+const writer: EventWriter = {
+  append: async () => ({ accepted: 0, deduplicated: 0, written: [], committedAt: Instant.fromEpochMillis(0) }),
+};
+
 const deps: Dependencies = {
   access: stubAccess(),
   log: silentLogger(),
+  quota: { decide: async () => Quota.decide(Entitlement.none(), { used: 0 }) },
+  ingest: new Coalescer(writer, { windowMs: 0 }),
   secrets: { issue: () => ({ secret: "", digest: "" as never, prefix: "" as never }), digest: (s) => s as never },
   store: {
     executeBatch: async () => ({ results: new Map(), stats: { statements: 0, totalMs: 0, coalesced: 0 } }),
     capabilities: () => ({ engine: "stub", approximateDistinct: false, partitioning: "none" }),
   } as AnalyticalStore,
-  writer: { append: async () => ({ accepted: 0, deduplicated: 0, committedAt: Instant.fromEpochMillis(0) }) } as EventWriter,
+  writer,
   unitOfWork: { transact: async (w: never) => w } as unknown as Dependencies["unitOfWork"],
   clock: { now: () => Instant.fromEpochMillis(1_700_000_000_000) },
   boot: {
@@ -108,8 +115,17 @@ describe("a scoped route names a path parameter its path actually has", () => {
     const params = [...route.path.matchAll(/:([A-Za-z0-9_]+)/g)].map((m) => m[1]);
     const context = {
       req: { param: (name: string) => (params.includes(name) ? "00000000-0000-0000-0000-000000000000" : undefined) },
+      // A principal that can name a resource, so a route deriving its resource
+      // from the credential rather than the path is exercised too.
+      get: (key: string) =>
+        key === "principal"
+          ? ({ kind: "ingest", credential: CredentialId("c"), project: ProjectId("p"), scopes: ["events:write"] } satisfies Principal)
+          : undefined,
     };
-    return route.security.resource(context as never) !== null;
+    // `misconfigured` is the failure this looks for: a declaration naming a
+    // path parameter the pattern does not have. `wrong_principal` is a
+    // legitimate runtime refusal and not a routing mistake.
+    return route.security.resource(context as never).kind !== "misconfigured";
   };
 
   test("every scoped route resolves its resource from its own pattern", () => {

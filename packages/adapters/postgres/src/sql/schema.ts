@@ -32,6 +32,24 @@ export const SYSTEM_COLUMNS = [
   "sdk_version",
 ] as const;
 
+/**
+ * Stored, but not queryable.
+ *
+ * `os_name` is a closed enum — anything unrecognised becomes `other`, which is
+ * what stops one platform appearing under four spellings. `os_name_raw` keeps
+ * whatever the SDK actually sent, so a platform we have never seen is
+ * discoverable rather than lost and the fix is a line in a lookup table rather
+ * than a migration.
+ *
+ * Deliberately absent from `SYSTEM_COLUMNS`: it is a diagnostic, not a
+ * dimension. Letting it be filtered on would reintroduce exactly the
+ * four-spellings problem in the query layer.
+ */
+export const DIAGNOSTIC_COLUMNS = ["os_name_raw"] as const;
+
+/** Everything the writer sets. Queryable dimensions plus diagnostics. */
+export const WRITE_SYSTEM_COLUMNS = [...SYSTEM_COLUMNS, ...DIAGNOSTIC_COLUMNS] as const;
+
 export const EVENTS_TABLE = "events";
 
 /**
@@ -67,6 +85,7 @@ CREATE TABLE IF NOT EXISTS ${EVENTS_TABLE} (
   device_model    text,
   country_code    text,
   sdk_version     text,
+  os_name_raw     text,
   CONSTRAINT events_dedup UNIQUE (project_id, idempotency_key, occurred_at)
 ) PARTITION BY RANGE (occurred_at);
 `;

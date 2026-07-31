@@ -8,10 +8,11 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { Instant, Principal, type Placement, type Resource, type Role } from "@counted/domain";
+import { Entitlement, Instant, Principal, Quota, type Placement, type Resource, type Role } from "@counted/domain";
 import type { AccessResolver, AnalyticalStore, EventWriter, SecretGenerator } from "@counted/ports";
 import { createApp, REQUEST_ID_HEADER } from "./server";
 import { createLogger } from "./http/log";
+import { Coalescer } from "./ingest/coalescer";
 import { configFromEnv, type Config, type Dependencies } from "./composition";
 
 const config: Config = { databaseUrl: "postgres://stub", port: 8080, release: "test-release" };
@@ -26,7 +27,7 @@ const stubStore = (overrides: Partial<AnalyticalStore> = {}): AnalyticalStore =>
 });
 
 const stubWriter: EventWriter = {
-  append: async () => ({ accepted: 0, deduplicated: 0, committedAt: Instant.fromEpochMillis(0) }),
+  append: async () => ({ accepted: 0, deduplicated: 0, written: [], committedAt: Instant.fromEpochMillis(0) }),
 };
 
 /**
@@ -60,6 +61,8 @@ export const silentLogger = () => createLogger({ service: "api", sink: () => {} 
 const deps = (overrides: Partial<Dependencies> = {}): Dependencies => ({
   access: stubAccess(),
   log: silentLogger(),
+  quota: { decide: async () => Quota.decide(Entitlement.none(), { used: 0 }) },
+  ingest: new Coalescer(stubWriter, { windowMs: 0 }),
   secrets: stubSecrets,
   store: stubStore(),
   writer: stubWriter,

@@ -45,6 +45,15 @@ export type AppendReceipt = {
   readonly accepted: number;
   /** Rows recognised as already present via their idempotency key. */
   readonly deduplicated: number;
+  /**
+   * Which rows were newly written, identified the way the dedup key is.
+   *
+   * Counts alone cannot tell a caller *which* of its events was a duplicate,
+   * and the receipt reports that per event. Returning the identities is what
+   * makes `deduplicated: true` on one line of a receipt a fact rather than an
+   * inference from arithmetic.
+   */
+  readonly written: readonly { readonly idempotencyKey: string; readonly occurredAt: Instant }[];
   /** When the transaction committed. Real, not a guess. */
   readonly committedAt: Instant;
 };
@@ -77,4 +86,21 @@ export interface EventWriter {
  */
 export interface UsageMeter {
   eventsInCurrentPeriod(workspace: import("@counted/domain").WorkspaceId): Promise<number>;
+}
+
+/**
+ * QuotaService — whether a project's workspace may ingest right now.
+ *
+ * The *decision* is pure and lives in the domain (`Quota.decide`). This port
+ * is only the lookup that feeds it: which workspace owns the project, what it
+ * is entitled to, and how much it has used.
+ *
+ * It is a port rather than a query on the ingest path because v1 computed this
+ * with a month-wide `COUNT(*)` joined to `project_members` **on every ingest
+ * request**, cached five minutes in a module-level Map. With more than one
+ * replica the caches diverged, so enforcement was up to five minutes and N
+ * processes stale — and the numbers a customer saw disagreed between refreshes.
+ */
+export interface QuotaService {
+  decide(project: import("@counted/domain").ProjectId): Promise<import("@counted/domain").QuotaDecision>;
 }

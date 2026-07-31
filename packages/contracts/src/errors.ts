@@ -58,6 +58,12 @@ export const ERRORS = {
     retryable: false,
     summary: "The body parsed but some fields are wrong. Every one of them is listed in `fields`.",
   },
+  "request.too_large": {
+    status: 413,
+    title: "Payload Too Large",
+    retryable: false,
+    summary: "The body is larger than the ingestion limit. Send fewer events per batch.",
+  },
   "request.unsupported_media_type": {
     status: 415,
     title: "Unsupported Media Type",

@@ -28,15 +28,31 @@ export type Security =
   | {
       readonly kind: "scoped";
       readonly scope: Scope;
-      /**
-       * `null` when the named path parameter is absent — which can only mean
-       * the declaration names a parameter the path pattern does not have. The
-       * guard turns that into a 500, because it is our bug. v1's equivalent
-       * was `dashboard.projectId ?? ""`, which sent an empty string to a uuid
-       * column, threw in Postgres, got swallowed, and rendered a blank chart.
-       */
-      readonly resource: (c: Context<ApiEnv>) => Resource | null;
+      readonly resource: (c: Context<ApiEnv>) => ResourceFor;
     };
+
+/**
+ * What a route's resource resolution produced.
+ *
+ * Three outcomes, because two of them used to be one `null` and they mean
+ * opposite things. Collapsing them either turns our own misconfiguration into
+ * a 403 the customer cannot act on, or turns a legitimate refusal into a 500
+ * that pages someone.
+ */
+export type ResourceFor =
+  | { readonly kind: "resource"; readonly resource: Resource }
+  /**
+   * This kind of principal cannot name a resource on this route — a service
+   * key posting to the ingest endpoint, say. A refusal, not a bug.
+   */
+  | { readonly kind: "wrong_principal" }
+  /**
+   * The declaration names a path parameter the path pattern does not have.
+   * Our bug, answered 500. v1's equivalent was `dashboard.projectId ?? ""`,
+   * which sent an empty string to a uuid column, threw in Postgres, got
+   * swallowed, and rendered a blank chart.
+   */
+  | { readonly kind: "misconfigured" };
 
 export type Method = "get" | "post" | "patch" | "put" | "delete";
 
@@ -54,21 +70,40 @@ export const publicRoute = (why: string): Security => ({ kind: "public", why });
 /** A route that requires `scope` on the resource named by the request. */
 export const requires = (
   scope: Scope,
-  resource: (c: Context<ApiEnv>) => Resource | null,
+  resource: (c: Context<ApiEnv>) => ResourceFor,
 ): Security => ({ kind: "scoped", scope, resource });
 
 /** Convenience for the common case: the resource is a path parameter. */
 const fromPath =
   <T extends Resource["type"]>(type: T, param: string) =>
-  (c: Context<ApiEnv>): Resource | null => {
+  (c: Context<ApiEnv>): ResourceFor => {
     const id = c.req.param(param);
-    return id === undefined ? null : ({ type, id } as Resource);
+    return id === undefined
+      ? { kind: "misconfigured" }
+      : { kind: "resource", resource: { type, id } as Resource };
   };
 
 export const projectFromPath = (param = "projectId") => fromPath("project", param);
 export const workspaceFromPath = (param = "workspaceId") => fromPath("workspace", param);
 export const dashboardFromPath = (param = "dashboardId") => fromPath("dashboard", param);
 export const monitorFromPath = (param = "monitorId") => fromPath("monitor", param);
+
+/**
+ * The project an ingest credential is bound to.
+ *
+ * Ingest names no project in its path — the key *is* the project. Deriving the
+ * resource from the principal rather than from the URL means a caller cannot
+ * name a project its key does not cover, and it keeps this route inside the
+ * same authorization function as every other one: `decide` still checks the
+ * scope and the binding, against a placement that is still looked up (so a
+ * deleted or unclaimed project stops ingesting).
+ */
+export const ownProject = () => (c: Context<ApiEnv>): ResourceFor => {
+  const principal = c.get("principal");
+  return principal.kind === "ingest"
+    ? { kind: "resource", resource: { type: "project", id: principal.project } }
+    : { kind: "wrong_principal" };
+};
 
 /**
  * Mount route definitions onto an app, wrapping each in the guard.

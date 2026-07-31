@@ -43,9 +43,18 @@ const claimedKind = (secret: string): PresentedCredential["claimedKind"] => {
  * Where the secret may appear.
  *
  * `Authorization: Bearer` is canonical. The two header aliases exist because
- * SDKs in the wild already send them and a rewrite that breaks every deployed
- * client is not a rewrite anyone can ship. A query parameter is deliberately
- * *not* accepted: URLs end up in access logs and browser history.
+ * SDKs in the wild already send them, and a rewrite that breaks every deployed
+ * client is not a rewrite anyone can ship.
+ *
+ * `?key=` is accepted **only for public ingest keys**, and only because
+ * `navigator.sendBeacon` cannot set headers — it is the sole way to record an
+ * event as a page is closing, which is exactly when the last event of a
+ * session happens. The usual objection to keys in URLs is that they reach
+ * access logs and browser history; an ingest key is already published in the
+ * page's own JavaScript, so neither place is a new disclosure.
+ *
+ * A secret key in a query string is refused outright. That one would be a real
+ * leak, and accepting it "just in case" is how it starts.
  */
 const presented = (c: Context<ApiEnv>): string | null => {
   const authorization = c.req.header("authorization");
@@ -54,7 +63,14 @@ const presented = (c: Context<ApiEnv>): string | null => {
     if (scheme?.toLowerCase() === "bearer" && value !== undefined && value.length > 0) return value;
     return null;
   }
-  return c.req.header("app-key") ?? c.req.header("project-key") ?? null;
+  const header = c.req.header("app-key") ?? c.req.header("project-key");
+  if (header !== undefined) return header;
+
+  const query = c.req.query("key");
+  if (query !== undefined && query.length > 0) {
+    return claimedKind(query) === "ingest" ? query : null;
+  }
+  return null;
 };
 
 /**
@@ -128,11 +144,24 @@ export const createGuard =
       return;
     }
 
-    const resource = security.resource(c);
-    if (resource === null) {
+    const resolved = security.resource(c);
+    if (resolved.kind === "misconfigured") {
       // The declaration names a path parameter this path does not have.
       return problem(c, { reason: "unresolved", fact: "placement" }, security.scope);
     }
+    if (resolved.kind === "wrong_principal") {
+      // A credential of the wrong kind for this route. Reported through the
+      // same mapping as any other refusal, so an unauthenticated caller still
+      // gets 401 with the challenge and an authenticated one gets 403.
+      return problem(
+        c,
+        principal.kind === "anonymous"
+          ? { reason: "anonymous" }
+          : { reason: "scope_not_granted", scope: security.scope },
+        security.scope,
+      );
+    }
+    const resource = resolved.resource;
 
     // Ask the domain what it needs, then fetch precisely that. Anything not
     // required stays absent rather than being fetched "just in case" — an
