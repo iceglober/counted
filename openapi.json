@@ -956,21 +956,321 @@
           "window"
         ]
       },
-      "QueryRequest": {
+      "FunnelStep": {
         "type": "object",
         "properties": {
-          "projectId": {
-            "type": "string",
-            "format": "uuid",
-            "example": "3f1a2b4c-5d6e-4f70-8a91-2b3c4d5e6f70"
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
           },
-          "analysis": {
-            "$ref": "#/components/schemas/Analysis"
+          "where": {
+            "$ref": "#/components/schemas/Predicate"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [
-          "projectId",
-          "analysis"
+          "events"
+        ]
+      },
+      "Funnel": {
+        "type": "object",
+        "properties": {
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FunnelStep"
+            },
+            "minItems": 2,
+            "maxItems": 10
+          },
+          "window": {
+            "$ref": "#/components/schemas/Window"
+          },
+          "conversionWindowMs": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "visit",
+              "person"
+            ]
+          },
+          "where": {
+            "$ref": "#/components/schemas/Predicate"
+          }
+        },
+        "required": [
+          "steps",
+          "window",
+          "conversionWindowMs"
+        ]
+      },
+      "Retention": {
+        "type": "object",
+        "properties": {
+          "window": {
+            "$ref": "#/components/schemas/Window"
+          },
+          "grain": {
+            "$ref": "#/components/schemas/Grain"
+          },
+          "periods": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 60
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "person"
+            ]
+          },
+          "startEvents": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "returnEvents": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "where": {
+            "$ref": "#/components/schemas/Predicate"
+          }
+        },
+        "required": [
+          "window",
+          "grain",
+          "periods",
+          "basis"
+        ]
+      },
+      "Question": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "analysis"
+                ]
+              },
+              "analysis": {
+                "$ref": "#/components/schemas/Analysis"
+              }
+            },
+            "required": [
+              "kind",
+              "analysis"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "funnel"
+                ]
+              },
+              "funnel": {
+                "$ref": "#/components/schemas/Funnel"
+              }
+            },
+            "required": [
+              "kind",
+              "funnel"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "retention"
+                ]
+              },
+              "retention": {
+                "$ref": "#/components/schemas/Retention"
+              }
+            },
+            "required": [
+              "kind",
+              "retention"
+            ]
+          }
+        ]
+      },
+      "QueryRequest": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "$ref": "#/components/schemas/Question"
+          }
+        },
+        "required": [
+          "question"
+        ]
+      },
+      "ReadoutFailure": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "timeout",
+              "unsupported",
+              "store_unavailable",
+              "invalid_request"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "retriable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "detail",
+          "retriable"
+        ]
+      },
+      "Readout": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "ok": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "value": {
+                "$ref": "#/components/schemas/ReadoutValue"
+              },
+              "computedAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO-8601, UTC",
+                "example": "2026-03-17T14:37:00.000Z"
+              }
+            },
+            "required": [
+              "id",
+              "ok",
+              "value",
+              "computedAt"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "ok": {
+                "type": "boolean",
+                "enum": [
+                  false
+                ]
+              },
+              "failure": {
+                "$ref": "#/components/schemas/ReadoutFailure"
+              }
+            },
+            "required": [
+              "id",
+              "ok",
+              "failure"
+            ]
+          }
+        ]
+      },
+      "DashboardDataResponse": {
+        "type": "object",
+        "properties": {
+          "readouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Readout"
+            }
+          },
+          "statements": {
+            "type": "integer"
+          },
+          "computedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO-8601, UTC",
+            "example": "2026-03-17T14:37:00.000Z"
+          }
+        },
+        "required": [
+          "readouts",
+          "statements",
+          "computedAt"
+        ]
+      },
+      "PrincipalDescription": {
+        "type": "object",
+        "properties": {
+          "principal": {
+            "type": "string",
+            "example": "service:cred_01J8ZQ"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "anonymous",
+              "account",
+              "ingest",
+              "service",
+              "share",
+              "worker"
+            ]
+          },
+          "scopeSource": {
+            "type": "string",
+            "enum": [
+              "none",
+              "credential",
+              "membership"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "principal",
+          "kind",
+          "scopeSource",
+          "scopes"
         ]
       }
     },
@@ -1124,16 +1424,27 @@
         }
       }
     },
-    "/v1/query": {
+    "/v1/projects/{projectId}/query": {
       "post": {
         "summary": "Run an analysis",
-        "description": "Answers one question. The response is tagged with its shape; the caller never has to infer it.",
+        "description": "Answers one question — an analysis, a funnel or a retention grid. The response is tagged with its shape; the caller never has to infer it.",
         "tags": [
           "read"
         ],
         "security": [
           {
             "serviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
           }
         ],
         "requestBody": {
@@ -1192,6 +1503,104 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/dashboards/{dashboardId}/data": {
+      "post": {
+        "summary": "Render a dashboard",
+        "description": "Answers every tile on a dashboard in one batch. A tile that fails comes back as a failed readout rather than as an empty one, so a broken query is distinguishable from a project with no events.",
+        "tags": [
+          "read"
+        ],
+        "security": [
+          {
+            "serviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "dashboardId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One readout per tile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardDataResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or unknown credential",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential may not read this dashboard",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such dashboard",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The store is unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "summary": "Describe the caller",
+        "description": "Reports who the credential belongs to and which scopes it carries, so a 403 can be diagnosed without guesswork. An anonymous caller is told it is anonymous rather than refused.",
+        "tags": [
+          "read"
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalDescription"
                 }
               }
             }

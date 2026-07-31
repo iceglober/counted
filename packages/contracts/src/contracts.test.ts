@@ -243,7 +243,14 @@ describe("the generated document", () => {
 
   test("it describes every endpoint the code implements", () => {
     expect(doc.openapi).toBe("3.1.0");
-    expect(Object.keys(doc.paths).sort()).toEqual(["/health", "/health/ready", "/v1/events", "/v1/query"]);
+    expect(Object.keys(doc.paths).sort()).toEqual([
+      "/health",
+      "/health/ready",
+      "/v1/dashboards/{dashboardId}/data",
+      "/v1/events",
+      "/v1/me",
+      "/v1/projects/{projectId}/query",
+    ]);
   });
 
   test("schemas come from the same definitions the server validates with", () => {

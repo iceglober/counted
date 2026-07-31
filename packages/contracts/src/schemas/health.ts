@@ -21,3 +21,19 @@ export const ReadinessSchema = z
     bucketContract: z.object({ verified: z.boolean(), samples: z.number().int().optional() }).optional(),
   })
   .openapi("Readiness");
+
+/**
+ * Who the caller is, and what it may do.
+ *
+ * Exists so an integrator debugging a 403 can ask the API rather than guess.
+ * v1 had no way to ask this at all.
+ */
+export const PrincipalSchema = z
+  .object({
+    principal: z.string().openapi({ example: "service:cred_01J8ZQ" }),
+    kind: z.enum(["anonymous", "account", "ingest", "service", "share", "worker"]),
+    /** Where the scopes come from: a credential, a membership, or nowhere. */
+    scopeSource: z.enum(["none", "credential", "membership"]),
+    scopes: z.array(z.string()),
+  })
+  .openapi("PrincipalDescription");

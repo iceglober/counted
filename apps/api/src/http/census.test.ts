@@ -15,6 +15,7 @@ import { describe, expect, test } from "bun:test";
 import { CredentialId, Entitlement, Instant, ProjectId, Quota, ALL_SCOPES, type Principal } from "@counted/domain";
 import { Coalescer } from "../ingest/coalescer";
 import type { AnalyticalStore, EventWriter } from "@counted/ports";
+import { buildOpenApiDocument } from "@counted/contracts";
 import { createApp, allRoutes, routeCensus } from "../server";
 import type { Config, Dependencies } from "../composition";
 import { publicRoute, requires, projectFromPath, census, type RouteDefinition } from "./route";
@@ -99,6 +100,52 @@ describe("every route the API serves has declared what it requires", () => {
   test("a declared scope is one the domain knows", () => {
     for (const entry of routeCensus(deps)) {
       if (entry.scope !== null) expect(ALL_SCOPES).toContain(entry.scope);
+    }
+  });
+});
+
+describe("every route the API serves is in the published document", () => {
+  /**
+   * Hono writes `:projectId`; OpenAPI writes `{projectId}`. Same route, two
+   * spellings, and comparing them is the only thing that notices when a new
+   * endpoint ships undocumented.
+   *
+   * The contracts package cannot import the route table — it is an inner layer
+   * — so the comparison belongs here, where both are visible. This is what the
+   * hand-written path list in the contracts test could not do: it asserted the
+   * document against itself.
+   */
+  const documented = (): ReadonlySet<string> => {
+    const doc = buildOpenApiDocument() as { paths: Record<string, Record<string, unknown>> };
+    const out = new Set<string>();
+    for (const [path, operations] of Object.entries(doc.paths)) {
+      for (const method of Object.keys(operations)) out.add(`${method.toUpperCase()} ${path}`);
+    }
+    return out;
+  };
+
+  const asOpenApi = (honoPath: string): string => honoPath.replace(/:([A-Za-z0-9_]+)/g, "{$1}");
+
+  test("nothing is served that the document does not describe", () => {
+    // v1's spec omitted `/provision` entirely — the endpoint its own agent
+    // cards advertised as the entry point.
+    const docs = documented();
+    for (const entry of routeCensus(deps)) {
+      const key = `${entry.method} ${asOpenApi(entry.path)}`;
+      expect({ route: key, documented: [...docs] }).toMatchObject({
+        documented: expect.arrayContaining([key]),
+      });
+    }
+  });
+
+  test("nothing is described that is not served", () => {
+    // The other direction: a documented endpoint that does not exist sends an
+    // integrator to write code against nothing.
+    const served = new Set(routeCensus(deps).map((e) => `${e.method} ${asOpenApi(e.path)}`));
+    for (const documentedRoute of documented()) {
+      expect({ documented: documentedRoute, served: [...served] }).toMatchObject({
+        served: expect.arrayContaining([documentedRoute]),
+      });
     }
   });
 });

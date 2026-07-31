@@ -14,7 +14,12 @@ import { OpenApiGeneratorV31, OpenAPIRegistry } from "@asteasolutions/zod-to-ope
 import { ProblemSchema } from "./schemas/common";
 import { IngestReceiptSchema, IngestRequestSchema } from "./schemas/ingest";
 import { QueryRequestSchema, QueryResponseSchema } from "./schemas/query";
-import { LivenessSchema, ReadinessSchema } from "./schemas/health";
+import { LivenessSchema, PrincipalSchema, ReadinessSchema } from "./schemas/health";
+import { DashboardDataResponseSchema } from "./schemas/query";
+import { z } from "./schemas/common";
+
+const ProjectPathSchema = z.object({ projectId: z.string().uuid() });
+const DashboardPathSchema = z.object({ dashboardId: z.string().uuid() });
 
 export const OPENAPI_VERSION = "3.1.0";
 export const API_VERSION = "0.1.0";
@@ -85,18 +90,52 @@ export const buildRegistry = (): OpenAPIRegistry => {
 
   registry.registerPath({
     method: "post",
-    path: "/v1/query",
+    path: "/v1/projects/{projectId}/query",
     summary: "Run an analysis",
-    description: "Answers one question. The response is tagged with its shape; the caller never has to infer it.",
+    description:
+      "Answers one question — an analysis, a funnel or a retention grid. The response is tagged with its shape; the caller never has to infer it.",
     tags: ["read"],
     security: [{ [serviceKey.name]: [] }],
-    request: { body: json(QueryRequestSchema) },
+    request: {
+      params: ProjectPathSchema,
+      body: json(QueryRequestSchema),
+    },
     responses: {
       200: { description: "The answer", ...json(QueryResponseSchema) },
       400: problem("The analysis is not well formed"),
       401: problem("Missing or unknown credential"),
       403: problem("The credential may not read this project"),
       504: problem("The query exceeded its budget"),
+    },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/v1/dashboards/{dashboardId}/data",
+    summary: "Render a dashboard",
+    description:
+      "Answers every tile on a dashboard in one batch. A tile that fails comes back as a failed readout rather than as an empty one, so a broken query is distinguishable from a project with no events.",
+    tags: ["read"],
+    security: [{ [serviceKey.name]: [] }],
+    request: { params: DashboardPathSchema },
+    responses: {
+      200: { description: "One readout per tile", ...json(DashboardDataResponseSchema) },
+      401: problem("Missing or unknown credential"),
+      403: problem("The credential may not read this dashboard"),
+      404: problem("No such dashboard"),
+      503: problem("The store is unavailable"),
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/v1/me",
+    summary: "Describe the caller",
+    description:
+      "Reports who the credential belongs to and which scopes it carries, so a 403 can be diagnosed without guesswork. An anonymous caller is told it is anonymous rather than refused.",
+    tags: ["read"],
+    responses: {
+      200: { description: "The caller", ...json(PrincipalSchema) },
     },
   });
 
