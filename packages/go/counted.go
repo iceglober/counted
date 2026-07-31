@@ -1,275 +1,142 @@
-// Package counted provides privacy-first event tracking.
-// No cookies, no fingerprinting, no PII. Zero dependencies.
+// Package counted is a privacy-first analytics SDK. No cookies, no
+// fingerprinting, no PII, and no dependencies outside the standard library.
+//
+//	c := counted.New(counted.Options{Key: "ck_live_..."})
+//	defer c.Shutdown()
+//
+//	c.Identify("user_42")           // optional, and always your own id
+//	c.Track("page_view", map[string]any{"path": "/pricing"})
+//
+// This file is the public API. The reliability layer it wraps — the queue,
+// the retries, the backoff — is in client.go, and is driven by the
+// cross-language conformance suite rather than by anything here.
+//
+// The split exists because those two things have different audiences.
+// [NewClient] takes an injected transport, clock and source of randomness,
+// which is what makes the behaviour testable but is a poor thing to ask of
+// somebody who wants to count page views. [New] supplies the real ones.
 package counted
 
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
-	"os"
-	"runtime"
-	"sync"
+	"strings"
 	"time"
 )
 
-const (
-	defaultHost          = "https://app.counted.dev"
-	defaultFlushInterval = 30 * time.Second
-	defaultMaxBatchSize  = 50
-	defaultSessionTimeout = 30 * time.Minute
-	sdkVersion           = "counted-go/0.1.0"
-)
+// DefaultEndpoint is where events go unless you say otherwise. Self-hosted
+// installations point this at their own API.
+const DefaultEndpoint = "https://api.counted.dev/v1/events"
 
-// Options configures the analytics client.
+// Options configures a client. Only Key is required.
 type Options struct {
-	ProjectKey     string
-	Host           string
-	FlushInterval  time.Duration
-	MaxBatchSize   int
-	SessionID      string
-	SessionTimeout time.Duration
+	// Key is a public ingest key. It ships in your binary; that is by design.
+	Key string
+
+	// Endpoint overrides DefaultEndpoint.
+	Endpoint string
+
+	// AppVersion is reported in system properties, so you can break a metric
+	// down by the release it came from.
+	AppVersion string
+
+	// FlushInterval is how often queued events are sent. Zero means the
+	// contract default.
+	FlushInterval time.Duration
+
+	// HTTPClient overrides the client used to send batches — for a proxy, a
+	// custom timeout, or a test.
+	HTTPClient *http.Client
 }
 
-// EventProperties holds custom event properties.
-type EventProperties map[string]interface{}
+// New creates a client with a real HTTP transport, the system clock, and a
+// background flush.
+//
+// A zero Key returns a client that discards everything. That is deliberate:
+// analytics missing from a build is not a reason for the build to fail, and
+// the alternative is every caller writing the same nil check.
+func New(options Options) *Client {
+	endpoint := options.Endpoint
+	if endpoint == "" {
+		endpoint = DefaultEndpoint
+	}
+	httpClient := options.HTTPClient
+	if httpClient == nil {
+		// A bounded timeout, because a hung analytics request must not
+		// outlive the thing it was measuring.
+		httpClient = &http.Client{Timeout: 15 * time.Second}
+	}
+	interval := options.FlushInterval
+	if interval <= 0 {
+		interval = time.Duration(FlushIntervalMs) * time.Millisecond
+	}
 
-type systemProps struct {
-	OSName     *string `json:"osName"`
-	OSVersion  *string `json:"osVersion"`
-	Locale     *string `json:"locale"`
-	AppVersion *string `json:"appVersion"`
-	DeviceModel *string `json:"deviceModel"`
-	SDKVersion string  `json:"sdkVersion"`
-	IsDebug    bool    `json:"isDebug"`
+	c := NewClient(
+		options.Key,
+		endpoint,
+		&httpTransport{client: httpClient},
+		func() int64 { return time.Now().UnixMilli() },
+		rand.Float64,
+		DetectSystem(options.AppVersion),
+	)
+
+	if options.Key != "" {
+		c.ticker = time.NewTicker(interval)
+		c.stopped = make(chan struct{})
+		go func() {
+			for {
+				select {
+				case <-c.ticker.C:
+					c.Flush()
+				case <-c.stopped:
+					return
+				}
+			}
+		}()
+	}
+	return c
 }
 
-type rawEvent struct {
-	Timestamp   string          `json:"timestamp"`
-	SessionID   string          `json:"sessionId"`
-	EventName   string          `json:"eventName"`
-	SystemProps systemProps     `json:"systemProps"`
-	Props       EventProperties `json:"props"`
-}
+// httpTransport is the only place in the SDK that performs I/O.
+type httpTransport struct{ client *http.Client }
 
-// Analytics is the event tracking client.
-type Analytics struct {
-	projectKey     string
-	host           string
-	flushInterval  time.Duration
-	maxBatchSize   int
-	sessionTimeout time.Duration
-
-	mu            sync.Mutex
-	buffer        []rawEvent
-	sessionID     string
-	lastActivity  time.Time
-	enabled       bool
-	ticker        *time.Ticker
-	done          chan struct{}
-	client        *http.Client
-}
-
-// New creates a new analytics client.
-func New(opts Options) *Analytics {
-	host := opts.Host
-	if host == "" {
-		host = defaultHost
-	}
-	flushInterval := opts.FlushInterval
-	if flushInterval == 0 {
-		flushInterval = defaultFlushInterval
-	}
-	maxBatchSize := opts.MaxBatchSize
-	if maxBatchSize == 0 {
-		maxBatchSize = defaultMaxBatchSize
-	}
-	sessionTimeout := opts.SessionTimeout
-	if sessionTimeout == 0 && opts.SessionID == "" {
-		sessionTimeout = defaultSessionTimeout
-	}
-	sessionID := opts.SessionID
-	if sessionID == "" {
-		sessionID = generateSessionID()
-	}
-
-	a := &Analytics{
-		projectKey:     opts.ProjectKey,
-		host:           host,
-		flushInterval:  flushInterval,
-		maxBatchSize:   maxBatchSize,
-		sessionTimeout: sessionTimeout,
-		sessionID:      sessionID,
-		lastActivity:   time.Now(),
-		enabled:        true,
-		done:           make(chan struct{}),
-		client:         &http.Client{Timeout: 10 * time.Second},
-	}
-
-	a.ticker = time.NewTicker(flushInterval)
-	go a.flushLoop()
-
-	return a
-}
-
-// Track records an event with optional properties.
-func (a *Analytics) Track(eventName string, props EventProperties) {
-	if !a.enabled {
-		return
-	}
-
-	if props == nil {
-		props = EventProperties{}
-	}
-
-	event := rawEvent{
-		Timestamp:   time.Now().UTC().Format(time.RFC3339Nano),
-		SessionID:   a.getSessionID(),
-		EventName:   eventName,
-		SystemProps: detectSystemProps(),
-		Props:       props,
-	}
-
-	a.mu.Lock()
-	a.buffer = append(a.buffer, event)
-	shouldFlush := len(a.buffer) >= a.maxBatchSize
-	a.mu.Unlock()
-
-	if shouldFlush {
-		a.Flush()
-	}
-}
-
-// Flush sends all buffered events to the server.
-func (a *Analytics) Flush() {
-	a.mu.Lock()
-	if len(a.buffer) == 0 {
-		a.mu.Unlock()
-		return
-	}
-	batch := a.buffer
-	a.buffer = nil
-	a.mu.Unlock()
-
-	a.send(batch)
-}
-
-// Destroy flushes remaining events and stops the background timer.
-func (a *Analytics) Destroy() {
-	a.ticker.Stop()
-	close(a.done)
-	a.Flush()
-}
-
-// Disable stops tracking.
-func (a *Analytics) Disable() {
-	a.mu.Lock()
-	a.enabled = false
-	a.buffer = nil
-	a.mu.Unlock()
-}
-
-// Enable resumes tracking.
-func (a *Analytics) Enable() {
-	a.mu.Lock()
-	a.enabled = true
-	a.mu.Unlock()
-}
-
-func (a *Analytics) flushLoop() {
-	for {
-		select {
-		case <-a.ticker.C:
-			a.Flush()
-		case <-a.done:
-			return
-		}
-	}
-}
-
-func (a *Analytics) send(events []rawEvent) {
-	url := a.host + "/api/v0/event"
-	data, err := json.Marshal(events)
+func (t *httpTransport) Send(url, key, body string) (Reply, error) {
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader([]byte(body)))
 	if err != nil {
-		return
+		return Reply{}, err
 	}
+	request.Header.Set("content-type", "application/json")
+	request.Header.Set("authorization", "Bearer "+key)
 
-	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	response, err := t.client.Do(request)
 	if err != nil {
-		return
+		// A transport error is not an answer. The caller retries it, which is
+		// why it is returned rather than turned into a status code.
+		return Reply{}, err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Project-Key", a.projectKey)
+	defer response.Body.Close()
 
-	resp, err := a.client.Do(req)
+	headers := map[string]string{}
+	for name := range response.Header {
+		headers[strings.ToLower(name)] = response.Header.Get(name)
+	}
+
+	// Read it. The previous SDK closed the body without looking, so a 401 was
+	// indistinguishable from success and the receipt — which says what was
+	// accepted and what was refused — was thrown away every time.
+	raw, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 	if err != nil {
-		return
+		return Reply{Status: response.StatusCode, Headers: headers}, nil
 	}
-	resp.Body.Close()
-}
 
-func (a *Analytics) getSessionID() string {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	now := time.Now()
-	if a.sessionTimeout > 0 && now.Sub(a.lastActivity) > a.sessionTimeout {
-		a.sessionID = generateSessionID()
+	parsed := map[string]any{}
+	if len(raw) > 0 {
+		// A body that is not JSON is not an error: a proxy answering on the
+		// server's behalf sends HTML, and the status still means something.
+		_ = json.Unmarshal(raw, &parsed)
 	}
-	a.lastActivity = now
-	return a.sessionID
-}
-
-func generateSessionID() string {
-	return fmt.Sprintf("%d.%08x", time.Now().Unix(), rand.Uint32())
-}
-
-func detectSystemProps() systemProps {
-	osName := runtime.GOOS
-	osVersion := ""
-	return systemProps{
-		OSName:     &osName,
-		OSVersion:  strPtr(osVersion),
-		Locale:     strPtr(os.Getenv("LANG")),
-		SDKVersion: sdkVersion,
-	}
-}
-
-func strPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
-}
-
-// ─── Module-level convenience API ──────────────────────────────────────────────
-
-var globalClient *Analytics
-
-// Init creates the global analytics client.
-func Init(opts Options) {
-	globalClient = New(opts)
-}
-
-// TrackEvent tracks an event on the global client.
-func TrackEvent(eventName string, props EventProperties) {
-	if globalClient != nil {
-		globalClient.Track(eventName, props)
-	}
-}
-
-// FlushGlobal flushes the global client.
-func FlushGlobal() {
-	if globalClient != nil {
-		globalClient.Flush()
-	}
-}
-
-// DestroyGlobal destroys the global client.
-func DestroyGlobal() {
-	if globalClient != nil {
-		globalClient.Destroy()
-		globalClient = nil
-	}
+	return Reply{Status: response.StatusCode, Headers: headers, Body: parsed}, nil
 }

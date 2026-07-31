@@ -77,6 +77,13 @@ type Client struct {
 	disabled    bool
 	closed      bool
 	diagnostics []Diagnostic
+
+	// Set only by New, which owns a background flush. NewClient leaves them
+	// nil: the conformance driver advances time itself, and a real ticker
+	// would make its scenarios race.
+	ticker   *time.Ticker
+	stopOnce sync.Once
+	stopped  chan struct{}
 }
 
 func NewClient(key, endpoint string, transport Transport, clock func() int64, random func() float64, system map[string]any) *Client {
@@ -160,7 +167,16 @@ func (c *Client) Flush() {
 }
 
 // Shutdown flushes what is queued, then stops. SDK-080.
+//
+// Safe to call more than once, and worth deferring: without it a short-lived
+// process exits with events still in the queue.
 func (c *Client) Shutdown() {
+	c.stopOnce.Do(func() {
+		if c.ticker != nil {
+			c.ticker.Stop()
+			close(c.stopped)
+		}
+	})
 	c.mu.Lock()
 	c.closed = true
 	c.mu.Unlock()

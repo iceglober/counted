@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "counted"
-version = "0.1.1"
+version = "2.0.0"
 description = "Privacy-first analytics SDK for Python. No cookies, no fingerprinting, no PII."
 readme = "README.md"
 license = "MIT"
@@ -28,3 +28,12 @@ classifiers = [
 Homepage = "https://counted.dev"
 Repository = "https://github.com/iceglober/counted"
 Documentation = "https://github.com/iceglober/counted/tree/main/packages/python"
+
+[tool.hatch.build.targets.wheel]
+packages = ["counted"]
+# Test infrastructure, driven by the conformance harness from the repo. A
+# consumer installing the SDK has no use for it.
+exclude = ["counted/conformance.py"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["counted/conformance.py"]

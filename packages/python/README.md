@@ -1,6 +1,7 @@
-# counted
+# counted (Python)
 
-Privacy-first analytics SDK for Python. No cookies, no fingerprinting, no PII. Zero dependencies.
+Privacy-first analytics for Python. No cookies, no fingerprinting, no PII, and
+no dependencies outside the standard library.
 
 ## Install
 
@@ -11,54 +12,54 @@ pip install counted
 ## Quick start
 
 ```python
-import counted
+from counted import Counted
 
-counted.init("ck_YOUR_PROJECT_KEY")
+counted = Counted(key="ck_live_...")
 
-counted.track("page_view", {"path": "/"})
-counted.track("user_signup", {"plan": "free"})
+counted.track("page_view", {"path": "/pricing"})
+
+counted.shutdown()
 ```
 
-## Class-based usage
+`shutdown()` is worth calling before a short-lived process exits — otherwise it
+exits with events still queued.
+
+## Identity
+
+Counted never derives, infers or invents an identity. `identify` is the only way
+one enters the system, and the id is always yours:
 
 ```python
-from counted import Analytics
+counted.identify("user_42")  # opaque — not an email; the server refuses those
+counted.track("plan_upgraded", {"plan": "pro"})
 
-analytics = Analytics(
-    project_key="ck_...",
-    host="https://app.counted.dev",  # optional
-    flush_interval=10.0,              # seconds, default 30
-    session_timeout=0,                # 0 = never auto-reset (for agents)
-)
-
-analytics.track("model_inference", {"model": "claude-sonnet", "tokens": 1500})
-analytics.flush()
-analytics.destroy()
+counted.reset()  # sign-out: forget the person, start a new visit
 ```
 
-## Agent usage
+Without `identify`, events are grouped by an in-memory visit id that expires
+after 30 minutes idle. A visit is an activity grouping, not an identity.
 
-For long-running AI agents, disable session auto-reset:
+## Options
 
 ```python
-analytics = Analytics(
-    project_key="ck_...",
-    session_id="my-agent-run-123",  # explicit session ID
-    session_timeout=0,               # never auto-reset
-    flush_interval=10.0,             # flush every 10s
+counted = Counted(
+    key="ck_live_...",
+    endpoint="https://counted.internal/v1/events",  # self-hosting
+    app_version="1.4.0",
 )
-
-analytics.track("tool_use", {"tool": "web_search", "outcome": "success"})
-analytics.track("task_complete", {"duration_ms": 45000})
 ```
 
-## What it does NOT do
+An empty key returns a client that discards everything, so analytics missing
+from a deployment is not a reason for it to misbehave.
 
-- Set cookies or use any persistent storage
-- Store IP addresses
-- Fingerprint the runtime environment
-- Require any external dependencies
+## Reliability
 
-## License
+The queue, the retries and the jittered backoff are specified in
+`contract/sdk-behaviour.md` and verified by a cross-language conformance suite
+that drives this SDK, the JavaScript reference, Go and Rust through the same
+scenarios. A batch that fails goes back to the head of the queue, `Retry-After`
+is honoured, and a credential error disables the client rather than retrying
+forever.
 
-MIT
+The transport, clock and source of randomness are injectable — that is what
+makes the behaviour above testable — and default to the real ones.

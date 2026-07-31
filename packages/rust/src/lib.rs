@@ -1,244 +1,249 @@
 //! # counted
 //!
-//! Privacy-first analytics SDK for Rust. No cookies, no fingerprinting, no PII.
+//! Privacy-first analytics for Rust. No cookies, no fingerprinting, no PII.
 //!
-//! ```rust
-//! use counted::Analytics;
-//! use std::collections::HashMap;
+//! ```no_run
+//! let counted = counted::Counted::new("ck_live_...");
 //!
-//! let analytics = Analytics::new("ck_YOUR_PROJECT_KEY");
-//! let mut props = HashMap::new();
-//! props.insert("path".into(), serde_json::Value::String("/".into()));
-//! analytics.track("page_view", Some(props));
-//! analytics.flush();
+//! counted.identify("user_42"); // optional, and always your own id
+//! counted.track("page_view", Some(serde_json::json!({ "path": "/pricing" })));
+//! counted.shutdown();
 //! ```
+//!
+//! ## Two entry points
+//!
+//! [`Counted`] is the one to use: it supplies a real HTTP transport, the
+//! system clock, and a background flush.
+//!
+//! [`client::Client`] takes those as arguments instead. That is what makes the
+//! reliability layer — the queue, the retries, the jittered backoff —
+//! verifiable by the cross-language conformance suite, which drives this
+//! crate, the JavaScript reference, Python and Go through the same scenarios.
+//! It is a poor thing to ask of somebody who wants to count page views, which
+//! is why it is not the default.
 
 pub mod client;
 pub mod contract;
 pub mod platform;
 
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-const DEFAULT_HOST: &str = "https://app.counted.dev";
-const DEFAULT_FLUSH_INTERVAL: Duration = Duration::from_secs(30);
-const DEFAULT_MAX_BATCH_SIZE: usize = 50;
-const DEFAULT_SESSION_TIMEOUT: Duration = Duration::from_secs(1800);
-const SDK_VERSION: &str = "counted-rust/0.1.0";
+pub use client::{Client, Diagnostic, Reply, Transport};
+pub use platform::{detect_system, SDK_VERSION};
 
-/// Event properties map.
-pub type EventProperties = HashMap<String, serde_json::Value>;
+/// Where events go unless you say otherwise. Self-hosted installations point
+/// this at their own API.
+pub const DEFAULT_ENDPOINT: &str = "https://api.counted.dev/v1/events";
 
-/// Configuration for the analytics client.
+/// Configuration. Only the key is required.
 pub struct Options {
-    pub project_key: String,
-    pub host: String,
+    /// A public ingest key. It ships in your binary; that is by design.
+    pub key: String,
+    pub endpoint: String,
+    /// Reported in system properties, so a metric can be split by release.
+    pub app_version: Option<String>,
     pub flush_interval: Duration,
-    pub max_batch_size: usize,
-    pub session_id: Option<String>,
-    pub session_timeout: Duration,
 }
 
-impl Default for Options {
-    fn default() -> Self {
+impl Options {
+    pub fn new(key: impl Into<String>) -> Self {
         Self {
-            project_key: String::new(),
-            host: DEFAULT_HOST.into(),
-            flush_interval: DEFAULT_FLUSH_INTERVAL,
-            max_batch_size: DEFAULT_MAX_BATCH_SIZE,
-            session_id: None,
-            session_timeout: DEFAULT_SESSION_TIMEOUT,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct SystemProps {
-    os_name: Option<String>,
-    os_version: Option<String>,
-    locale: Option<String>,
-    app_version: Option<String>,
-    device_model: Option<String>,
-    sdk_version: String,
-    is_debug: bool,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct RawEvent {
-    timestamp: String,
-    session_id: String,
-    event_name: String,
-    system_props: SystemProps,
-    props: EventProperties,
-}
-
-struct SessionState {
-    id: String,
-    last_activity: Instant,
-    timeout: Duration,
-}
-
-/// Analytics client. Thread-safe.
-pub struct Analytics {
-    project_key: String,
-    host: String,
-    max_batch_size: usize,
-    buffer: Arc<Mutex<Vec<RawEvent>>>,
-    session: Arc<Mutex<SessionState>>,
-}
-
-impl Analytics {
-    /// Create a new analytics client with just a project key.
-    pub fn new(project_key: &str) -> Self {
-        Self::with_options(Options {
-            project_key: project_key.into(),
-            ..Default::default()
-        })
-    }
-
-    /// Create a new analytics client with full options.
-    pub fn with_options(opts: Options) -> Self {
-        let session_id = opts.session_id.unwrap_or_else(generate_session_id);
-
-        Self {
-            project_key: opts.project_key,
-            host: opts.host,
-            max_batch_size: opts.max_batch_size,
-            buffer: Arc::new(Mutex::new(Vec::new())),
-            session: Arc::new(Mutex::new(SessionState {
-                id: session_id,
-                last_activity: Instant::now(),
-                timeout: opts.session_timeout,
-            })),
+            key: key.into(),
+            endpoint: DEFAULT_ENDPOINT.into(),
+            app_version: None,
+            flush_interval: Duration::from_millis(contract::FLUSH_INTERVAL_MS),
         }
     }
 
-    /// Track an event with optional properties.
-    pub fn track(&self, event_name: &str, props: Option<EventProperties>) {
-        let event = RawEvent {
-            timestamp: now_iso(),
-            session_id: self.get_session_id(),
-            event_name: event_name.into(),
-            system_props: detect_system_props(),
-            props: props.unwrap_or_default(),
-        };
-
-        let should_flush;
-        {
-            let mut buf = self.buffer.lock().unwrap();
-            buf.push(event);
-            should_flush = buf.len() >= self.max_batch_size;
-        }
-
-        if should_flush {
-            self.flush();
-        }
+    pub fn endpoint(mut self, endpoint: impl Into<String>) -> Self {
+        self.endpoint = endpoint.into();
+        self
     }
 
-    /// Flush all buffered events to the server.
+    pub fn app_version(mut self, version: impl Into<String>) -> Self {
+        self.app_version = Some(version.into());
+        self
+    }
+
+    pub fn flush_interval(mut self, interval: Duration) -> Self {
+        self.flush_interval = interval;
+        self
+    }
+}
+
+/// The client.
+///
+/// Cheap to clone, and every clone shares one queue — so cloning it into
+/// threads is the intended way to use it rather than something to work around.
+#[derive(Clone)]
+pub struct Counted {
+    inner: Arc<Client>,
+    stop: Arc<AtomicBool>,
+}
+
+impl Counted {
+    /// A client with the defaults: the real endpoint, a background flush.
+    pub fn new(key: impl Into<String>) -> Self {
+        Self::with_options(Options::new(key))
+    }
+
+    pub fn with_options(options: Options) -> Self {
+        let key = options.key.clone();
+        let inner = Arc::new(Client::new(
+            options.key,
+            options.endpoint,
+            Arc::new(UreqTransport),
+            Arc::new(|| {
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64
+            }),
+            // Not the `rand` crate: a jittered backoff needs an
+            // unpredictable-enough number, not a cryptographic one, and a
+            // near-zero-dependency SDK is easier to get approved than one that
+            // pulls in a tree for it.
+            Arc::new(weak_random),
+            Some(detect_system(options.app_version.as_deref())),
+        ));
+
+        let stop = Arc::new(AtomicBool::new(false));
+
+        // No key means no thread and no I/O. Analytics missing from a build is
+        // not a reason for the build to misbehave.
+        if !key.is_empty() {
+            let ticking = Arc::clone(&inner);
+            let stopping = Arc::clone(&stop);
+            let interval = options.flush_interval;
+            thread::spawn(move || loop {
+                thread::sleep(interval);
+                if stopping.load(Ordering::Relaxed) {
+                    return;
+                }
+                ticking.flush();
+            });
+        }
+
+        Self { inner, stop }
+    }
+
+    /// Attribute subsequent events to a person.
+    ///
+    /// The only way a durable identity enters Counted, and it is always your
+    /// own id — we never derive, infer or invent one. Pass something opaque:
+    /// the server refuses anything that looks like an email address.
+    pub fn identify(&self, user_id: &str) {
+        self.inner.identify(user_id);
+    }
+
+    /// Forget the person and start a new visit. For sign-out.
+    pub fn reset(&self) {
+        self.inner.reset();
+    }
+
+    pub fn track(&self, name: &str, properties: Option<serde_json::Value>) {
+        self.inner.track(name, properties);
+    }
+
+    /// Send what is queued, now.
     pub fn flush(&self) {
-        let batch: Vec<RawEvent>;
-        {
-            let mut buf = self.buffer.lock().unwrap();
-            if buf.is_empty() {
-                return;
-            }
-            batch = buf.drain(..).collect();
-        }
-        self.send(&batch);
+        self.inner.flush();
     }
 
-    fn get_session_id(&self) -> String {
-        let mut session = self.session.lock().unwrap();
-        let now = Instant::now();
-
-        if session.timeout > Duration::ZERO
-            && now.duration_since(session.last_activity) > session.timeout
-        {
-            session.id = generate_session_id();
-        }
-        session.last_activity = now;
-        session.id.clone()
+    /// Stop the background flush, after one last send.
+    ///
+    /// Worth calling before a short-lived process exits — otherwise it exits
+    /// with events still in the queue.
+    pub fn shutdown(&self) {
+        self.stop.store(true, Ordering::Relaxed);
+        self.inner.shutdown();
     }
 
-    fn send(&self, events: &[RawEvent]) {
-        let url = format!("{}/api/v0/event", self.host);
-        let body = match serde_json::to_string(events) {
-            Ok(b) => b,
-            Err(_) => return,
+    /// Anything a developer should see: a refused batch, a dropped event, a
+    /// quota warning. Draining, so each is reported once.
+    pub fn take_diagnostics(&self) -> Vec<Diagnostic> {
+        self.inner.take_diagnostics()
+    }
+}
+
+impl Drop for Counted {
+    fn drop(&mut self) {
+        // Only when the last handle goes. Flushing on every clone's drop would
+        // send a batch each time one crossed a thread boundary.
+        if Arc::strong_count(&self.inner) == 1 {
+            self.shutdown();
+        }
+    }
+}
+
+/// The only I/O in the crate.
+struct UreqTransport;
+
+impl Transport for UreqTransport {
+    fn send(&self, url: &str, key: &str, body: &str) -> Result<Reply, String> {
+        let sent = ureq::post(url)
+            .set("content-type", "application/json")
+            .set("authorization", &format!("Bearer {key}"))
+            .timeout(Duration::from_millis(contract::REQUEST_TIMEOUT_MS))
+            .send_string(body);
+
+        let response = match sent {
+            Ok(response) => response,
+            // An HTTP error is an answer, not a failure: its body carries
+            // whether resending can help. Treating it as an error is how the
+            // previous SDK made a 401 indistinguishable from success.
+            Err(ureq::Error::Status(_, response)) => response,
+            Err(transport) => return Err(transport.to_string()),
         };
 
-        let _ = ureq::post(&url)
-            .set("Content-Type", "application/json")
-            .set("Project-Key", &self.project_key)
-            .send_string(&body);
+        let status = response.status();
+        let mut headers = Vec::new();
+        for name in response.headers_names() {
+            if let Some(value) = response.header(&name) {
+                headers.push((name.to_lowercase(), value.to_string()));
+            }
+        }
+
+        let text = response.into_string().unwrap_or_default();
+        // A body that is not JSON is not an error — a proxy answering for the
+        // server sends HTML, and the status still means something.
+        let body = serde_json::from_str(&text).ok();
+
+        Ok(Reply { status, headers, body })
     }
 }
 
-impl Drop for Analytics {
-    fn drop(&mut self) {
-        self.flush();
+/// Enough randomness for a backoff jitter, and nothing more.
+///
+/// Seeded from the clock and the address of a stack local, so two processes
+/// starting in the same millisecond do not retry in lockstep.
+fn weak_random() -> f64 {
+    use std::cell::Cell;
+    thread_local! {
+        static STATE: Cell<u64> = const { Cell::new(0) };
     }
-}
-
-fn generate_session_id() -> String {
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let rand: u32 = (ts as u32).wrapping_mul(2654435761); // simple hash
-    format!("{}.{:08x}", ts, rand)
-}
-
-fn now_iso() -> String {
-    let d = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    let secs = d.as_secs();
-    let millis = d.subsec_millis();
-
-    let total_days = secs / 86400;
-    let day_secs = secs % 86400;
-    let hours = day_secs / 3600;
-    let minutes = (day_secs % 3600) / 60;
-    let seconds = day_secs % 60;
-
-    // Approximate date calculation (good enough for timestamps)
-    let mut y = 1970i64;
-    let mut remaining = total_days as i64;
-    loop {
-        let days_in_year = if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) { 366 } else { 365 };
-        if remaining < days_in_year { break; }
-        remaining -= days_in_year;
-        y += 1;
-    }
-    let leap = y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
-    let month_days = [31, if leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    let mut m = 0usize;
-    for &md in &month_days {
-        if remaining < md as i64 { break; }
-        remaining -= md as i64;
-        m += 1;
-    }
-
-    format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}Z",
-        y, m + 1, remaining + 1, hours, minutes, seconds, millis
-    )
-}
-
-fn detect_system_props() -> SystemProps {
-    SystemProps {
-        os_name: Some(std::env::consts::OS.into()),
-        os_version: None,
-        locale: std::env::var("LANG").ok(),
-        app_version: None,
-        device_model: None,
-        sdk_version: SDK_VERSION.into(),
-        is_debug: cfg!(debug_assertions),
-    }
+    STATE.with(|state| {
+        let mut seed = state.get();
+        if seed == 0 {
+            let local = 0u8;
+            seed = (SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos() as u64)
+                ^ (&local as *const u8 as u64);
+            // xorshift is fixed at zero, so a zero seed must never survive.
+            if seed == 0 {
+                seed = 0x9E37_79B9_7F4A_7C15;
+            }
+        }
+        // xorshift64: small, fast, and adequate for jitter.
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        state.set(seed);
+        (seed >> 11) as f64 / (1u64 << 53) as f64
+    })
 }

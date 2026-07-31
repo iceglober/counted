@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	counted "github.com/iceglober/counted/packages/go"
+	counted "github.com/iceglober/counted/packages/go/v2"
 )
 
 type scripted struct {
