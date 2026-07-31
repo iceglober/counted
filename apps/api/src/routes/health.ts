@@ -17,7 +17,7 @@
  * is running on. It reports no connection strings and no secrets.
  */
 
-import { Principal, ROLE_SCOPES, type Scope } from "@counted/domain";
+import { Principal, type Scope } from "@counted/domain";
 import type { Dependencies } from "../composition";
 import { publicRoute, type RouteDefinition } from "../http/route";
 
@@ -94,9 +94,15 @@ export const healthRoutes = (deps: Dependencies): readonly RouteDefinition[] => 
 /**
  * The scopes a principal carries independent of any resource.
  *
- * For an account this is unknowable without naming a workspace — authority
- * comes from membership, which differs per workspace — so it says so rather
- * than returning a number that would be wrong somewhere.
+ * For an account there are none. Authority comes from membership and differs
+ * per workspace, so any list here would be wrong for some workspace — and
+ * `scopeSource: "membership"` is what says where to look instead. That is
+ * different from `"none"`, which means the caller is nobody.
+ *
+ * This used to return `ROLE_SCOPES.owner`, directly contradicting the comment
+ * above it and telling every signed-in account it could do everything. The
+ * branch was unreachable until console sessions existed, so nothing had ever
+ * observed it.
  */
 const effectiveScopes = (
   p: Principal,
@@ -105,7 +111,7 @@ const effectiveScopes = (
     case "anonymous":
       return { scopeSource: "none", scopes: [] };
     case "account":
-      return { scopeSource: "membership", scopes: ROLE_SCOPES.owner };
+      return { scopeSource: "membership", scopes: [] };
     default:
       return { scopeSource: "credential", scopes: p.scopes };
   }

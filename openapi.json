@@ -22,6 +22,10 @@
     {
       "name": "read",
       "description": "Asking questions"
+    },
+    {
+      "name": "auth",
+      "description": "Signing in to the console"
     }
   ],
   "components": {
@@ -2181,7 +2185,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getLiveness"
       }
     },
     "/health/ready": {
@@ -2212,7 +2217,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getReadiness"
       }
     },
     "/v1/auth/sign-in": {
@@ -2245,7 +2251,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "requestSignInLink"
       }
     },
     "/v1/auth/session": {
@@ -2285,7 +2292,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "createSession",
+        "x-counted-invalidates": [
+          "me"
+        ]
       },
       "delete": {
         "summary": "Sign out",
@@ -2297,7 +2308,11 @@
           "204": {
             "description": "Signed out"
           }
-        }
+        },
+        "operationId": "endSession",
+        "x-counted-invalidates": [
+          "me"
+        ]
       }
     },
     "/v1/events": {
@@ -2392,7 +2407,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "ingestEvents"
       }
     },
     "/v1/projects/{projectId}/query": {
@@ -2478,7 +2494,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "runQuery"
       }
     },
     "/v1/dashboards/{dashboardId}/data": {
@@ -2555,7 +2572,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "renderDashboard"
       }
     },
     "/v1/me": {
@@ -2576,7 +2594,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "describeCaller",
+        "x-counted-provides": [
+          "me"
+        ]
       }
     },
     "/v1/workspaces/{workspaceId}": {
@@ -2642,7 +2664,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getWorkspace",
+        "x-counted-provides": [
+          "workspace:{workspaceId}"
+        ]
       },
       "patch": {
         "summary": "Rename a workspace",
@@ -2715,7 +2741,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "updateWorkspace",
+        "x-counted-invalidates": [
+          "workspace:{workspaceId}"
+        ]
       }
     },
     "/v1/workspaces/{workspaceId}/projects": {
@@ -2782,7 +2812,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "listProjects",
+        "x-counted-provides": [
+          "projects:{workspaceId}"
+        ]
       },
       "post": {
         "summary": "Create a project",
@@ -2856,7 +2890,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "createProject",
+        "x-counted-invalidates": [
+          "projects:{workspaceId}"
+        ]
       }
     },
     "/v1/projects/{projectId}": {
@@ -2922,7 +2960,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getProject",
+        "x-counted-provides": [
+          "project:{projectId}"
+        ]
       },
       "patch": {
         "summary": "Rename a project",
@@ -2995,7 +3037,12 @@
               }
             }
           }
-        }
+        },
+        "operationId": "updateProject",
+        "x-counted-invalidates": [
+          "project:{projectId}",
+          "projects"
+        ]
       }
     },
     "/v1/projects/{projectId}/credentials": {
@@ -3062,7 +3109,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "listCredentials",
+        "x-counted-provides": [
+          "credentials:{projectId}"
+        ]
       },
       "post": {
         "summary": "Issue a credential",
@@ -3136,7 +3187,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "issueCredential",
+        "x-counted-invalidates": [
+          "credentials:{projectId}"
+        ]
       }
     },
     "/v1/projects/{projectId}/credentials/{credentialId}/rotate": {
@@ -3221,7 +3276,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "rotateCredential",
+        "x-counted-invalidates": [
+          "credentials:{projectId}"
+        ]
       }
     },
     "/v1/projects/{projectId}/credentials/{credentialId}": {
@@ -3289,7 +3348,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "revokeCredential",
+        "x-counted-invalidates": [
+          "credentials:{projectId}"
+        ]
       }
     },
     "/v1/workspaces/{workspaceId}/dashboards": {
@@ -3355,7 +3418,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "listDashboards",
+        "x-counted-provides": [
+          "dashboards:{workspaceId}"
+        ]
       },
       "post": {
         "summary": "Create a dashboard",
@@ -3429,7 +3496,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "createDashboard",
+        "x-counted-invalidates": [
+          "dashboards:{workspaceId}"
+        ]
       }
     },
     "/v1/dashboards/{dashboardId}": {
@@ -3495,7 +3566,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getDashboard",
+        "x-counted-provides": [
+          "dashboard:{dashboardId}"
+        ]
       },
       "patch": {
         "summary": "Rename a dashboard",
@@ -3568,7 +3643,12 @@
               }
             }
           }
-        }
+        },
+        "operationId": "updateDashboard",
+        "x-counted-invalidates": [
+          "dashboard:{dashboardId}",
+          "dashboards"
+        ]
       },
       "delete": {
         "summary": "Delete a dashboard",
@@ -3625,7 +3705,12 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteDashboard",
+        "x-counted-invalidates": [
+          "dashboard:{dashboardId}",
+          "dashboards"
+        ]
       }
     },
     "/v1/projects/{projectId}/monitors": {
@@ -3692,7 +3777,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "listMonitors",
+        "x-counted-provides": [
+          "monitors:{projectId}"
+        ]
       }
     },
     "/v1/monitors/{monitorId}": {
@@ -3758,7 +3847,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getMonitor",
+        "x-counted-provides": [
+          "monitor:{monitorId}"
+        ]
       },
       "patch": {
         "summary": "Enable or disable a monitor",
@@ -3831,7 +3924,12 @@
               }
             }
           }
-        }
+        },
+        "operationId": "updateMonitor",
+        "x-counted-invalidates": [
+          "monitor:{monitorId}",
+          "monitors"
+        ]
       }
     },
     "/v1/dashboards/{dashboardId}/share": {
@@ -3907,7 +4005,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "createShareLink",
+        "x-counted-invalidates": [
+          "dashboard:{dashboardId}"
+        ]
       },
       "delete": {
         "summary": "Revoke a share link",
@@ -3965,7 +4067,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "revokeShareLink",
+        "x-counted-invalidates": [
+          "dashboard:{dashboardId}"
+        ]
       }
     },
     "/v1/shared/dashboard": {
@@ -4011,7 +4117,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getSharedDashboard"
       }
     },
     "/v1/shared/dashboard/render": {
@@ -4057,7 +4164,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "renderSharedDashboard"
       }
     },
     "/v1/workspaces/{workspaceId}/usage": {
@@ -4124,7 +4232,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getUsage",
+        "x-counted-provides": [
+          "usage:{workspaceId}"
+        ]
       }
     },
     "/v1/workspaces/{workspaceId}/subscription": {
@@ -4191,7 +4303,11 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getSubscription",
+        "x-counted-provides": [
+          "subscription:{workspaceId}"
+        ]
       }
     },
     "/v1/workspaces/{workspaceId}/billing/checkout-sessions": {
@@ -4266,7 +4382,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "createCheckoutSession"
       }
     },
     "/v1/workspaces/{workspaceId}/billing/portal-sessions": {
@@ -4333,7 +4450,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "createPortalSession"
       }
     },
     "/v1/webhooks/stripe": {
@@ -4364,7 +4482,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "receiveStripeWebhook"
       }
     }
   },

@@ -6,4 +6,5 @@ export * from "./schemas/query";
 export * from "./schemas/management";
 export * from "./schemas/health";
 export * from "./schemas/auth";
+export * from "./operations";
 export * from "./openapi";

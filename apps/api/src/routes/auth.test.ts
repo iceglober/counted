@@ -259,3 +259,25 @@ describe("CORS", () => {
     expect(response.headers.get("access-control-allow-headers")).toContain("authorization");
   });
 });
+
+describe("describing a signed-in caller", () => {
+  test("an account is told where its authority comes from, not given a scope list", async () => {
+    // `/v1/me` exists so a 403 can be diagnosed without guesswork, which makes
+    // an inaccurate answer worse than none. An account's scopes depend on the
+    // workspace, so any list here is wrong for some workspace — this used to
+    // report every scope an owner has, to every signed-in account.
+    const { app } = build({ accountFor: async () => ({ id: ACCOUNT, email: "someone@example.com", createdAt: NOW }) });
+    const response = await app.request("/v1/me", { headers: { cookie: `${SESSION_COOKIE}=x` } });
+    const body = (await response.json()) as { kind: string; scopeSource: string; scopes: string[] };
+
+    expect(body).toMatchObject({ kind: "account", scopeSource: "membership", scopes: [] });
+  });
+
+  test("and an anonymous caller is distinguishable from a signed-in one", async () => {
+    // `none` versus `membership` is the difference between "you are nobody"
+    // and "your authority depends on the workspace you name".
+    const { app } = build();
+    const body = (await (await app.request("/v1/me")).json()) as { scopeSource: string };
+    expect(body.scopeSource).toBe("none");
+  });
+});

@@ -39,6 +39,9 @@
       ],
       "@counted/agent": [
         "./packages/agent-cli/src/index.ts"
+      ],
+      "@/*": [
+        "./apps/web/src/*"
       ]
     },
     "jsx": "react-jsx"

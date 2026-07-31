@@ -12,6 +12,7 @@
 
 import { OpenApiGeneratorV31, OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import { ProblemSchema } from "./schemas/common";
+import { OPERATIONS } from "./operations";
 import { IngestReceiptSchema, IngestRequestSchema } from "./schemas/ingest";
 import { QueryRequestSchema, QueryResponseSchema } from "./schemas/query";
 import { LivenessSchema, PrincipalSchema, ReadinessSchema } from "./schemas/health";
@@ -441,8 +442,59 @@ export const buildRegistry = (): OpenAPIRegistry => {
   return registry;
 };
 
+/**
+ * Stamp the operation names on, and check both lists at once.
+ *
+ * Done here rather than on each `registerPath` so the whole vocabulary lives
+ * in one readable table — and so that a path with no name, or a name for a
+ * path that no longer exists, is a build failure rather than a client method
+ * that silently vanished.
+ */
+const applyOperationIds = (document: OpenApiDocument): OpenApiDocument => {
+  const unnamed: string[] = [];
+  const seen = new Set<string>();
+  const duplicated: string[] = [];
+  const covered = new Set<string>();
+
+  for (const [path, operations] of Object.entries(document.paths ?? {})) {
+    for (const [method, operation] of Object.entries(operations)) {
+      if (!HTTP_METHODS.has(method)) continue;
+      const key = `${method.toUpperCase()} ${path}`;
+      const spec = OPERATIONS[key];
+      if (spec === undefined) {
+        unnamed.push(key);
+        continue;
+      }
+      covered.add(key);
+      if (seen.has(spec.operationId)) duplicated.push(spec.operationId);
+      seen.add(spec.operationId);
+
+      const target = operation as Record<string, unknown>;
+      target["operationId"] = spec.operationId;
+      // Carried into the document so a generated client can derive its cache
+      // keys from the contract rather than from a map somebody maintains.
+      if (spec.provides !== undefined) target["x-counted-provides"] = spec.provides;
+      if (spec.invalidates !== undefined) target["x-counted-invalidates"] = spec.invalidates;
+    }
+  }
+
+  const orphaned = Object.keys(OPERATIONS).filter((key) => !covered.has(key));
+  const problems = [
+    unnamed.length > 0 ? `no operationId declared for: ${unnamed.join(", ")}` : "",
+    orphaned.length > 0 ? `declared for a path that does not exist: ${orphaned.join(", ")}` : "",
+    duplicated.length > 0 ? `duplicate operationId: ${duplicated.join(", ")}` : "",
+  ].filter((line) => line.length > 0);
+
+  if (problems.length > 0) throw new Error(`operation table is out of step:\n  ${problems.join("\n  ")}`);
+  return document;
+};
+
+const HTTP_METHODS = new Set(["get", "post", "put", "patch", "delete"]);
+
+type OpenApiDocument = { paths?: Record<string, Record<string, unknown>> };
+
 export const buildOpenApiDocument = (): object =>
-  new OpenApiGeneratorV31(buildRegistry().definitions).generateDocument({
+  applyOperationIds(new OpenApiGeneratorV31(buildRegistry().definitions).generateDocument({
     openapi: OPENAPI_VERSION,
     info: {
       title: "Counted API",
@@ -456,5 +508,6 @@ export const buildOpenApiDocument = (): object =>
       { name: "health", description: "Liveness and readiness" },
       { name: "ingest", description: "Writing events" },
       { name: "read", description: "Asking questions" },
+      { name: "auth", description: "Signing in to the console" },
     ],
-  });
+  }) as unknown as OpenApiDocument);
