@@ -34,6 +34,13 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 pub use client::{Client, Diagnostic, Reply, Transport};
 pub use platform::{detect_system, SDK_VERSION};
 
+/// Re-exported because `serde_json::Value` is in this crate's public signatures
+/// — [`Counted::track`] takes one — so `counted::serde_json::Value` always
+/// names the version this crate expects, whatever a consumer's own tree
+/// resolved. Add `serde_json` to your `Cargo.toml` as well if you want the
+/// `json!` macro; the README's install block says so.
+pub use serde_json;
+
 /// Where events go unless you say otherwise. Self-hosted installations point
 /// this at their own API.
 pub const DEFAULT_ENDPOINT: &str = "https://api.counted.dev/v1/events";

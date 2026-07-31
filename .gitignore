@@ -54,3 +54,6 @@ packages/rust/Cargo.lock
 # Claude Code harness artifacts (per-machine runtime state / local plugin installs)
 .claude/scheduled_tasks.lock
 .claude/plugins/
+
+# Scratch projects built by `bun run readmes` (kept only when a check fails).
+.readme-check/

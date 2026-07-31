@@ -23,8 +23,35 @@ on:
   workflow_dispatch: {}
 
 jobs:
+  # Every publish job waits on this one. Each registry renders the package's
+  # README on its page, and a version cannot be withdrawn or corrected — so an
+  # example that does not compile is permanent, and the cheapest moment to
+  # notice is the minute before uploading.
+  #
+  # Not hypothetical: the Rust quick start called `serde_json::json!` while the
+  # install block listed only `counted-sdk`, so the first thing a reader copied
+  # did not build.
+  readmes:
+    name: SDK README examples compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - uses: dtolnay/rust-toolchain@stable
+      - run: bun install --frozen-lockfile
+      - run: bun run readmes
+
   python:
     name: Publish counted to PyPI
+    needs: readmes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,6 +90,7 @@ jobs:
 
   rust:
     name: Publish counted-sdk to crates.io
+    needs: readmes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,6 +124,7 @@ jobs:
 
   go:
     name: Tag Go module
+    needs: readmes
     runs-on: ubuntu-latest
     permissions:
       contents: write

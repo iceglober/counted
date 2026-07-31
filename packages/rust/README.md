@@ -10,6 +10,7 @@ crates.io has no scopes and `counted` belongs to an unrelated crate.
 ```toml
 [dependencies]
 counted-sdk = "2"
+serde_json = "1"     # event properties are a `serde_json::Value`
 ```
 
 ## Quick start
@@ -23,6 +24,9 @@ fn main() {
     counted.shutdown();
 }
 ```
+
+`counted::serde_json` re-exports the crate, so `counted::serde_json::Value`
+always names the version this one expects if the two ever diverge.
 
 `Counted` is cheap to clone and every clone shares one queue, so cloning it into
 threads is the intended way to use it. The last handle to drop flushes.
