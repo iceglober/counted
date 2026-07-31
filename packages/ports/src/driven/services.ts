@@ -43,13 +43,32 @@ export interface Outbox {
   enqueue(events: readonly DomainEventEnvelope[]): Promise<void>;
   claim(limit: number): Promise<readonly DomainEventEnvelope[]>;
   markDispatched(ids: readonly string[], at: Instant): Promise<void>;
+  /**
+   * Record a failed delivery and return the new attempt count.
+   *
+   * Separate from `markDispatched` because a failure must leave the row
+   * claimable again — the point is to try later, not to give up.
+   */
+  recordFailure(id: string, error: string, at: Instant): Promise<number>;
   /** Undispatched events. A growing count means dispatch has stalled. */
   pendingCount(): Promise<number>;
 }
 
 export type Notification =
   | { readonly channel: "email"; readonly to: string; readonly subject: string; readonly body: string }
-  | { readonly channel: "webhook"; readonly url: string; readonly payload: unknown };
+  | {
+      readonly channel: "webhook";
+      readonly url: string;
+      /**
+       * Stable across redeliveries, and sent as `webhook-id`.
+       *
+       * Part of the notification rather than passed alongside it, because the
+       * receiver's ability to deduplicate is part of what is being delivered —
+       * delivery is at-least-once, and this is what makes that survivable.
+       */
+      readonly id: string;
+      readonly payload: unknown;
+    };
 
 export interface Notifier {
   deliver(notification: Notification): Promise<void>;

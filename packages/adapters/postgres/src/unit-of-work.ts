@@ -66,6 +66,7 @@ export type BoundRepositories = {
   readonly outbox: {
     enqueue: (events: Parameters<typeof outboxRepo.enqueue>[1]) => Promise<void>;
     claim: (limit: number) => ReturnType<typeof outboxRepo.claim>;
+    recordFailure: (id: string, error: string, at: Instant) => Promise<number>;
     markDispatched: (ids: readonly string[], at: Instant) => Promise<void>;
     pendingCount: () => Promise<number>;
   };
@@ -99,6 +100,7 @@ const bind = (client: PoolClient): BoundRepositories => ({
   outbox: {
     enqueue: (events) => outboxRepo.enqueue(client, events),
     claim: (limit) => outboxRepo.claim(client, limit),
+    recordFailure: (id, error, at) => outboxRepo.recordFailure(client, id, error, at),
     markDispatched: (ids, at) => outboxRepo.markDispatched(client, ids, at),
     pendingCount: () => outboxRepo.pendingCount(client),
   },

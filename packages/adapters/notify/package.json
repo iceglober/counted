@@ -1,0 +1,10 @@
+{
+  "name": "@counted/adapter-notify",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Delivering notifications: signed webhooks and transactional email.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "build": "tsc --build", "test": "bun test", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@counted/domain": "workspace:*", "@counted/ports": "workspace:*" }
+}

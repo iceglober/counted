@@ -9,6 +9,7 @@ import { Pool } from "pg";
 import { Instant, type Clock } from "@counted/domain";
 import { createJobQueue, createPartitionMaintenance, createRetentionMaintenance, createRollupMaintenance, poolConfig, bootStore, PostgresAnalyticalStore, PostgresUnitOfWork } from "@counted/adapter-postgres";
 import type { JobQueue } from "@counted/ports";
+import { createNotifier } from "@counted/adapter-notify";
 import type { Handler, Logger } from "./runtime";
 import type { JobDependencies } from "./handlers";
 import type { JobName } from "@counted/ports";
@@ -20,6 +21,7 @@ export type WorkerConfig = {
   readonly workerId: string;
   readonly intervalMs: number;
   readonly shard: { readonly index: number; readonly total: number } | null;
+  readonly notify: { readonly emailApiKey: string; readonly emailFrom: string; readonly webhookSecret: string };
 };
 
 export const configFromEnv = (env: Record<string, string | undefined>): WorkerConfig => {
@@ -41,6 +43,11 @@ export const configFromEnv = (env: Record<string, string | undefined>): WorkerCo
     workerId: env["RAILWAY_REPLICA_ID"] ?? env["HOSTNAME"] ?? `worker-${process.pid}`,
     intervalMs: Number(env["WORKER_INTERVAL_MS"] ?? 5_000),
     shard: sharded ? { index, total } : null,
+    notify: {
+      emailApiKey: env["RESEND_API_KEY"] ?? "",
+      emailFrom: env["NOTIFY_FROM"] ?? "alerts@counted.dev",
+      webhookSecret: env["WEBHOOK_SIGNING_SECRET"] ?? "",
+    },
   };
 };
 
@@ -71,6 +78,10 @@ export const compose = async (
     rollups: createRollupMaintenance(pool),
     store: new PostgresAnalyticalStore(pool, boot.capabilities),
     unitOfWork: new PostgresUnitOfWork(pool),
+    notifier: createNotifier({
+      email: { apiKey: config.notify.emailApiKey, from: config.notify.emailFrom },
+      webhook: { secret: config.notify.webhookSecret },
+    }),
   });
 
   return {

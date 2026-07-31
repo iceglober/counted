@@ -113,7 +113,11 @@ CREATE TABLE IF NOT EXISTS outbox (
   payload       jsonb       NOT NULL,
   occurred_at   timestamptz NOT NULL,
   dispatched_at timestamptz,
-  attempts      integer     NOT NULL DEFAULT 0
+  attempts      integer     NOT NULL DEFAULT 0,
+  -- Why the last attempt failed. Kept after a successful retry too: an event
+  -- that took nine tries is worth knowing about even once it lands.
+  last_error    text,
+  last_error_at timestamptz
 );
 CREATE INDEX IF NOT EXISTS outbox_pending_idx
   ON outbox (occurred_at) WHERE dispatched_at IS NULL;

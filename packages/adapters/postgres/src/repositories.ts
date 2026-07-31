@@ -401,6 +401,23 @@ export const outboxRepo = {
     }));
   },
 
+  /**
+   * Record a failed delivery and return the new attempt count.
+   *
+   * The row stays undispatched, so the next run claims it again. Returning the
+   * count lets the caller decide when to stop rather than encoding that policy
+   * in SQL.
+   */
+  async recordFailure(client: PoolClient, id: string, error: string, at: Instant): Promise<number> {
+    const { rows } = await client.query<{ attempts: number }>(
+      `UPDATE outbox SET attempts = attempts + 1, last_error = $2, last_error_at = $3
+        WHERE id = $1
+        RETURNING attempts`,
+      [id, error, Instant.toDate(at)],
+    );
+    return rows[0]?.attempts ?? 0;
+  },
+
   async markDispatched(client: PoolClient, ids: readonly string[], at: Instant): Promise<void> {
     if (ids.length === 0) return;
     await client.query(`UPDATE outbox SET dispatched_at = $2 WHERE id = ANY($1::uuid[])`, [

@@ -7,3 +7,4 @@
 export * from "./query/plan";
 export * from "./query/assemble";
 export * from "./query/run";
+export * from "./notify/route";
