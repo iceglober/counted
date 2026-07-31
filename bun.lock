@@ -54,6 +54,7 @@
         "@counted/adapter-crypto": "workspace:*",
         "@counted/adapter-postgres": "workspace:*",
         "@counted/application": "workspace:*",
+        "@counted/contracts": "workspace:*",
         "@counted/domain": "workspace:*",
         "@counted/ports": "workspace:*",
         "hono": "^4.6.0",

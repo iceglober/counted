@@ -10,7 +10,8 @@
 import { describe, expect, test } from "bun:test";
 import { Instant, Principal, type Placement, type Resource, type Role } from "@counted/domain";
 import type { AccessResolver, AnalyticalStore, EventWriter, SecretGenerator } from "@counted/ports";
-import { createApp } from "./server";
+import { createApp, REQUEST_ID_HEADER } from "./server";
+import { createLogger } from "./http/log";
 import { configFromEnv, type Config, type Dependencies } from "./composition";
 
 const config: Config = { databaseUrl: "postgres://stub", port: 8080, release: "test-release" };
@@ -53,8 +54,12 @@ const stubSecrets: SecretGenerator = {
   digest: (secret) => secret as never,
 };
 
+/** A logger that discards. Tests that care about output supply their own sink. */
+export const silentLogger = () => createLogger({ service: "api", sink: () => {} });
+
 const deps = (overrides: Partial<Dependencies> = {}): Dependencies => ({
   access: stubAccess(),
+  log: silentLogger(),
   secrets: stubSecrets,
   store: stubStore(),
   writer: stubWriter,
@@ -164,21 +169,73 @@ describe("readiness", () => {
 });
 
 describe("request ids", () => {
+  const idOf = (res: Response) => res.headers.get(REQUEST_ID_HEADER);
+
   test("every response carries one", async () => {
     const res = await createApp(deps()).request("/health");
-    expect(res.headers.get("x-request-id")).toBeTruthy();
+    expect(idOf(res)).toMatch(/^req_[0-9A-HJKMNP-TV-Z]{26}$/);
+  });
+
+  test("the header is exposed, or a browser client cannot read it", async () => {
+    // A support tool the SDK cannot see is not a support tool.
+    const res = await createApp(deps()).request("/health");
+    expect(res.headers.get("access-control-expose-headers")).toContain(REQUEST_ID_HEADER);
   });
 
   test("an inbound id is preserved, so a trace survives the hop", async () => {
-    const res = await createApp(deps()).request("/health", { headers: { "x-request-id": "trace-abc" } });
-    expect(res.headers.get("x-request-id")).toBe("trace-abc");
+    const supplied = "req_01J8ZQ5S0000000000000000AB";
+    const res = await createApp(deps()).request("/health", { headers: { [REQUEST_ID_HEADER]: supplied } });
+    expect(idOf(res)).toBe(supplied);
+  });
+
+  test("an inbound id that is not one of ours is replaced, not trusted", async () => {
+    // Otherwise a client sets it to a fixed string and every request in the
+    // logs collides onto one id. (A newline — writing your own log lines — is
+    // refused by the HTTP layer before it reaches us: `Headers` rejects the
+    // value outright, so there is nothing here to test.)
+    for (const junk of ["trace-abc", "req_short", "../../etc", "req_lowercaseabcdefghijklmn"]) {
+      const res = await createApp(deps()).request("/health", { headers: { [REQUEST_ID_HEADER]: junk } });
+      expect(idOf(res)).not.toBe(junk);
+      expect(idOf(res)).toMatch(/^req_[0-9A-HJKMNP-TV-Z]{26}$/);
+    }
   });
 
   test("two requests get different ids", async () => {
     const app = createApp(deps());
-    const a = (await app.request("/health")).headers.get("x-request-id");
-    const b = (await app.request("/health")).headers.get("x-request-id");
+    const a = idOf(await app.request("/health"));
+    const b = idOf(await app.request("/health"));
     expect(a).not.toBe(b);
+  });
+
+  test("ids sort by arrival, because the timestamp leads", async () => {
+    const app = createApp(deps());
+    const first = idOf(await app.request("/health"))!;
+    await Bun.sleep(2);
+    const second = idOf(await app.request("/health"))!;
+    expect(second > first).toBe(true);
+  });
+});
+
+describe("trace context", () => {
+  test("a valid traceparent is joined rather than replaced", async () => {
+    const app = createApp(deps());
+    const traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+    const lines: string[] = [];
+    const withLog = deps({ log: createLogger({ service: "api", sink: (l) => lines.push(l) }) });
+    await createApp(withLog).request("/health", {
+      headers: { traceparent: `00-${traceId}-00f067aa0ba902b7-01` },
+    });
+    expect(lines.some((l) => (JSON.parse(l) as { traceId?: string }).traceId === traceId)).toBe(true);
+    expect(app).toBeDefined();
+  });
+
+  test("a malformed traceparent starts a new trace instead of failing the request", async () => {
+    // A broken header from some intermediary must never be able to take an
+    // endpoint down.
+    for (const header of ["garbage", "00-000-0-01", "ff-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"]) {
+      const res = await createApp(deps()).request("/health", { headers: { traceparent: header } });
+      expect(res.status).toBe(200);
+    }
   });
 });
 

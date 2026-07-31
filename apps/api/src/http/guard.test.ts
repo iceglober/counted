@@ -75,16 +75,24 @@ describe("a request with no credential", () => {
   test("is refused a scoped route with 401 and told how to authenticate", async () => {
     const res = await get(app(), "/p/prj_1");
     expect(res.status).toBe(401);
-    // RFC 9728 — the client learns how to authenticate from the response
-    // rather than from documentation it has to find.
-    expect(res.headers.get("www-authenticate")).toBe('Bearer realm="counted"');
+    // RFC 9728 — the client learns how to authenticate, and which scope it
+    // was missing, from the response rather than from documentation it has to
+    // find. Emitted by the one function that can produce a 401, so no route
+    // can omit it.
+    const challenge = res.headers.get("www-authenticate") ?? "";
+    expect(challenge).toContain('Bearer realm="counted"');
+    expect(challenge).toContain('scope="queries:run"');
+    expect(challenge).toContain("resource_metadata=");
   });
 
   test("the refusal is problem+json carrying the request id", async () => {
     const body = (await (await get(app(), "/p/prj_1")).json()) as Record<string, unknown>;
     expect(body["status"]).toBe(401);
     expect(body["requestId"]).toBe("req_test");
-    expect(body["type"]).toBe("https://counted.dev/problems/unauthenticated");
+    expect(body["type"]).toBe("https://counted.dev/errors/auth.unauthenticated");
+    expect(body["code"]).toBe("auth.unauthenticated");
+    expect(body["retryable"]).toBe(false);
+    expect(body["docs"]).toContain("/docs/errors#");
   });
 });
 
@@ -153,9 +161,18 @@ describe("a resolving credential", () => {
       authorization: "Bearer sk_good",
     });
     expect(forbidden.status).toBe(missing.status);
-    // Byte-identical, including the problem `type`. A differing type URI is
-    // as good an enumeration oracle as a differing status.
-    expect(await forbidden.json()).toEqual(await missing.json());
+    // Identical, including the problem `type` and `code`. A differing type URI
+    // is as good an enumeration oracle as a differing status.
+    //
+    // `instance` is excluded because it echoes the path the caller itself
+    // requested — the one field that legitimately differs and reveals nothing
+    // the caller did not already know.
+    const withoutInstance = async (r: Response) => {
+      const { instance, ...rest } = (await r.json()) as Record<string, unknown>;
+      expect(instance).toBeDefined();
+      return rest;
+    };
+    expect(await withoutInstance(forbidden)).toEqual(await withoutInstance(missing));
   });
 });
 

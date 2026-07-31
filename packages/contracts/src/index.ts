@@ -1,3 +1,5 @@
+export * from "./errors";
+export * from "./problem";
 export * from "./schemas/common";
 export * from "./schemas/ingest";
 export * from "./schemas/query";

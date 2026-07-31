@@ -42,3 +42,35 @@ export const idGenerator = { next: uuidv7 } as const;
  * credential it cannot be scoped down.
  */
 export const issueGrantToken = (): string => randomBytes(32).toString("base64url");
+
+/**
+ * A request id: `req_` and a ULID.
+ *
+ * ULID rather than a bare uuid because this one is meant to be *read* — quoted
+ * in a support message, pasted from a screenshot, typed out over a call.
+ * Crockford base32 has no `I`, `L`, `O` or `U`, so the characters people
+ * confuse are not in the alphabet, and 26 characters beats 36 with hyphens.
+ *
+ * Time-ordered for the same reason as the uuids above: sorting log lines by
+ * request id sorts them by when the request arrived.
+ */
+const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+export const ulid = (millis: number = Date.now()): string => {
+  let time = "";
+  let remaining = millis;
+  for (let i = 0; i < 10; i++) {
+    time = CROCKFORD[remaining % 32]! + time;
+    remaining = Math.floor(remaining / 32);
+  }
+
+  // 16 characters of randomness ≈ 80 bits. Two requests in the same
+  // millisecond collide with probability that never matters.
+  const bytes = randomBytes(16);
+  let random = "";
+  for (let i = 0; i < 16; i++) random += CROCKFORD[bytes[i]! % 32]!;
+
+  return time + random;
+};
+
+export const requestId = (millis?: number): string => `req_${ulid(millis)}`;

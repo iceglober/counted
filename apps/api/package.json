@@ -18,6 +18,7 @@
     "@counted/adapter-postgres": "workspace:*",
     "hono": "^4.6.0",
     "pg": "^8.13.0",
-    "@counted/adapter-crypto": "workspace:*"
+    "@counted/adapter-crypto": "workspace:*",
+    "@counted/contracts": "workspace:*"
   }
 }

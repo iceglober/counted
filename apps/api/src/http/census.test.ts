@@ -17,12 +17,13 @@ import type { AnalyticalStore, EventWriter } from "@counted/ports";
 import { createApp, allRoutes, routeCensus } from "../server";
 import type { Config, Dependencies } from "../composition";
 import { publicRoute, requires, projectFromPath, census, type RouteDefinition } from "./route";
-import { stubAccess } from "../server.test";
+import { stubAccess, silentLogger } from "../server.test";
 
 const config: Config = { databaseUrl: "postgres://stub", port: 8080, release: "test" };
 
 const deps: Dependencies = {
   access: stubAccess(),
+  log: silentLogger(),
   secrets: { issue: () => ({ secret: "", digest: "" as never, prefix: "" as never }), digest: (s) => s as never },
   store: {
     executeBatch: async () => ({ results: new Map(), stats: { statements: 0, totalMs: 0, coalesced: 0 } }),

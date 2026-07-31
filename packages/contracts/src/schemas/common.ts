@@ -16,6 +16,7 @@
 
 import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
+import { ERROR_CODES, type ErrorCode } from "../errors";
 
 extendZodWithOpenApi(z);
 
@@ -24,28 +25,59 @@ export { z };
 /**
  * The error envelope, once, for every failure.
  *
- * RFC 9457 problem+json. v1 had eight envelope shapes — bare arrays, bare
- * objects, `{data, meta}`, `{insights}`, naked 204s and 202s, `{ok:true}`,
- * `{received:true}`, `{status:"ok"}` — with no code, no request id and no
- * field-level errors anywhere. Validation failures were prose strings.
+ * RFC 9457 problem+json, plus four fields the RFC leaves open and every real
+ * client needs: a stable `code` to branch on, a `requestId` to quote, a
+ * `retryable` flag so an SDK does not have to guess, and `fields` for
+ * validation.
+ *
+ * v1 had eight envelope shapes — bare arrays, bare objects, `{data, meta}`,
+ * `{insights}`, naked 204s and 202s, `{ok:true}`, `{received:true}`,
+ * `{status:"ok"}` — with no code, no request id and no field-level errors
+ * anywhere. Validation failures were prose strings, so branching on a failure
+ * meant matching on English.
  */
+export const FieldErrorSchema = z
+  .object({
+    /** Dotted path with array indices, e.g. `events[1].name`. */
+    path: z.string().openapi({ example: "events[1].name" }),
+    /** Machine-branchable; Zod's issue code, already a closed set. */
+    code: z.string().openapi({ example: "invalid_type" }),
+    message: z.string().openapi({ example: "Expected string, received number." }),
+    /** Present for enum failures, so a client can render the choices. */
+    allowed: z.array(z.string()).optional(),
+  })
+  .openapi("FieldError");
+
 export const ProblemSchema = z
   .object({
-    type: z.string().openapi({ example: "https://counted.dev/problems/quota-exceeded" }),
-    title: z.string().openapi({ example: "Quota exceeded" }),
-    status: z.number().int().openapi({ example: 429 }),
-    detail: z.string().openapi({ example: "This workspace is past its monthly event allowance." }),
-    /** Correlates a user's report with a log line. */
-    requestId: z.string().openapi({ example: "01JD8Z2K9Q" }),
-    /** Present when specific fields were rejected. */
-    errors: z
-      .array(z.object({ path: z.string(), message: z.string() }))
-      .optional()
-      .openapi({ example: [{ path: "events[0].name", message: "must not be empty" }] }),
+    type: z.string().openapi({ example: "https://counted.dev/errors/request.validation_failed" }),
+    title: z.string().openapi({ example: "Validation Failed" }),
+    status: z.number().int().openapi({ example: 422 }),
+    /** Stable and namespaced. The field a client should actually branch on. */
+    code: z.enum(ERROR_CODES as unknown as [ErrorCode, ...ErrorCode[]]).openapi({
+      example: "request.validation_failed",
+      description: "Stable machine-readable code. Branch on this, not on status or prose.",
+    }),
+    detail: z.string().openapi({ example: "2 fields are invalid." }),
+    /** Correlates a user's report with a log line. Returned on every response. */
+    requestId: z.string().openapi({ example: "req_01J8ZQ5S0000000000000000" }),
+    /**
+     * Whether resending the same request could succeed. Part of the contract
+     * rather than a client-side guess — v1's SDKs retried any non-2xx, so a
+     * 400 for a malformed batch was resent four times unchanged.
+     */
+    retryable: z.boolean().openapi({ example: false }),
+    docs: z.string().openapi({ example: "https://counted.dev/docs/errors#request-validation_failed" }),
+    /** The path that failed, when it helps to repeat it. */
+    instance: z.string().optional(),
+    /** Present when specific fields were rejected. Every one of them. */
+    fields: z.array(FieldErrorSchema).optional(),
+    /** Seconds, mirroring the `Retry-After` header where one is sent. */
+    retryAfter: z.number().int().nonnegative().optional(),
   })
   .openapi("Problem");
 
-export type Problem = z.infer<typeof ProblemSchema>;
+
 
 /** Identifiers are opaque strings on the wire; their shape is our business. */
 export const ProjectIdSchema = z.string().uuid().openapi({ example: "3f1a2b4c-5d6e-4f70-8a91-2b3c4d5e6f70" });

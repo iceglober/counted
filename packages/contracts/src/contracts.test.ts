@@ -163,21 +163,63 @@ describe("the ingest receipt says what happened", () => {
 });
 
 describe("one error envelope", () => {
-  test("problem+json with a request id", () => {
+  test("problem+json with a code, a request id and a retryable flag", () => {
     const problem = {
-      type: "https://counted.dev/problems/quota-exceeded",
-      title: "Quota exceeded",
+      type: "https://counted.dev/errors/quota.exceeded",
+      title: "Quota Exceeded",
       status: 429,
+      code: "quota.exceeded",
       detail: "past the monthly allowance",
-      requestId: "01JD8Z2K9Q",
+      requestId: "req_01J8ZQ5S0000000000000000AB",
+      retryable: false,
+      docs: "https://counted.dev/docs/errors#quota-exceeded",
     };
     expect(ProblemSchema.safeParse(problem).success).toBe(true);
   });
 
   test("a request id is required, so every failure is traceable", () => {
+    const { requestId, ...without } = {
+      type: "x",
+      title: "y",
+      status: 500,
+      code: "internal.error",
+      detail: "z",
+      requestId: "req_1",
+      retryable: false,
+      docs: "d",
+    };
+    expect(ProblemSchema.safeParse(without).success).toBe(false);
+  });
+
+  test("a code outside the registry is refused", () => {
+    // The envelope enumerates the codes, so an undocumented one cannot be
+    // emitted by accident and then become a thing clients depend on.
     expect(
-      ProblemSchema.safeParse({ type: "x", title: "y", status: 500, detail: "z" }).success,
+      ProblemSchema.safeParse({
+        type: "x",
+        title: "y",
+        status: 500,
+        code: "internal.improvised",
+        detail: "z",
+        requestId: "req_1",
+        retryable: false,
+        docs: "d",
+      }).success,
     ).toBe(false);
+  });
+
+  test("retryable is required — a client must never have to guess", () => {
+    const { retryable, ...without } = {
+      type: "x",
+      title: "y",
+      status: 503,
+      code: "internal.unavailable",
+      detail: "z",
+      requestId: "req_1",
+      retryable: true,
+      docs: "d",
+    };
+    expect(ProblemSchema.safeParse(without).success).toBe(false);
   });
 });
 

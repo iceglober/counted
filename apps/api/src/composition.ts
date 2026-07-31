@@ -26,6 +26,7 @@ import {
   type BootReport,
 } from "@counted/adapter-postgres";
 import { secretGenerator } from "@counted/adapter-crypto";
+import { createLogger, type Logger } from "./http/log";
 import type { AccessResolver, AnalyticalStore, EventWriter, SecretGenerator } from "@counted/ports";
 import { Instant, type Clock } from "@counted/domain";
 
@@ -61,6 +62,7 @@ export type Dependencies = {
   readonly unitOfWork: PostgresUnitOfWork;
   readonly clock: Clock;
   readonly access: AccessResolver;
+  readonly log: Logger;
   readonly secrets: SecretGenerator;
   readonly boot: BootReport;
   readonly config: Config;
@@ -95,6 +97,7 @@ export const compose = async (config: Config): Promise<Dependencies> => {
     // Authorization reads the control plane, not the analytics pool: a slow
     // dashboard query must never be able to stop requests being authorized.
     access: createAccessResolver(analytics),
+    log: createLogger({ service: "api", release: config.release }),
     secrets: secretGenerator,
     boot,
     config,

@@ -17,10 +17,12 @@
  */
 
 import type { Context, MiddlewareHandler, Next } from "hono";
-import { Principal, decide, requirements, type Denial, type Facts, type Instant } from "@counted/domain";
+import { Principal, decide, requirements, type Denial, type Facts, type Instant, type Scope } from "@counted/domain";
 import type { AccessResolver, PresentedCredential } from "@counted/ports";
 import type { ApiEnv } from "../server";
 import type { Security } from "./route";
+import { sendProblem } from "./respond";
+import type { ErrorCode } from "@counted/contracts";
 
 export type GuardDeps = {
   readonly access: AccessResolver;
@@ -56,84 +58,52 @@ const presented = (c: Context<ApiEnv>): string | null => {
 };
 
 /**
- * Which HTTP status a denial becomes.
+ * Which error code a denial becomes.
  *
  * The split is about what the answer itself reveals, not about how severe the
  * refusal feels:
  *
- * **403** — facts about the *caller*. `scope_not_granted` describes the
- * credential presented; `role_insufficient` is told only to someone who is
- * already a member, and therefore already knows the resource exists. Neither
- * discloses anything new.
+ * **`auth.forbidden` (403)** — facts about the *caller*. `scope_not_granted`
+ * describes the credential presented; `role_insufficient` is told only to
+ * someone who is already a member, and therefore already knows the resource
+ * exists. Neither discloses anything new.
  *
- * **404** — anything that would otherwise confirm a resource exists. A caller
- * outside the workspace must not be able to tell "this project belongs to
- * someone else" from "no such project", or a valid key becomes an oracle for
- * enumerating every other tenant's ids.
+ * **`resource.not_found` (404)** — anything that would otherwise confirm a
+ * resource exists. A caller outside the workspace must not be able to tell
+ * "this belongs to someone else" from "no such thing", or a valid key becomes
+ * an oracle for enumerating every other tenant's ids. Because the code decides
+ * the status, the type URI and the title, the three cannot drift apart and
+ * leave a subtler oracle behind.
  */
-const STATUS: Record<Denial["reason"], number> = {
-  // No usable credential. 401 invites the client to present one.
-  anonymous: 401,
-  scope_not_granted: 403,
-  role_insufficient: 403,
-  not_a_member: 404,
-  outside_binding: 404,
-  no_such_resource: 404,
+const CODE: Record<Denial["reason"], ErrorCode> = {
+  anonymous: "auth.unauthenticated",
+  scope_not_granted: "auth.forbidden",
+  role_insufficient: "auth.forbidden",
+  not_a_member: "resource.not_found",
+  outside_binding: "resource.not_found",
+  no_such_resource: "resource.not_found",
   // Our bug: the guard did not fetch a fact the decision needed.
-  unresolved: 500,
-};
-
-/**
- * The problem type the client sees.
- *
- * Several internal reasons collapse to one URI on purpose. The denial keeps
- * eight cases so a log line can say precisely what happened; the response
- * carries three, because a distinct `type` is as good an oracle as a distinct
- * status — matching statuses with differing type URIs would have left the
- * enumeration hole open in a subtler place.
- */
-const PUBLIC_TYPE: Record<Denial["reason"], string> = {
-  anonymous: "unauthenticated",
-  scope_not_granted: "forbidden",
-  role_insufficient: "forbidden",
-  not_a_member: "not-found",
-  outside_binding: "not-found",
-  no_such_resource: "not-found",
-  unresolved: "internal-error",
-};
-
-const TITLE: Record<Denial["reason"], string> = {
-  anonymous: "Unauthenticated",
-  scope_not_granted: "Forbidden",
-  role_insufficient: "Forbidden",
-  not_a_member: "Not Found",
-  outside_binding: "Not Found",
-  no_such_resource: "Not Found",
-  unresolved: "Internal Server Error",
+  unresolved: "internal.error",
 };
 
 /**
  * What the client is told.
  *
- * Deliberately less than we know. A denial distinguishes eight cases
+ * Deliberately less than we know. A denial distinguishes seven cases
  * internally for logs; the response says which of three things happened. In
- * particular `outside_binding` and `not_a_member` are reported the same way a
- * missing resource is where they would otherwise confirm that some id exists.
+ * particular `outside_binding` and `not_a_member` read exactly as a missing
+ * resource does, where they would otherwise confirm that some id exists.
  */
-const detailFor = (denial: Denial): string => {
+const detailFor = (denial: Denial): string | undefined => {
   switch (denial.reason) {
-    case "anonymous":
-      return "No credential was presented, or it is not valid.";
     case "scope_not_granted":
       return `This credential does not carry the ${denial.scope} scope.`;
     case "role_insufficient":
       return `A ${denial.role} may not ${denial.scope}.`;
-    case "not_a_member":
-    case "outside_binding":
-    case "no_such_resource":
-      return "No such resource, or it is not yours.";
-    case "unresolved":
-      return "The request could not be authorized.";
+    default:
+      // The registry's own summary. One wording for all three 404 cases, so
+      // there is nothing to compare.
+      return undefined;
   }
 };
 
@@ -161,7 +131,7 @@ export const createGuard =
     const resource = security.resource(c);
     if (resource === null) {
       // The declaration names a path parameter this path does not have.
-      return problem(c, { reason: "unresolved", fact: "placement" });
+      return problem(c, { reason: "unresolved", fact: "placement" }, security.scope);
     }
 
     // Ask the domain what it needs, then fetch precisely that. Anything not
@@ -178,27 +148,22 @@ export const createGuard =
     }
 
     const decision = decide(principal, security.scope, resource, facts as Facts);
-    if (!decision.allow) return problem(c, decision.denial);
+    if (!decision.allow) return problem(c, decision.denial, security.scope);
 
     await next();
     return;
   };
 
-const problem = (c: Context<ApiEnv>, denial: Denial): Response => {
-  const status = STATUS[denial.reason];
-  if (status === 401) {
-    // RFC 9728: tell the client how to authenticate rather than making it
-    // guess from documentation.
-    c.header("www-authenticate", 'Bearer realm="counted"');
-  }
-  return c.json(
-    {
-      type: `https://counted.dev/problems/${PUBLIC_TYPE[denial.reason]}`,
-      title: TITLE[denial.reason],
-      status,
-      detail: detailFor(denial),
-      requestId: c.get("requestId"),
-    },
-    status as 401 | 403 | 404 | 500,
-  );
+const problem = (c: Context<ApiEnv>, denial: Denial, scope?: Scope): Response => {
+  // Logged with the precise reason; answered with the coarse one.
+  c.get("log")?.warn("auth.denied", {
+    reason: denial.reason,
+    principalKind: c.get("principal")?.kind,
+    route: c.req.routePath,
+    ...(scope === undefined ? {} : { scope }),
+  });
+  return sendProblem(c, CODE[denial.reason], {
+    ...(detailFor(denial) === undefined ? {} : { detail: detailFor(denial)! }),
+    ...(scope === undefined ? {} : { scope }),
+  });
 };

@@ -242,60 +242,108 @@
           "committedAt"
         ]
       },
+      "FieldError": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "example": "events[1].name"
+          },
+          "code": {
+            "type": "string",
+            "example": "invalid_type"
+          },
+          "message": {
+            "type": "string",
+            "example": "Expected string, received number."
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "path",
+          "code",
+          "message"
+        ]
+      },
       "Problem": {
         "type": "object",
         "properties": {
           "type": {
             "type": "string",
-            "example": "https://counted.dev/problems/quota-exceeded"
+            "example": "https://counted.dev/errors/request.validation_failed"
           },
           "title": {
             "type": "string",
-            "example": "Quota exceeded"
+            "example": "Validation Failed"
           },
           "status": {
             "type": "integer",
-            "example": 429
+            "example": 422
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "auth.unauthenticated",
+              "auth.forbidden",
+              "resource.not_found",
+              "resource.conflict",
+              "request.malformed",
+              "request.validation_failed",
+              "request.unsupported_media_type",
+              "quota.exceeded",
+              "rate.limited",
+              "query.timeout",
+              "query.unsupported",
+              "internal.unavailable",
+              "internal.error"
+            ],
+            "description": "Stable machine-readable code. Branch on this, not on status or prose.",
+            "example": "request.validation_failed"
           },
           "detail": {
             "type": "string",
-            "example": "This workspace is past its monthly event allowance."
+            "example": "2 fields are invalid."
           },
           "requestId": {
             "type": "string",
-            "example": "01JD8Z2K9Q"
+            "example": "req_01J8ZQ5S0000000000000000"
           },
-          "errors": {
+          "retryable": {
+            "type": "boolean",
+            "example": false
+          },
+          "docs": {
+            "type": "string",
+            "example": "https://counted.dev/docs/errors#request-validation_failed"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "fields": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "path": {
-                  "type": "string"
-                },
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "path",
-                "message"
-              ]
-            },
-            "example": [
-              {
-                "path": "events[0].name",
-                "message": "must not be empty"
-              }
-            ]
+              "$ref": "#/components/schemas/FieldError"
+            }
+          },
+          "retryAfter": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "type",
           "title",
           "status",
+          "code",
           "detail",
-          "requestId"
+          "requestId",
+          "retryable",
+          "docs"
         ]
       },
       "IngestEvent": {
