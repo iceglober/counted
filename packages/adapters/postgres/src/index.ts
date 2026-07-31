@@ -20,3 +20,6 @@ export * from "./compile/sequence";
 export * from "./compile/cohorts";
 export * from "./event-writer";
 export * from "./analytical-store";
+export * from "./sql/control-plane";
+export * from "./repositories";
+export * from "./unit-of-work";
