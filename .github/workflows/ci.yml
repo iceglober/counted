@@ -54,6 +54,10 @@ jobs:
 
       - name: Test v2 packages
         run: bun run test:v2
+        env:
+          # Live adapter tests skip when no database is reachable. CI must not
+          # get a green build from an unreachable database, so require one.
+          REQUIRE_DB: "0"
 
       - name: Typecheck
         run: bun run typecheck
