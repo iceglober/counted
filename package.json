@@ -10,7 +10,8 @@
   "homepage": "https://counted.dev",
   "packageManager": "bun@1.2.0",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/adapters/*"
   ],
   "scripts": {
     "dev": "next dev --turbopack",
@@ -33,7 +34,9 @@
     "changeset": "npx @changesets/cli",
     "version-packages": "npx @changesets/cli version",
     "release": "npx @changesets/cli publish",
-    "arch": "depcruise packages/domain/src packages/ports/src packages/application/src --config .dependency-cruiser.cjs"
+    "arch": "depcruise packages/domain/src packages/ports/src packages/application/src packages/adapters --config .dependency-cruiser.cjs",
+    "build:v2": "tsc --build tsconfig.build.json",
+    "test:v2": "bun test packages/domain packages/ports packages/application packages/adapters"
   },
   "dependencies": {
     "@counted/api": "workspace:*",

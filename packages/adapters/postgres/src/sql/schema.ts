@@ -1,0 +1,108 @@
+/**
+ * The event store schema.
+ *
+ * Plain PostgreSQL. No extension is required, which is a deliberate reversal:
+ * v1 depended on TimescaleDB, and on a plain-Postgres host its migration
+ * failed silently on every boot while every timeseries query threw
+ * `function time_bucket does not exist` — surfacing to users as empty charts
+ * rather than an error. Self-hosting is a growth channel; requiring a
+ * source-available extension undercuts it.
+ *
+ * Partitioning is native declarative RANGE on `occurred_at`, one partition per
+ * month, created ahead of need by the worker's `partitions.ensure` job.
+ * Retention becomes `DROP TABLE` on an expired partition — instant, and it is
+ * the feature the pricing page has advertised since launch without any code
+ * behind it.
+ */
+
+/**
+ * System columns mirror the closed `SystemField` set in the domain. They are
+ * real columns rather than JSONB keys so a breakdown by OS is an index scan,
+ * and — more importantly — so a *customer* property named `locale` can never
+ * be mistaken for ours. v1 tested filter names against a system allowlist
+ * first and silently returned our column's numbers for their property.
+ */
+export const SYSTEM_COLUMNS = [
+  "os_name",
+  "os_version",
+  "locale",
+  "app_version",
+  "device_model",
+  "country_code",
+  "sdk_version",
+] as const;
+
+export const EVENTS_TABLE = "events";
+
+/**
+ * The parent table. Holds no rows itself; every row lives in a monthly child.
+ *
+ * On dedup: PostgreSQL requires a unique constraint on a partitioned table to
+ * include the partition key, so the key is
+ * `(project_id, idempotency_key, occurred_at)` rather than the tidier
+ * `(project_id, idempotency_key)`.
+ *
+ * That is sound for the case that matters. A retry re-sends the *same* event:
+ * the SDK stamps `occurred_at` when `track()` is called and holds it in its
+ * on-device queue, so the timestamp is identical across attempts and the
+ * constraint fires. It is unsound only if the server were to assign the
+ * timestamp itself, because two attempts would then land at different
+ * instants — which is exactly why ingestion must never default
+ * `occurred_at` to `now()` for an event carrying an idempotency key.
+ */
+export const CREATE_EVENTS = /* sql */ `
+CREATE TABLE IF NOT EXISTS ${EVENTS_TABLE} (
+  project_id      uuid        NOT NULL,
+  occurred_at     timestamptz NOT NULL,
+  ingested_at     timestamptz NOT NULL DEFAULT now(),
+  name            text        NOT NULL,
+  visit_id        text        NOT NULL,
+  person_id       text,
+  idempotency_key text        NOT NULL,
+  properties      jsonb       NOT NULL DEFAULT '{}'::jsonb,
+  os_name         text,
+  os_version      text,
+  locale          text,
+  app_version     text,
+  device_model    text,
+  country_code    text,
+  sdk_version     text,
+  CONSTRAINT events_dedup UNIQUE (project_id, idempotency_key, occurred_at)
+) PARTITION BY RANGE (occurred_at);
+`;
+
+/**
+ * A default partition catches anything outside the months we have created, so
+ * an ingest at an unexpected instant is stored rather than rejected. The
+ * worker reports rows landing here: it means partition creation has fallen
+ * behind, or a client is sending timestamps from far outside the present.
+ */
+export const CREATE_DEFAULT_PARTITION = /* sql */ `
+CREATE TABLE IF NOT EXISTS ${EVENTS_TABLE}_default PARTITION OF ${EVENTS_TABLE} DEFAULT;
+`;
+
+/**
+ * The outbox. Domain events are written in the same transaction as the
+ * aggregate that produced them, and dispatched later by the worker — so "the
+ * change committed but the notification did not" is recoverable rather than
+ * lost.
+ */
+export const CREATE_OUTBOX = /* sql */ `
+CREATE TABLE IF NOT EXISTS outbox (
+  id            uuid        PRIMARY KEY,
+  type          text        NOT NULL,
+  payload       jsonb       NOT NULL,
+  occurred_at   timestamptz NOT NULL,
+  dispatched_at timestamptz,
+  attempts      integer     NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS outbox_pending_idx
+  ON outbox (occurred_at) WHERE dispatched_at IS NULL;
+`;
+
+/** Statements that build an empty store, in order. */
+export const SCHEMA_STATEMENTS: readonly string[] = [
+  CREATE_EVENTS,
+  CREATE_DEFAULT_PARTITION,
+  CREATE_OUTBOX,
+];

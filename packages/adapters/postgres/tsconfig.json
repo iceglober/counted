@@ -1,0 +1,11 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "references": [{ "path": "../../domain" }, { "path": "../../ports" }],
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts"]
+}

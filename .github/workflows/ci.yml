@@ -50,10 +50,10 @@ jobs:
         run: bun run arch
 
       - name: Build v2 packages
-        run: bunx tsc --build packages/application
+        run: bun run build:v2
 
       - name: Test v2 packages
-        run: bun test packages/domain packages/ports packages/application
+        run: bun run test:v2
 
       - name: Typecheck
         run: bun run typecheck

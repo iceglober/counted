@@ -73,6 +73,15 @@ module.exports = {
       },
     },
     {
+      name: "adapters-know-no-apps",
+      severity: "error",
+      comment:
+        "An adapter implements a port. It must not reach up into an application " +
+        "shell — composition happens in apps/*/composition.ts, not down here.",
+      from: { path: "^packages/adapters/" },
+      to: { path: "^apps/" },
+    },
+    {
       name: "no-circular",
       severity: "error",
       comment: "Circular dependencies make the layering unprovable.",
