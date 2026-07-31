@@ -7,7 +7,7 @@
 
 import { Pool } from "pg";
 import { Instant, type Clock } from "@counted/domain";
-import { createJobQueue, createPartitionMaintenance, createRetentionMaintenance, poolConfig } from "@counted/adapter-postgres";
+import { createJobQueue, createPartitionMaintenance, createRetentionMaintenance, createRollupMaintenance, poolConfig } from "@counted/adapter-postgres";
 import type { JobQueue } from "@counted/ports";
 import type { Handler, Logger } from "./runtime";
 import type { JobDependencies } from "./handlers";
@@ -62,6 +62,7 @@ export const compose = async (
   const handlers = buildHandlers({
     partitions: createPartitionMaintenance(pool),
     retention: createRetentionMaintenance(pool),
+    rollups: createRollupMaintenance(pool),
   });
 
   return {

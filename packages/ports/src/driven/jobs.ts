@@ -179,3 +179,48 @@ export type ProjectRetention = {
   readonly plan: string;
   readonly payment: string;
 };
+
+/**
+ * Maintaining the daily rollups.
+ *
+ * A rollup is a second representation of data that already exists, so the only
+ * property that really matters is that it cannot disagree with the source.
+ * Which is why the refresh recomputes whole buckets rather than incrementing
+ * them, and why the dirty set is decided by ingestion time rather than by "the
+ * last few days" — an event backdated ninety days dirties the bucket it
+ * belongs to, not the one it arrived in.
+ */
+export interface RollupMaintenance {
+  /** Where the last refresh got to, by ingestion time. Null when never run. */
+  watermark(): Promise<import("@counted/domain").Instant | null>;
+
+  /**
+   * Recompute every daily bucket touched by events ingested in `(from, to]`.
+   *
+   * Returns how many buckets were rewritten. Recomputing rather than
+   * incrementing means running it twice over the same window is a no-op, which
+   * is what makes it safe under the worker's lease.
+   */
+  refresh(
+    from: import("@counted/domain").Instant | null,
+    to: import("@counted/domain").Instant,
+  ): Promise<number>;
+
+  /** Advance the watermark. Separate, so it only moves after a refresh lands. */
+  commitWatermark(to: import("@counted/domain").Instant): Promise<void>;
+
+  /** Read back a project's daily counts. What a dashboard would use. */
+  dailyCounts(
+    project: import("@counted/domain").ProjectId,
+    from: import("@counted/domain").Instant,
+    to: import("@counted/domain").Instant,
+  ): Promise<readonly RollupRow[]>;
+}
+
+export type RollupRow = {
+  readonly day: string;
+  readonly name: string;
+  readonly events: number;
+  readonly visits: number;
+  readonly people: number;
+};

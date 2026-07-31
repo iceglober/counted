@@ -119,9 +119,47 @@ CREATE INDEX IF NOT EXISTS outbox_pending_idx
   ON outbox (occurred_at) WHERE dispatched_at IS NULL;
 `;
 
+/**
+ * Daily rollups.
+ *
+ * A pre-aggregated view of the event table, refreshed by the worker. This is
+ * the replacement for TimescaleDB's continuous aggregates, which are a
+ * TSL-licensed feature — and it is a better fit anyway, because the refresh
+ * rule can be exact rather than time-windowed.
+ *
+ * Being a second representation of the same data, the only thing that really
+ * matters about it is that it cannot disagree with the source. Two things make
+ * that hold: the refresh recomputes a whole bucket rather than incrementing
+ * it, and which buckets to recompute is decided by `ingested_at` rather than
+ * by "the last few days". An event backdated ninety days — which the ingest
+ * contract allows — dirties the bucket it belongs to, not the bucket it
+ * arrived in.
+ */
+export const CREATE_ROLLUPS = /* sql */ `
+CREATE TABLE IF NOT EXISTS rollup_daily (
+  project_id   uuid        NOT NULL,
+  day          date        NOT NULL,
+  name         text        NOT NULL,
+  events       bigint      NOT NULL,
+  visits       bigint      NOT NULL,
+  people       bigint      NOT NULL,
+  refreshed_at timestamptz NOT NULL,
+  PRIMARY KEY (project_id, day, name)
+);
+
+CREATE INDEX IF NOT EXISTS rollup_daily_project_day_idx ON rollup_daily (project_id, day);
+
+-- Where the last refresh got to, by ingestion time. One row.
+CREATE TABLE IF NOT EXISTS rollup_state (
+  id        text        PRIMARY KEY,
+  watermark timestamptz NOT NULL
+);
+`;
+
 /** Statements that build an empty store, in order. */
 export const SCHEMA_STATEMENTS: readonly string[] = [
   CREATE_EVENTS,
   CREATE_DEFAULT_PARTITION,
   CREATE_OUTBOX,
+  CREATE_ROLLUPS,
 ];
