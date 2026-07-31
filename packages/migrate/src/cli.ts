@@ -7,7 +7,7 @@ const { values } = parseArgs({
     "source-csv": { type: "string" },
     "app-id": { type: "string" },
     "target-key": { type: "string" },
-    "target-host": { type: "string", default: "https://counted.dev" },
+    "target-host": { type: "string", default: "https://api.counted.dev" },
     since: { type: "string" },
     "dry-run": { type: "boolean", default: false },
     "batch-size": { type: "string", default: "50" },

@@ -1,13 +1,37 @@
+/**
+ * Reading Aptabase's export, and importing it into Counted.
+ *
+ * This file speaks their vocabulary — `session_id`, `event_name`,
+ * `string_props` — because reading their export is its entire purpose. It is
+ * the second sealed boundary in the system (the first is
+ * `@counted/aptabase-compat`): their names appear here and in no layer beneath.
+ *
+ * What changed for v2 is the *target*. The v1 importer posted their envelope
+ * to `/api/v0/event` and treated any 2xx as done. It now translates to the v1
+ * ingest contract, carries a deterministic idempotency key, and reads the
+ * receipt — see `target.ts` for why that last part matters more than it sounds.
+ */
+
 import { readFile } from "node:fs/promises";
 import { parse } from "csv-parse/sync";
+import {
+  emptyTally,
+  exhausted,
+  importKey,
+  record,
+  sendBatch,
+  summarize,
+  type CountedEvent,
+  type Tally,
+} from "./target";
 
-type MigrateOptions = {
-  sourceClickhouse?: string;
-  sourceCsv?: string;
-  appId?: string;
+export type MigrateOptions = {
+  sourceClickhouse?: string | undefined;
+  sourceCsv?: string | undefined;
+  appId?: string | undefined;
   targetKey: string;
   targetHost: string;
-  since?: string;
+  since?: string | undefined;
   dryRun: boolean;
   batchSize: number;
   concurrency: number;
@@ -55,81 +79,90 @@ function normalizeTimestamp(ts: string): string {
   return `${ts.replace(" ", "T")}Z`;
 }
 
-function toCountedEvent(row: AptabaseRow) {
+/**
+ * One of their rows, as one of our events.
+ *
+ * The mapping is the same one `@counted/aptabase-compat` makes at the edge, and
+ * for the same reasons: their `session_id` is a visit, not an identity; fields
+ * we have no column for become properties rather than vanishing.
+ *
+ * The difference is the key. A live SDK mints one per `track()`; an import has
+ * to derive one from the row itself, so that re-running the same export — or
+ * resuming a half-finished import — stores each event once. v1 had no key and
+ * called the resulting overlap "accepted".
+ */
+function toCountedEvent(row: AptabaseRow): CountedEvent {
   // Aptabase splits props by type; recombine them. A CSV `props` column wins if
   // present (simple exports), otherwise merge string_props + numeric_props.
-  const props =
+  const merged =
     row.props !== undefined
       ? parseJsonObject(row.props)
       : { ...parseJsonObject(row.string_props), ...parseJsonObject(row.numeric_props) };
 
+  const properties: Record<string, string | number | boolean | null> = {};
+  for (const [key, value] of Object.entries(merged)) {
+    if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      properties[key] = value;
+    }
+    // A nested value is dropped rather than stringified: "[object Object]"
+    // looks like data.
+  }
+
+  const systemProperties: Record<string, string | null> = {
+    os_name: row.os_name || null,
+    os_version: row.os_version || null,
+    locale: row.locale || null,
+    app_version: row.app_version || null,
+    device_model: row.device_model || null,
+    // Says where these came from, so an imported event is distinguishable from
+    // one a live SDK sent.
+    sdk_version: row.sdk_version || "aptabase-import",
+  };
+
+  const occurredAt = normalizeTimestamp(row.timestamp);
+
   return {
-    timestamp: normalizeTimestamp(row.timestamp),
-    sessionId: row.session_id,
-    eventName: row.event_name,
-    systemProps: {
-      osName: row.os_name || null,
-      osVersion: row.os_version || null,
-      locale: row.locale || null,
-      appVersion: row.app_version || null,
-      deviceModel: row.device_model || null,
-      sdkVersion: row.sdk_version || "aptabase-import",
-      isDebug: false,
-    },
-    props,
+    name: row.event_name,
+    // Their session id is a visit: an ephemeral activity grouping, not an
+    // identity, and Counted will not treat it as one.
+    visitId: row.session_id,
+    occurredAt,
+    idempotencyKey: importKey([row.session_id, row.event_name, occurredAt]),
+    ...(Object.keys(properties).length > 0 ? { properties } : {}),
+    systemProperties,
   };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Retry-After is either a delay in seconds or an HTTP-date. Return ms, or null
-// if unparseable so the caller falls back to its own backoff.
-function retryAfterMs(header: string | null): number | null {
-  if (!header) return null;
-  const secs = Number(header);
-  if (Number.isFinite(secs)) return Math.max(0, secs * 1000);
-  const when = Date.parse(header);
-  if (!Number.isNaN(when)) return Math.max(0, when - Date.now());
-  return null;
-}
-
-async function sendBatch(
-  events: ReturnType<typeof toCountedEvent>[],
-  targetHost: string,
-  targetKey: string,
+/**
+ * Send one batch, retrying what is worth retrying.
+ *
+ * Every event carries a deterministic key, so a resend cannot double-count —
+ * which is what makes retrying safe rather than a trade-off.
+ */
+async function deliver(
+  events: readonly CountedEvent[],
+  opts: MigrateOptions,
+  tally: Tally,
   maxAttempts = 5,
 ): Promise<void> {
   let delay = 500;
   for (let attempt = 1; ; attempt++) {
-    let res: Response;
-    try {
-      res = await fetch(`${targetHost}/api/v0/event`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "App-Key": targetKey,
-        },
-        body: JSON.stringify(events),
-      });
-    } catch (err) {
-      // Network / DNS / connection reset — transient, retry with backoff.
-      if (attempt >= maxAttempts) throw err;
-      await sleep(delay);
-      delay *= 2;
-      continue;
+    const outcome = await sendBatch(events, {
+      endpoint: `${opts.targetHost.replace(/\/+$/, "")}/v1/events`,
+      key: opts.targetKey,
+    });
+
+    if (outcome.kind === "sent") {
+      record(tally, outcome.receipt);
+      return;
     }
-
-    if (res.ok) return;
-
-    // 429 and 5xx are transient; honor Retry-After when present.
-    if ((res.status === 429 || res.status >= 500) && attempt < maxAttempts) {
-      const wait = retryAfterMs(res.headers.get("retry-after")) ?? delay;
-      await sleep(wait);
-      delay *= 2;
-      continue;
+    if (outcome.kind === "refused" || attempt >= maxAttempts) {
+      throw new Error(`Ingestion failed: ${outcome.detail}`);
     }
-
-    throw new Error(`Ingestion failed: ${res.status} ${res.statusText}`);
+    await sleep(outcome.retryAfterMs ?? delay);
+    delay *= 2;
   }
 }
 
@@ -203,8 +236,11 @@ async function* readFromClickHouse(
       .filter((line) => line.trim().length > 0)
       .map((line) => JSON.parse(line) as AptabaseRow);
 
-    if (rows.length === 0) break;
     const last = rows[rows.length - 1];
+    // Both, because `rows.length === 0` and "the last row is somehow absent"
+    // are the same stopping condition and the second is what the index
+    // signature actually promises.
+    if (last === undefined) break;
     cursor = { ts: last.timestamp, session: last.session_id };
     yield rows;
     if (rows.length < batchSize) break;
@@ -244,7 +280,11 @@ async function runWithConcurrency<T>(
   async function worker() {
     while (i < tasks.length) {
       const idx = i++;
-      results[idx] = await tasks[idx]();
+      const task = tasks[idx];
+      // The bound makes this unreachable; reading the element rather than
+      // calling it blind is what makes that true rather than assumed.
+      if (task === undefined) return;
+      results[idx] = await task();
     }
   }
 
@@ -257,24 +297,30 @@ export async function migrateAptabase(opts: MigrateOptions): Promise<void> {
     ? readFromClickHouse(opts.sourceClickhouse, opts.appId!, opts.since, opts.batchSize)
     : readFromCsv(opts.sourceCsv!, opts.since, opts.batchSize);
 
-  let totalEvents = 0;
+  let totalRead = 0;
   let totalBatches = 0;
+  const tally = emptyTally();
   const pendingTasks: (() => Promise<void>)[] = [];
 
-  // Highest source timestamp we've confirmed delivered. On failure it becomes a
-  // `--since` the user can resume from (ingestion has no dedup, so a resume may
-  // re-send the events sharing that exact second — an accepted, small overlap).
+  /**
+   * The highest source timestamp confirmed delivered.
+   *
+   * On failure it becomes a `--since` to resume from. Under v1 that overlap
+   * re-sent whatever shared the boundary second and was described as "an
+   * accepted, small overlap"; every event now carries a deterministic key, so
+   * the overlap is stored once and the resume is exact.
+   */
   let checkpoint: string | undefined = opts.since;
-  const advanceCheckpoint = (events: ReturnType<typeof toCountedEvent>[]) => {
+  const advanceCheckpoint = (events: readonly CountedEvent[]) => {
     for (const e of events) {
-      if (!checkpoint || e.timestamp > checkpoint) checkpoint = e.timestamp;
+      if (checkpoint === undefined || e.occurredAt > checkpoint) checkpoint = e.occurredAt;
     }
   };
 
   try {
     for await (const batch of source) {
       const converted = batch.map(toCountedEvent);
-      totalEvents += converted.length;
+      totalRead += converted.length;
       totalBatches++;
 
       if (opts.dryRun) {
@@ -283,15 +329,25 @@ export async function migrateAptabase(opts: MigrateOptions): Promise<void> {
       }
 
       const batchNum = totalBatches;
-      const eventCount = converted.length;
       pendingTasks.push(async () => {
-        await sendBatch(converted, opts.targetHost, opts.targetKey);
+        await deliver(converted, opts, tally);
         advanceCheckpoint(converted);
-        console.log(`Batch ${batchNum}: ${eventCount} events (total: ${totalEvents})`);
+        console.log(
+          `Batch ${batchNum}: ${tally.accepted.toLocaleString("en-US")} imported, ` +
+            `${tally.deduplicated.toLocaleString("en-US")} already there` +
+            (tally.rejected > 0 ? `, ${tally.rejected.toLocaleString("en-US")} refused` : ""),
+        );
       });
 
       if (pendingTasks.length >= opts.concurrency) {
         await runWithConcurrency(pendingTasks.splice(0), opts.concurrency);
+      }
+
+      // A workspace past its allowance refuses every remaining batch. Stopping
+      // and saying so beats filling the terminal with the same message.
+      if (exhausted(tally)) {
+        console.error("\nStopped: this workspace is past its monthly event allowance.");
+        break;
       }
     }
 
@@ -299,19 +355,33 @@ export async function migrateAptabase(opts: MigrateOptions): Promise<void> {
       await runWithConcurrency(pendingTasks, opts.concurrency);
     }
   } catch (err) {
-    if (checkpoint) {
+    if (checkpoint !== undefined) {
       console.error(
-        `\nMigration interrupted. Resume from the last confirmed batch with:\n` +
-          `  --since "${checkpoint}"`,
+        `\nMigration interrupted. Resume with:\n  --since "${checkpoint}"\n` +
+          `Events carry a deterministic key, so anything already imported will not be stored twice.`,
       );
     }
     throw err;
   }
 
-  console.log(
-    `\n${opts.dryRun ? "[dry-run] " : ""}Migration complete: ${totalEvents} events in ${totalBatches} batches`,
-  );
-  if (!opts.dryRun) {
-    console.log(`View your imported data: ${opts.targetHost}`);
+  if (opts.dryRun) {
+    console.log(`\n[dry-run] Read ${totalRead.toLocaleString("en-US")} events in ${totalBatches} batches. Nothing was sent.`);
+    return;
   }
+
+  console.log(`\n${summarize(tally)}`);
+
+  // Reported as a failure, because it is one. An import that silently loses
+  // history is the thing this tool exists to avoid, and exiting 0 over a
+  // refusal is how it would happen.
+  if (tally.rejected > 0) {
+    console.error(
+      `\n${tally.rejected.toLocaleString("en-US")} ${tally.rejected === 1 ? "event was" : "events were"} ` +
+        `refused and ${tally.rejected === 1 ? "is" : "are"} NOT in Counted. The reasons are listed above.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`\nView your imported data: ${opts.targetHost}`);
 }

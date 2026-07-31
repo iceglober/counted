@@ -1,57 +1,69 @@
 # @counted/migrate
 
-Migration CLI for importing historical events into [Counted](https://counted.dev) from a
-self-hosted Aptabase (ClickHouse) instance or a CSV export.
-
-## Install
+Import historical events from Aptabase into Counted.
 
 ```bash
-npx @counted/migrate --help
+npx @counted/migrate --source-csv ./export.csv --target-key ck_live_...
+npx @counted/migrate --source-clickhouse "https://user:pass@ch:8443/aptabase" \
+  --app-id A-US-1234567890 --target-key ck_live_...
 ```
 
-## Usage
+## What it reports
 
-### From a self-hosted Aptabase (ClickHouse)
+The importer reads the server's **receipt** for every batch and reports what
+was actually stored — never what was attempted:
 
-Aptabase stores events in ClickHouse, and its `events` table holds every app — so scope the
-import to your app id. Point at the ClickHouse HTTP interface (default port `8123`):
-
-```bash
-npx @counted/migrate \
-  --source-clickhouse "http://default:PASSWORD@your-aptabase-host:8123" \
-  --app-id "YOUR_APTABASE_APP_ID" \
-  --target-key "ck_your_project_key" \
-  --target-host "https://app.counted.dev" \
-  --since "2025-01-01"
+```
+Imported:      12,480
+Already there: 3,220
+Refused:       4
+  3 × occurredAt is 400 days old, beyond the ingestion window.
+  1 × An event name is required.
 ```
 
-Find the app id in your Aptabase dashboard URL. Aptabase's split `string_props` /
-`numeric_props` columns are recombined into a single Counted `props` object.
+**A refusal exits non-zero.** An import that silently loses history is the
+failure this tool exists to avoid, and exiting 0 over a gap is how it would
+happen — the previous version treated any 2xx as success and discarded the
+body.
 
-### From CSV
+## Resuming is exact
 
-A CSV export with `timestamp, session_id, event_name, os_name, …` columns (and either a
-`props` column or `string_props` / `numeric_props`):
+Every imported event carries a key derived from the source row, so re-running
+the same export — or resuming with `--since` after an interruption — stores
+each event once. The tool tells you the resume point when it stops:
 
-```bash
-npx @counted/migrate \
-  --source-csv export.csv \
-  --target-key "ck_your_project_key" \
-  --target-host "https://app.counted.dev"
+```
+Migration interrupted. Resume with:
+  --since "2026-07-01T10:05:00.000Z"
+Events carry a deterministic key, so anything already imported will not be stored twice.
 ```
 
-### Options
+The second run of the same file reports `0 imported, N already there`, which is
+what a working resume looks like.
 
-- `--source-clickhouse` — Aptabase ClickHouse HTTP URL (`http://user:pass@host:8123`)
-- `--app-id` — Aptabase app id to import (required with `--source-clickhouse`)
-- `--source-csv` — path to a CSV export
-- `--target-key` — your Counted project key (`ck_…`)
-- `--target-host` — Counted API host (default: https://counted.dev)
-- `--since` — only import events at or after this timestamp
-- `--dry-run` — print what would be imported without sending
-- `--batch-size` — events per batch (default: 50)
-- `--concurrency` — parallel batch uploads (default: 4)
+## What it translates
 
-## License
+Their export shape is read here and nowhere else — this is one of two sealed
+Aptabase boundaries (the other is `@counted/aptabase-compat`, for live clients).
 
-MIT
+| theirs | ours |
+|---|---|
+| `session_id` | `visitId` — an ephemeral grouping, never an identity |
+| `event_name` | `name` |
+| `string_props` + `numeric_props` | merged into `properties` |
+| `os_name` etc. | `systemProperties`, canonicalised downstream (`iOS` → `ios`) |
+
+`sdk_version` defaults to `aptabase-import`, so an imported event is
+distinguishable from one a live SDK sent.
+
+## Options
+
+| flag | meaning |
+|---|---|
+| `--source-csv` / `--source-clickhouse` | where to read from; one is required |
+| `--app-id` | required with ClickHouse — their `events` table holds every app |
+| `--target-key` | a Counted ingest key (`ck_…`) |
+| `--target-host` | defaults to `https://api.counted.dev` |
+| `--since` | resume point, an ISO instant |
+| `--dry-run` | read and translate, send nothing |
+| `--batch-size`, `--concurrency` | tuning |

@@ -1,14 +1,10 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "declaration": true,
     "outDir": "dist",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "isolatedModules": true
+    "types": ["bun", "node"],
+    "lib": ["ES2022", "DOM"],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src"]
 }

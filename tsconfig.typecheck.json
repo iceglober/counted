@@ -61,6 +61,7 @@
     "packages/react/test/**/*",
     "packages/agent-core/src/**/*",
     "packages/agent-cli/src/**/*",
-    "packages/aptabase-compat/src/**/*"
+    "packages/aptabase-compat/src/**/*",
+    "packages/migrate/src/**/*"
   ]
 }

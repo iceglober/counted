@@ -213,7 +213,10 @@ describe("their vocabulary stops at this package", () => {
       // The migration tool reads Aptabase's *export* format, which is its
       // entire purpose. It is the second legitimate boundary, and it is
       // equally sealed: nothing downstream of it speaks their vocabulary.
-      .filter((file) => file !== "packages/migrate/src/aptabase.ts")
+      // The whole package, because its tests assert the words are *absent*
+      // from what it sends — and a check that flagged that assertion would be
+      // punishing the thing it wants.
+      .filter((file) => !file.startsWith("packages/migrate/"))
       // The OpenAPI document *describes* this endpoint, which means naming the
       // fields it accepts. Describing a foreign shape is not adopting it — and
       // an endpoint documented without saying what it takes would be worse.
