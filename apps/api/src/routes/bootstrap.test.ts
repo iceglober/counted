@@ -15,7 +15,7 @@ import { AccountId, Dashboard, Instant, Principal, Project, ProjectId, Workspace
 import { createApp } from "../server";
 import type { Config, Dependencies } from "../composition";
 import { silentLogger } from "../server.test";
-import { noConsole, noMail } from "../testing/stubs";
+import { STUB_SCHEMA, noConsole, noMail, stubPools } from "../testing/stubs";
 import { CLAIM_TTL_MS } from "./bootstrap";
 
 const NOW = Instant.fromEpochMillis(Date.parse("2026-05-01T10:00:00Z"));

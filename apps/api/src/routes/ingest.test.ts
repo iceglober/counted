@@ -22,7 +22,7 @@ import { createApp } from "../server";
 import { Coalescer } from "../ingest/coalescer";
 import { stubAccess, silentLogger } from "../server.test";
 import type { Config, Dependencies } from "../composition";
-import { noConsole, noMail } from "../testing/stubs";
+import { STUB_SCHEMA, noConsole, noMail, stubPools } from "../testing/stubs";
 
 /**
  * One clock for the whole file, and the fixture events sit just before it.
@@ -82,6 +82,8 @@ const app = (h: Harness = {}) => {
     }),
     log: silentLogger(),
     console: noConsole,
+    schema: STUB_SCHEMA,
+    pools: stubPools,
     notifier: noMail,
   billing: {
     createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),

@@ -20,7 +20,7 @@ import { createApp, allRoutes, routeCensus } from "../server";
 import type { Config, Dependencies } from "../composition";
 import { publicRoute, requires, projectFromPath, census, type RouteDefinition } from "./route";
 import { stubAccess, silentLogger } from "../server.test";
-import { noConsole, noMail } from "../testing/stubs";
+import { STUB_SCHEMA, noConsole, noMail, stubPools } from "../testing/stubs";
 
 const config: Config = { databaseUrl: "postgres://stub", port: 8080, appUrl: "https://app.counted.test", stripe: { secretKey: "sk_test", webhookSecret: "whsec_test", monthlyPrice: "price_m", annualPrice: "price_a" }, email: { apiKey: "", from: "Counted <test@counted.test>" }, release: "test" };
 
@@ -33,6 +33,8 @@ const deps: Dependencies = {
   access: stubAccess(),
   log: silentLogger(),
   console: noConsole,
+  schema: STUB_SCHEMA,
+  pools: stubPools,
   notifier: noMail,
   billing: {
     createCheckoutSession: async () => ({ url: "https://checkout.stripe.test/session", expiresAt: null }),

@@ -18,6 +18,7 @@
  */
 
 import { Principal, type Scope } from "@counted/domain";
+import { appliedFingerprint } from "@counted/adapter-postgres";
 import type { Dependencies } from "../composition";
 import { publicRoute, type RouteDefinition } from "../http/route";
 
@@ -43,6 +44,27 @@ export const healthRoutes = (deps: Dependencies): readonly RouteDefinition[] => 
         // A trivial request through the real port, so readiness exercises the
         // same path traffic will.
         const outcome = await deps.store.executeBatch([], { deadlineMs: 2_000, traceId: "health" });
+
+        // The schema this build expects against the one the database says it
+        // has. They differ while a deploy is mid-flight — an old replica is
+        // still serving after a new one migrated — and that replica is *not*
+        // ready: it would answer with a schema it was not built for.
+        const applied = await appliedFingerprint(deps.pools.analytics);
+        if (applied !== deps.schema) {
+          return c.json(
+            {
+              status: "unavailable",
+              release: deps.config.release,
+              checkMs: Date.now() - startedAt,
+              detail:
+                applied === null
+                  ? "The schema has not been applied yet."
+                  : "This build expects a different schema than the database reports. A deploy is probably in flight.",
+            },
+            503,
+          );
+        }
+
         return c.json({
           status: "ready",
           release: deps.config.release,
@@ -57,6 +79,7 @@ export const healthRoutes = (deps: Dependencies): readonly RouteDefinition[] => 
           bucketContract: deps.boot.bucketContract.ok
             ? { verified: true, samples: deps.boot.bucketContract.checked }
             : { verified: false },
+          schema: deps.schema,
           statements: outcome.stats.statements,
         });
       } catch (e) {

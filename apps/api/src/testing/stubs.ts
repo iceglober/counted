@@ -54,3 +54,18 @@ export const emptyUnitOfWork = {
       monitors: { find: async () => null, listForProject: async () => [], listEnabled: async () => [], save: async () => {} },
     }),
 } as unknown as import("@counted/ports").UnitOfWork;
+
+/**
+ * A schema fingerprint and a pool that answers with it.
+ *
+ * Readiness compares what the build expects against what the database reports.
+ * A route test does not exercise that, but it does have to construct it — and
+ * a stub that disagreed with itself would make every test's readiness 503.
+ */
+export const STUB_SCHEMA = "sch_test_0001";
+
+export const stubPools = {
+  analytics: {
+    query: async () => ({ rows: [{ fingerprint: STUB_SCHEMA }] }),
+  },
+} as unknown as { readonly analytics: import("pg").Pool };

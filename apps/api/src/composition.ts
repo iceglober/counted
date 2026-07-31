@@ -29,6 +29,7 @@ import {
   poolConfig,
   type BootReport,
   createConsoleSessions,
+  migrate,
 } from "@counted/adapter-postgres";
 import { idGenerator, issueGrantToken, secretGenerator } from "@counted/adapter-crypto";
 import { StripeGateway } from "@counted/adapter-stripe";
@@ -105,6 +106,10 @@ export type Dependencies = {
   readonly webhooks: WebhookLedger;
   readonly usage: UsageMeter;
   readonly boot: BootReport;
+  /** The schema this build expects. Readiness compares it to the database. */
+  readonly schema: string;
+  /** The analytics pool, so readiness can ask the database what it has. */
+  readonly pools: { readonly analytics: Pool };
   readonly config: Config;
   shutdown(): Promise<void>;
 };
@@ -120,10 +125,21 @@ export const compose = async (config: Config): Promise<Dependencies> => {
   const ingest = new Pool(poolConfig(config.databaseUrl, "ingest"));
 
   let boot: BootReport;
+  let schema: string;
   try {
+    // The schema, before anything reads it. Idempotent and lock-guarded, so
+    // every replica runs it and only the first does any work — and a failure
+    // stops the deploy rather than leaving a container serving traffic against
+    // a schema it does not have.
+    const migration = await migrate(analytics, {
+      release: config.release,
+      log: (event, fields) => process.stdout.write(`${JSON.stringify({ level: "info", event, ...fields })}\n`),
+    });
+
     // Probes capabilities and verifies that the database buckets exactly as
     // the domain does. Throws BucketContractViolation if not.
     boot = await bootStore(analytics);
+    schema = migration.fingerprint;
   } catch (e) {
     await Promise.allSettled([analytics.end(), ingest.end()]);
     throw e;
@@ -167,6 +183,8 @@ export const compose = async (config: Config): Promise<Dependencies> => {
     webhooks: createWebhookLedger(analytics),
     usage: { eventsInCurrentPeriod: (w) => eventsThisPeriod(analytics, w) },
     boot,
+    schema,
+    pools: { analytics },
     config,
     shutdown: async () => {
       await Promise.allSettled([analytics.end(), ingest.end()]);

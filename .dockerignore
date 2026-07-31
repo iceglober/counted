@@ -1,8 +1,19 @@
+# Build output and caches. Copying these makes the context large and can shadow
+# a fresh build with a stale one.
 node_modules
+**/node_modules
 .next
+**/.next
+dist
+**/dist
+target
+**/target
 .git
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Never in an image. A .env copied into a layer is a secret published to
+# anybody who can pull it, and layers outlive the file being deleted later.
 .env
-.env.local
-.env.*.local
-*.md
-.claude
+.env.*
+!.env.example

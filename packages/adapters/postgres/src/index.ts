@@ -15,6 +15,7 @@ export * from "./sql/indexes";
 export * from "./pool";
 export * from "./access-resolver";
 export * from "./console";
+export * from "./migrate";
 export * from "./quota";
 export * from "./billing";
 export * from "./jobs";

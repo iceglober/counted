@@ -14,7 +14,7 @@ import { createApp } from "../server";
 import { Coalescer } from "../ingest/coalescer";
 import { stubAccess, silentLogger } from "../server.test";
 import type { Config, Dependencies } from "../composition";
-import { noConsole, noMail } from "../testing/stubs";
+import { STUB_SCHEMA, noConsole, noMail, stubPools } from "../testing/stubs";
 
 const NOW = Date.parse("2026-03-17T15:00:00.000Z");
 const at = Instant.fromEpochMillis(NOW);
@@ -60,6 +60,8 @@ const app = (h: Harness = {}) => {
     access: stubAccess({ principals: { [KEY]: h.principal ?? owner }, placements: { [WS]: { workspace: WS, project: null } } }),
     log: silentLogger(),
     console: noConsole,
+    schema: STUB_SCHEMA,
+    pools: stubPools,
     notifier: noMail,
     billing: {
       createCheckoutSession: async () => {

@@ -17,7 +17,7 @@ import type { ConsoleSessions, Redemption } from "@counted/ports";
 import { createApp } from "../server";
 import type { Config, Dependencies } from "../composition";
 import { silentLogger } from "../server.test";
-import { emptyUnitOfWork, noConsole, recordingMail } from "../testing/stubs";
+import { STUB_SCHEMA, emptyUnitOfWork, noConsole, recordingMail, stubPools } from "../testing/stubs";
 import { SESSION_COOKIE } from "../http/session";
 
 const NOW = Instant.fromEpochMillis(Date.parse("2026-04-01T09:00:00Z"));
