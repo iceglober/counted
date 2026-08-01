@@ -115,6 +115,19 @@ export const buildRegistry = (): OpenAPIRegistry => {
   });
 
   registry.registerPath({
+    method: "get",
+    path: "/.well-known/oauth-protected-resource",
+    summary: "Protected-resource metadata",
+    description:
+      "RFC 9728. Named by `resource_metadata` in the WWW-Authenticate header of every 401, so it has to " +
+      "resolve — for a long time it did not, and named the wrong host besides. Describes how credentials " +
+      "travel and which scopes exist. There is no authorization server: Counted issues credentials directly, " +
+      "and `/v1/provision` will mint one without any credential at all.",
+    tags: ["health"],
+    responses: { 200: { description: "Protected-resource metadata" } },
+  });
+
+  registry.registerPath({
     method: "post",
     path: "/v1/auth/sign-in",
     summary: "Request a sign-in link",

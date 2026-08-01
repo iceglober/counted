@@ -42,6 +42,39 @@ export const healthRoutes = (deps: Dependencies): readonly RouteDefinition[] => 
   },
   {
     method: "get",
+    path: "/.well-known/oauth-protected-resource",
+    security: publicRoute(
+      "Auth metadata. Its whole job is to be readable before you hold a credential.",
+    ),
+    handler: (c) => {
+      // RFC 9728. `sendProblem` puts
+      // `resource_metadata="…/.well-known/oauth-protected-resource"` in the
+      // WWW-Authenticate header of *every* 401 — with a comment saying it is
+      // emitted centrally so it cannot be omitted — and the document it named
+      // was never served. Every unauthenticated caller got a URL that 404s,
+      // the same dead end this file already records for /v1/openapi.json.
+      //
+      // The honest shape matters more than the score. Counted runs no OAuth
+      // authorization server, so `authorization_servers` is absent rather than
+      // naming something that cannot issue a token. What it does have is
+      // bearer credentials minted per project, so that is what this describes:
+      // how they travel, which scopes exist, and where one comes from.
+      c.header("cache-control", "public, max-age=3600");
+      return c.json({
+        resource: "https://api.counted.dev",
+        resource_name: "Counted API",
+        resource_documentation: "https://counted.dev/docs/api",
+        bearer_methods_supported: ["header"],
+        scopes_supported: ["events:write", "queries:run", "projects:read", "projects:write"],
+        // The path an agent should actually take: /v1/provision needs no
+        // credential and returns one.
+        credential_issuance_endpoint: "https://api.counted.dev/v1/provision",
+        service_documentation: "https://api.counted.dev/v1/openapi.json",
+      });
+    },
+  },
+  {
+    method: "get",
     path: "/health",
     security: publicRoute("Liveness. A load balancer cannot authenticate, and it reveals nothing."),
     handler: (c) =>

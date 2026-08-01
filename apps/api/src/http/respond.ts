@@ -42,7 +42,12 @@ export const sendProblem = (c: Context<ApiEnv>, code: ErrorCode, context: Proble
     const challenge = [
       'Bearer realm="counted"',
       ...(context.scope === undefined ? [] : [`scope="${context.scope}"`]),
-      'resource_metadata="https://counted.dev/.well-known/oauth-protected-resource"',
+      // On the API host, not the marketing host. RFC 9728 puts protected-
+      // resource metadata on the resource server — the origin actually serving
+      // the API. This named counted.dev, which does not serve it; and for a
+      // long time nothing served it anywhere, so every 401 handed the caller a
+      // URL that 404s.
+      'resource_metadata="https://api.counted.dev/.well-known/oauth-protected-resource"',
       'error="invalid_token"',
     ];
     headers["www-authenticate"] = challenge.join(", ");

@@ -27,6 +27,28 @@ const config: NextConfig = {
         { key: "referrer-policy", value: "strict-origin-when-cross-origin" },
       ],
     },
+    {
+      // RFC 8288 discovery, on the site root only.
+      //
+      // An agent arriving cold from a search result has one response to learn
+      // from, and these are the four things worth knowing: where the map is,
+      // where the markdown twin is, where the agent index is, and where the
+      // API is described. Scoped to `/` rather than every path — a header
+      // repeated on every asset is noise, and the markdown alternate would be
+      // a lie on any page with no `.md` twin.
+      source: "/",
+      headers: [
+        {
+          key: "link",
+          value: [
+            '</sitemap.xml>; rel="sitemap"; type="application/xml"',
+            '</index.md>; rel="alternate"; type="text/markdown"',
+            '</llms.txt>; rel="alternate"; type="text/plain"; title="Agent index"',
+            '</.well-known/api-catalog>; rel="api-catalog"',
+          ].join(", "),
+        },
+      ],
+    },
   ],
 };
 

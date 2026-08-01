@@ -4,17 +4,25 @@ import { LandingCTA } from "./landing-cta";
 import { SiteNav, SiteFooter } from "./site-chrome";
 import { Hero } from "./hero";
 import { TrackedCTA } from "./track";
-import { JsonLd, serviceLd, faqPageLd, breadcrumbLd } from "@/components/json-ld";
+import {
+  JsonLd,
+  organizationLd,
+  websiteLd,
+  softwareApplicationLd,
+  serviceLd,
+  faqPageLd,
+  breadcrumbLd,
+} from "@/components/json-ld";
 import { AgentView } from "./agent-view";
 
 export const metadata: Metadata = {
   alternates: {
     canonical: "/",
-    // No `text/markdown` alternate. v1 advertised `/index.md`; v2 never ported
-    // the route, so the homepage was pointing crawlers and agents at a URL
-    // that 404s. A dead alternate is worse than none — it sends whoever did
-    // the right thing to a dead end. Restore the link and the route together,
-    // or not at all. `/docs/llms.txt` is the one that exists.
+    // Restored together with the route. v1 advertised `/index.md`, v2 never
+    // ported it, and the homepage spent that time pointing crawlers and agents
+    // at a 404 — a dead alternate being worse than none, because it sends
+    // whoever followed it to a dead end. `app/index.md/route.ts` now serves it.
+    types: { "text/markdown": "/index.md" },
   },
 };
 
@@ -47,6 +55,17 @@ export default async function Home({
 
   return (
     <div>
+      {/*
+        organizationLd, websiteLd and softwareApplicationLd were written and
+        then never rendered — dead exports carrying exactly the fields that
+        were reported missing: `sameAs` for entity disambiguation (Counted vs
+        counter.dev vs Countly), `speakable` for assistant readout, and
+        `applicationCategory` + `offers`. The builders were fine; nothing
+        imported them.
+      */}
+      <JsonLd data={organizationLd} />
+      <JsonLd data={websiteLd} />
+      <JsonLd data={softwareApplicationLd} />
       <JsonLd data={serviceLd} />
       <JsonLd data={faqPageLd(HOMEPAGE_FAQ.map((f) => ({ q: f.q, a: f.a })))} />
       <JsonLd data={breadcrumbLd([{ name: "Counted", url: "https://counted.dev" }])} />
