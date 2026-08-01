@@ -38,7 +38,8 @@ const FREE: Plan = {
   limits: {
     eventsPerMonth: 100_000,
     projects: 3,
-    seats: 1,
+    // Unlimited, deliberately — see PRO below for the reasoning.
+    seats: null,
     // Advertised on the pricing page since launch and never implemented in v1
     // — there was no purge job and no retention column. The worker's
     // retention.purge job (#54) is what finally makes this true.
@@ -52,7 +53,23 @@ const PRO: Plan = {
   limits: {
     eventsPerMonth: 1_000_000,
     projects: null,
-    seats: 10,
+    // Unlimited, deliberately.
+    //
+    // A cap was enforced here — 1 seat free, 10 pro — that no customer was
+    // ever told about. `product_profile.md` is the stated source of truth for
+    // pricing and has never had a seats row; neither has /pricing, which
+    // lists events, projects, retention, dashboards, API access and support.
+    // Counted bills on volume, not on people.
+    //
+    // Enforcing an unpublished limit is only latent because the teams UI is
+    // deferred; the day it ships, the eleventh teammate is refused by a rule
+    // that appears nowhere the customer could have read. Publishing the
+    // numbers instead would have been the other honest option — this is the
+    // one that matches what the product already claims to charge for.
+    //
+    // If seats ever become a pricing lever: restore the numbers *and* add
+    // them to product_profile.md and /pricing in the same change.
+    seats: null,
     retentionDays: 730,
   },
 };

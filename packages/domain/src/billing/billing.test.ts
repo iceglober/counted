@@ -80,10 +80,20 @@ describe("one definition of 'is this customer on Pro?'", () => {
 
   test("it projects into the limits the Workspace aggregate enforces", () => {
     const limits = Entitlement.toWorkspaceLimits(Entitlement.resolve("free", "active"));
-    expect(limits).toEqual({ maxProjects: 3, maxSeats: 1 });
+    expect(limits).toEqual({ maxProjects: 3, maxSeats: null });
 
     const pro = Entitlement.toWorkspaceLimits(Entitlement.resolve("pro", "active"));
-    expect(pro).toEqual({ maxProjects: null, maxSeats: 10 });
+    expect(pro).toEqual({ maxProjects: null, maxSeats: null });
+  });
+
+  // The seat limit is unlimited on both plans on purpose, and this asserts it
+  // rather than leaving it to the equality checks above — a number reappearing
+  // here is the signal that somebody made seats a pricing lever, which is only
+  // honest if /pricing and product_profile.md say so too.
+  test("no plan caps seats, because no plan publishes a seat count", () => {
+    for (const id of PLAN_IDS) {
+      expect(PlanCatalog.limitsFor(id).seats).toBeNull();
+    }
   });
 
   test("downgrades are detectable", () => {
