@@ -150,11 +150,21 @@ describe("one way to the network", () => {
      * Prose has no fetch. A page that started making its own requests would
      * have both, and would fail here.
      *
-     * The two allowances are the client itself and the magic-link callback,
-     * which re-emits the API's own `Set-Cookie` — something the client
-     * deliberately does not model.
+     * The allowances are the client itself, and the two routes that re-emit
+     * the API's own `Set-Cookie` — the magic-link callback, which receives a
+     * session, and sign-out, which receives its expiry. Passing that header
+     * through is exactly what the client does not model: it returns parsed
+     * data, and a cookie is neither parsed nor data. Rebuilding one here would
+     * be a second description of what a session is.
+     *
+     * Both are server-only route handlers reached by top-level navigation, so
+     * neither is a page quietly growing its own transport.
      */
-    const allowed = ["src/lib/api.ts", "src/app/auth/callback/route.ts"];
+    const allowed = [
+      "src/lib/api.ts",
+      "src/app/auth/callback/route.ts",
+      "src/app/sign-out/route.ts",
+    ];
     const namesApi = /(publicApiUrl|serverApiUrl)\s*\(|API_URL|https?:\/\/[^"'`\s]*counted[^"'`\s]*\/v1\//;
     const callsFetch = /\bfetch\s*\(/;
 
