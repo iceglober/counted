@@ -206,10 +206,23 @@ a.ext::after {
   outline-offset: 1px;
 }
 
+/* Breathing room. Without it the label, field and submit button sit flush
+   against each other in one unbroken run — styled, but reading as a single
+   smeared control. Margins rather than a flex gap so this cannot disturb the
+   marketing pages, which lay themselves out. */
+.retro input,
+.retro select,
+.retro textarea,
+.retro button {
+  margin: 2px 6px 2px 0;
+  vertical-align: middle;
+}
+
 .retro label {
   display: inline-block;
-  margin-bottom: 3px;
+  margin: 0 6px 3px 0;
   font-size: 12px;
+  vertical-align: middle;
 }
 .retro fieldset {
   border: 1px solid #999;
