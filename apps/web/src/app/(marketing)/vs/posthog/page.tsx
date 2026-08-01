@@ -56,7 +56,7 @@ export default function VsPosthogPage() {
           under 3KB gzipped, private by default, funnels and composable dashboards.
         </p>
         <p>
-          <TrackedCTA href="/login" location="vs_posthog" label="start_free">
+          <TrackedCTA href="/sign-in" location="vs_posthog" label="start_free">
             Start free
           </TrackedCTA>{" "}
           &nbsp;or&nbsp; <a href="#who">which fits you</a>
@@ -98,7 +98,7 @@ export default function VsPosthogPage() {
           dashboards.
         </p>
         <p>
-          <TrackedCTA href="/login" location="vs_posthog" label="start_free_who">
+          <TrackedCTA href="/sign-in" location="vs_posthog" label="start_free_who">
             Start free
           </TrackedCTA>
         </p>

@@ -57,7 +57,7 @@ export default function VsAptabasePage() {
           funnels, a larger free tier, and a CLI to bring your history over.
         </p>
         <p>
-          <TrackedCTA href="/login" location="vs_aptabase" label="start_free">
+          <TrackedCTA href="/sign-in" location="vs_aptabase" label="start_free">
             Start free
           </TrackedCTA>{" "}
           &nbsp;or&nbsp; <a href="#migrate">how to migrate</a>
@@ -125,7 +125,7 @@ const counted = new Analytics({ projectKey: "ck_..." });
 counted.track("plan_selected", { plan: "premium" });`}</CodeBlock>
 
         <p>
-          <TrackedCTA href="/login" location="vs_aptabase" label="create_migrate">
+          <TrackedCTA href="/sign-in" location="vs_aptabase" label="create_migrate">
             Create a project &amp; migrate
           </TrackedCTA>
         </p>

@@ -70,12 +70,12 @@ export default function PricingPage() {
             <tr>
               <td>&nbsp;</td>
               <td className="c">
-                <TrackedCTA href="/login" location="pricing" label="get_started">
+                <TrackedCTA href="/sign-in" location="pricing" label="get_started">
                   Get started
                 </TrackedCTA>
               </td>
               <td className="c">
-                <TrackedCTA href="/login" location="pricing" label="start_free_pro">
+                <TrackedCTA href="/sign-in" location="pricing" label="start_free_pro">
                   Start free
                 </TrackedCTA>
               </td>

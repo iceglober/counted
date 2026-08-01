@@ -7,7 +7,15 @@ export function AgentView() {
       <p>
         Privacy-first product analytics. Machine-readable summary for agents. Full
         index: <a href="/llms.txt">/llms.txt</a> · OpenAPI:{" "}
-        <a href="/openapi.json">/openapi.json</a> · Auth: <a href="/auth.md">/auth.md</a>
+        {/*
+          Absolute, because the spec is served by the API and this page is not.
+          `/openapi.json` on this host has never existed — an agent following it
+          got a 404 from the one link that was supposed to describe everything
+          else. `/.well-known/api-catalog` is the discovery document that points
+          here.
+        */}
+        <a href="https://api.counted.dev/v1/openapi.json">api.counted.dev/v1/openapi.json</a> ·
+        Auth: <a href="/auth.md">/auth.md</a>
       </p>
 
       <h2>API</h2>

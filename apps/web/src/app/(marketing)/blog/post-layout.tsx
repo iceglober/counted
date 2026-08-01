@@ -44,7 +44,7 @@ export function PostLayout({ meta, children }: { meta: PostMeta; children: React
           <hr />
           <p>
             Start free — 100K events/month, no credit card.{" "}
-            <TrackedCTA href="/login" location={`blog:${meta.slug}`} label="create_project">
+            <TrackedCTA href="/sign-in" location={`blog:${meta.slug}`} label="create_project">
               Create a project
             </TrackedCTA>
           </p>

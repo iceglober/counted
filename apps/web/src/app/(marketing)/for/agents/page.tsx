@@ -35,7 +35,7 @@ export default function ForAgentsPage() {
           outcomes in a pre-built eval dashboard. No PII, no code contents.
         </p>
         <p>
-          <TrackedCTA href="/login" location="for_agents" label="start_free">
+          <TrackedCTA href="/sign-in" location="for_agents" label="start_free">
             Start free
           </TrackedCTA>{" "}
           &nbsp;or&nbsp; <a href="/docs">read the docs</a>
@@ -99,7 +99,7 @@ counted.track("session_end", { duration_ms: elapsed });`}</CodeBlock>
           file edits, and commands. Compose your own insights on top.
         </p>
         <p>
-          <TrackedCTA href="/login" location="for_agents" label="get_eval_dashboard">
+          <TrackedCTA href="/sign-in" location="for_agents" label="get_eval_dashboard">
             Get your eval dashboard
           </TrackedCTA>
         </p>

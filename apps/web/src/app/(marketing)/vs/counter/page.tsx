@@ -72,7 +72,7 @@ export default function VsCounterPage() {
           you build, plus the same SDK for your AI coding agents.
         </p>
         <p>
-          <TrackedCTA href="/login" location="vs_counter" label="start_free">
+          <TrackedCTA href="/sign-in" location="vs_counter" label="start_free">
             Start free
           </TrackedCTA>{" "}
           &nbsp;or&nbsp; <a href="#which">which fits you</a>
@@ -112,7 +112,7 @@ export default function VsCounterPage() {
           instrument AI coding agents. Same privacy stance, more to build with.
         </p>
         <p>
-          <TrackedCTA href="/login" location="vs_counter" label="start_free_which">
+          <TrackedCTA href="/sign-in" location="vs_counter" label="start_free_which">
             Start free
           </TrackedCTA>
         </p>

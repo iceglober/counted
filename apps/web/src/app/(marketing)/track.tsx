@@ -29,12 +29,17 @@ export function TrackedCTA({
   className?: string;
   children: React.ReactNode;
 }) {
-  // For app-bound links (e.g. /login), forward first-touch attribution as URL
-  // params after mount so it survives the cross-origin hop. SSR renders the bare
-  // href (no hydration mismatch); the effect enhances it client-side.
+  // For app-bound links, forward first-touch attribution as URL params after
+  // mount so it survives the hop into the console. SSR renders the bare href
+  // (no hydration mismatch); the effect enhances it client-side.
+  //
+  // Matched against the real route. This tested `/login`, which no route has
+  // ever served — so every marketing CTA pointed at a 404, and the attribution
+  // that only fires for app-bound links fired for none of them. Both failures
+  // came from one stale literal.
   const [resolved, setResolved] = useState(href);
   useEffect(() => {
-    if (href.startsWith("/login")) setResolved(appendAttribution(href));
+    if (href.startsWith("/sign-in")) setResolved(appendAttribution(href));
   }, [href]);
 
   return (

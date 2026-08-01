@@ -24,7 +24,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             <span className="hidden sm:block">|</span>
             <a href="https://github.com/iceglober/counted" target="_blank" rel="noopener" className="ext">GitHub</a>
             <span>|</span>
-            <a href="/login" target="_blank" rel="noopener" className="ext">Dashboard</a>
+            <a href="/sign-in" target="_blank" rel="noopener" className="ext">Dashboard</a>
           </div>
         </div>
       </header>

@@ -30,7 +30,7 @@ export function SiteNav() {
         <NewTabLink href="/docs">Docs</NewTabLink> | <Link href="/pricing">Pricing</Link> |{" "}
         <Link href="/vs">Compare</Link> | <Link href="/blog">Blog</Link> |{" "}
         <NewTabLink href={GITHUB}>GitHub</NewTabLink> |{" "}
-        <NewTabLink href="/login">Sign in</NewTabLink>
+        <NewTabLink href="/sign-in">Sign in</NewTabLink>
       </nav>
     </div>
   );

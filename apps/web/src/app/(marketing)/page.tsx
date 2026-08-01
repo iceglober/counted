@@ -112,7 +112,7 @@ export default async function Home({
           <li>Community support</li>
         </ul>
         <p>
-          <TrackedCTA href="/login" location="homepage_free_tier" label="get_started">
+          <TrackedCTA href="/sign-in" location="homepage_free_tier" label="get_started">
             Get started
           </TrackedCTA>
         </p>

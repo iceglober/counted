@@ -9,7 +9,7 @@ export function Hero() {
         source, self-hostable. The same SDK instruments your AI coding agents.
       </p>
       <p>
-        <TrackedCTA href="/login" location="homepage_hero" label="start_free">
+        <TrackedCTA href="/sign-in" location="homepage_hero" label="start_free">
           Start free
         </TrackedCTA>{" "}
         &nbsp;or&nbsp; <a href="/pricing">view pricing</a>

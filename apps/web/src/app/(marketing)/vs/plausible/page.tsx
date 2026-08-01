@@ -56,7 +56,7 @@ export default function VsPlausiblePage() {
           dashboards, and native SDKs for AI coding agents.
         </p>
         <p>
-          <TrackedCTA href="/login" location="vs_plausible" label="start_free">
+          <TrackedCTA href="/sign-in" location="vs_plausible" label="start_free">
             Start free
           </TrackedCTA>{" "}
           &nbsp;or&nbsp; <a href="#who">which fits you</a>
@@ -96,7 +96,7 @@ export default function VsPlausiblePage() {
           SDKs for AI coding agents. Same no-cookie, no-PII stance.
         </p>
         <p>
-          <TrackedCTA href="/login" location="vs_plausible" label="start_free_who">
+          <TrackedCTA href="/sign-in" location="vs_plausible" label="start_free_who">
             Start free
           </TrackedCTA>
         </p>
