@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { browserApi } from "@/lib/api";
+import { ApiError, browserApi } from "@/lib/api";
 
 /**
  * Sign in.
@@ -12,7 +12,7 @@ import { browserApi } from "@/lib/api";
  * sign-up — requesting a link for an unknown address creates one.
  */
 export default function SignIn() {
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "invalid">("idle");
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "invalid" | "failed">("idle");
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -21,10 +21,13 @@ export default function SignIn() {
     try {
       await browserApi()("requestSignInLink", { body: { email: String(email ?? "") } });
       setState("sent");
-    } catch {
-      // The only refusal this endpoint makes is "that is not an address",
-      // which is a fact about the input rather than about who has an account.
-      setState("invalid");
+    } catch (error) {
+      // Only a 400 is a statement about the address. This used to catch
+      // everything and say "that does not look like an email address" — so a
+      // valid address, a sent link and a 202 still produced that message,
+      // because the client threw parsing an empty body. Blaming the input for
+      // every failure sends people to fix the one thing that was correct.
+      setState(error instanceof ApiError && error.status === 400 ? "invalid" : "failed");
     }
   };
 
@@ -48,6 +51,9 @@ export default function SignIn() {
         </button>
       </form>
       {state === "invalid" && <p role="alert">That does not look like an email address.</p>}
+      {state === "failed" && (
+        <p role="alert">Something went wrong sending the link. Try again in a moment.</p>
+      )}
     </main>
   );
 }

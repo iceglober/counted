@@ -185,3 +185,44 @@ describe("a per-request bearer", () => {
     expect(seen[0]?.credentials).toBe("include");
   });
 });
+
+/**
+ * A success with no body.
+ *
+ * The client special-cased `204` only, so every *other* bodyless success threw
+ * a SyntaxError out of `response.json()` on empty input. `POST
+ * /v1/auth/sign-in` answers `202` with no body — the contract says so — which
+ * meant a valid address produced a sent link, a `202`, and then an exception.
+ * The sign-in page caught it and reported "That does not look like an email
+ * address", so the one thing that was correct is the thing it told you to fix.
+ *
+ * These use the statuses the committed contract actually declares bodyless,
+ * rather than the ones this client happened to remember.
+ */
+describe("a 2xx with no body", () => {
+  for (const status of [202, 204, 205]) {
+    test(`${status} resolves with undefined data rather than throwing`, async () => {
+      const { client } = stub(() => new Response(null, { status }));
+      const result = await client("requestSignInLink", { body: { email: "a@b.co" } });
+      expect(result.data).toBeUndefined();
+    });
+  }
+
+  test("a 200 that really has JSON is still parsed", async () => {
+    const { client } = stub(
+      () => new Response('{"ok":true}', { status: 200, headers: { "content-type": "application/json" } }),
+    );
+    const result = await client("describeCaller");
+    expect(result.data).toEqual({ ok: true } as never);
+  });
+
+  test("a 2xx with a non-JSON content type is not parsed as JSON", async () => {
+    // A proxy answering `text/html` on the API's behalf should not become a
+    // parse error attributed to the caller's input.
+    const { client } = stub(
+      () => new Response("<html>hi</html>", { status: 200, headers: { "content-type": "text/html" } }),
+    );
+    const result = await client("describeCaller");
+    expect(result.data).toBeUndefined();
+  });
+});

@@ -150,7 +150,19 @@ export const createClient = (options: ClientOptions): ApiClient => {
       throw new ApiError(response.status, problem, requestId);
     }
 
-    const data = response.status === 204 ? (undefined as T) : ((await response.json()) as T);
+    // Parse a body when the server says it sent one, rather than when the
+    // status happens to be a value we remembered.
+    //
+    // This special-cased 204 only, so any *other* bodyless success threw a
+    // SyntaxError from `response.json()` on empty input. `POST
+    // /v1/auth/sign-in` answers `202` with no body, so every successful
+    // sign-in request raised — and the sign-in page's `catch` reported it as
+    // "That does not look like an email address." The link had already been
+    // sent each time; the only broken thing was the reading of the reply.
+    const contentType = response.headers.get("content-type") ?? "";
+    const hasBody =
+      response.status !== 204 && response.status !== 205 && contentType.includes("json");
+    const data = hasBody ? ((await response.json()) as T) : (undefined as T);
 
     return {
       data,
