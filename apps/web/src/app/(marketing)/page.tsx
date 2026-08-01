@@ -10,7 +10,11 @@ import { AgentView } from "./agent-view";
 export const metadata: Metadata = {
   alternates: {
     canonical: "/",
-    types: { "text/markdown": "/index.md" },
+    // No `text/markdown` alternate. v1 advertised `/index.md`; v2 never ported
+    // the route, so the homepage was pointing crawlers and agents at a URL
+    // that 404s. A dead alternate is worse than none — it sends whoever did
+    // the right thing to a dead end. Restore the link and the route together,
+    // or not at all. `/docs/llms.txt` is the one that exists.
   },
 };
 
