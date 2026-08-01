@@ -17,6 +17,22 @@ import { join } from "node:path";
 const APP = join(import.meta.dir, "..", "..");
 const pageAt = (route: string): string => readFileSync(join(APP, "src/app", route), "utf8");
 
+/**
+ * A file's source with comments stripped.
+ *
+ * These checks ask what a page *does*, and a comment explaining a page's
+ * relationship to an operation contains the very string that would say it
+ * calls it. A note in dashboards/page.tsx observing that `listMonitors`
+ * returns `items` was read as that page listing monitors.
+ *
+ * A gate that flags prose gets weakened until it means nothing, so it reads
+ * code only.
+ */
+const codeOf = (file: string): string =>
+  readFileSync(file, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+
 const routeFiles = (): readonly string[] => {
   const found: string[] = [];
   const walk = (dir: string): void => {
@@ -59,7 +75,7 @@ describe("Settings holds account and billing only", () => {
 
 describe("monitors are at project scope", () => {
   test("the project page is the only page that lists them", () => {
-    const listing = routeFiles().filter((file) => readFileSync(file, "utf8").includes("listMonitors"));
+    const listing = routeFiles().filter((file) => codeOf(file).includes("listMonitors"));
     expect(listing.map((f) => f.slice(APP.length + 1))).toEqual(["src/app/projects/[projectId]/page.tsx"]);
   });
 

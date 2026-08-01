@@ -6,8 +6,20 @@ import { requireCaller, workspaceFrom } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * `items`, not `dashboards` — the contract says so, and every other list
+ * endpoint agrees (`listProjects`, `listCredentials`, `listMonitors` all
+ * return `items`). This said `dashboards` and crashed with `undefined is not
+ * an object (evaluating 'a.dashboards.length')` the first time anybody
+ * reached the page, which was today: until the redirect was fixed, /dashboards
+ * bounced to the marketing homepage and this line never ran.
+ *
+ * `api<T>()` is an unchecked cast, so a hand-written shape that disagrees with
+ * the contract is invisible to the compiler. That is the actual defect here —
+ * the name was only the symptom.
+ */
 type DashboardList = {
-  readonly dashboards: readonly { id: string; name: string; isDefault: boolean }[];
+  readonly items: readonly { id: string; name: string; isDefault: boolean }[];
 };
 
 /**
@@ -39,7 +51,7 @@ export default async function Dashboards({
   try {
     const { data } = await api<DashboardList>("listDashboards", { params: { workspaceId } });
 
-    if (data.dashboards.length === 0) {
+    if (data.items.length === 0) {
       // An honest empty state: it says what to do, and does not pretend a
       // dashboard is loading.
       return (
@@ -54,7 +66,7 @@ export default async function Dashboards({
       <main>
         <h1>Dashboards</h1>
         <ul>
-          {data.dashboards.map((dashboard) => (
+          {data.items.map((dashboard) => (
             <li key={dashboard.id}>
               <Link href={`/dashboards/${dashboard.id}`}>{dashboard.name}</Link>
               {dashboard.isDefault && <span className="tile-empty"> · default</span>}

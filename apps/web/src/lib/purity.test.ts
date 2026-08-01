@@ -25,7 +25,15 @@ const sourceFiles = (): readonly string[] => {
       if (entry.name === "node_modules" || entry.name === ".next") continue;
       const path = join(dir, entry.name);
       if (entry.isDirectory()) walk(path);
-      else if (/\.(ts|tsx)$/.test(entry.name)) found.push(path);
+      // Test files are excluded here rather than by each check separately.
+      // These gates are about what the *app* does, and a test that describes a
+      // rule necessarily contains the strings the rule looks for — a file
+      // asserting "no page may call listMonitors" was itself reported as a
+      // page calling listMonitors. Some checks below filtered test files and
+      // others forgot, so a new test file tripped whichever had forgotten.
+      else if (/\.(ts|tsx)$/.test(entry.name) && !/\.test\.(ts|tsx)$/.test(entry.name)) {
+        found.push(path);
+      }
     }
   };
   walk(join(APP, "src"));
