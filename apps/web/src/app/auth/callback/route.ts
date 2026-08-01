@@ -63,5 +63,10 @@ export async function GET(request: Request): Promise<Response> {
     return redirectTo("/sign-in?error=link", null);
   }
 
-  return redirectTo("/", response.headers.get("set-cookie"));
+  // The console, not "/". This app serves both counted.dev and
+  // app.counted.dev, so "/" is the *marketing* homepage — signing in
+  // successfully dropped the user on the landing page, cookie set, with no
+  // sign that anything had happened. /dashboards resolves the caller's
+  // workspace, or sends a brand-new account to /start.
+  return redirectTo("/dashboards", response.headers.get("set-cookie"));
 }

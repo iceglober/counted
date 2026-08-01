@@ -43,6 +43,31 @@ describe("sign-in callback", () => {
     for (const l of locations) expect(l).toMatch(/^\//);
   });
 
+  test("lands a signed-in account in the console, not on the marketing page", () => {
+    // This app serves counted.dev *and* app.counted.dev, so "/" is the
+    // marketing homepage. Redirecting there on success dropped the user on the
+    // landing page with a session cookie set and nothing to show for it.
+    expect(source).not.toMatch(/redirectTo\(\s*["'`]\/["'`]/);
+    expect(source).toMatch(/redirectTo\(\s*["'`]\/(dashboards|start)\b/);
+  });
+
+  test("no console page bounces to the marketing homepage", () => {
+    // `/dashboards` did the same thing when no workspace was named, so a
+    // signed-in account could not reach the console from either direction.
+    const consoleDir = join(import.meta.dir, "..", "..");
+    for (const page of ["dashboards/page.tsx", "projects/page.tsx", "settings/page.tsx"]) {
+      let src: string;
+      try {
+        src = readFileSync(join(consoleDir, page), "utf8");
+      } catch {
+        continue; // page may not exist yet
+      }
+      // Comments may discuss it; code may not do it.
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+      expect(code).not.toMatch(/redirect\(\s*["'`]\/["'`]\s*\)/);
+    }
+  });
+
   test("passes the API's Set-Cookie through untouched", () => {
     // Re-deriving Domain/SameSite/Max-Age here is how the two implementations
     // would come to disagree about what a session is.

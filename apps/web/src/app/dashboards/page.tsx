@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ApiError, serverApi } from "@/lib/api";
+import { requireCaller, workspaceFrom } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +22,17 @@ export default async function Dashboards({
 }: {
   searchParams: Promise<{ workspace?: string }>;
 }) {
-  const workspaceId = (await searchParams).workspace;
-  if (workspaceId === undefined) redirect("/");
+  // No workspace in the URL means "the console home", not "leave the console".
+  // This used to `redirect("/")`, and `/` on app.counted.dev is the *marketing*
+  // homepage — both hosts are served by this one app. So a signed-in account
+  // arriving at /dashboards was bounced out to the landing page, which is also
+  // where the sign-in callback sent them. `workspaceFrom` already encodes the
+  // right answer, and its own comment says so: the first workspace, or /start
+  // when there is none.
+  let workspaceId = (await searchParams).workspace;
+  if (workspaceId === undefined) {
+    workspaceId = workspaceFrom(await requireCaller(), undefined).id;
+  }
 
   const api = serverApi((await cookies()).toString() || null);
 
