@@ -145,3 +145,86 @@ a.ext::after {
   color: #666;
 }
 .retro .sitefooter a { color: #0000cc; }
+
+/* ── Form controls ───────────────────────────────────────────────────────────
+   The console shipped unstyled. Every rule above is either a class the
+   marketing pages opt into (.page, .btn) or an element the marketing pages
+   use (a, h1, table, pre) — and the console is semantic HTML with real
+   <button>, <input> and <main> and no classes at all, so nothing matched it.
+   Sign-in rendered as a bare heading, a borderless field, and a line of text
+   where the button should have been.
+
+   The note above .btn said real buttons were "styled by components/ui/button".
+   That component is v1's and was never ported — apps/web/src/components has no
+   ui/ directory. The claim outlived the code.
+
+   Button chrome matches .btn deliberately: a link-button and a submit button
+   should not look like two different controls. Fields take the inverse bevel,
+   which is what made a 2001 form legible at a glance — raised means press me,
+   sunken means type here. */
+
+.retro button,
+.retro input[type="submit"],
+.retro input[type="button"] {
+  font: bold 12px Verdana, Geneva, Tahoma, sans-serif;
+  color: #000;
+  background: #e6e6e6;
+  border: 2px outset #ddd;
+  padding: 3px 14px;
+  cursor: pointer;
+}
+.retro button:active,
+.retro input[type="submit"]:active { border-style: inset; }
+.retro button:disabled,
+.retro input[type="submit"]:disabled { color: #888; cursor: default; border-style: outset; }
+
+.retro input,
+.retro select,
+.retro textarea {
+  font: 13px Verdana, Geneva, Tahoma, sans-serif;
+  color: #000;
+  background: #fff;
+  border: 2px inset #ddd;
+  padding: 2px 4px;
+}
+.retro textarea { line-height: 1.45; }
+
+/* Re-raises the button-like inputs that the sunken rule above would otherwise
+   flatten. Order matters — do not sort these declarations. */
+.retro input[type="submit"],
+.retro input[type="button"] { background: #e6e6e6; border: 2px outset #ddd; }
+.retro input[type="checkbox"],
+.retro input[type="radio"] { border: 0; padding: 0; }
+
+/* Focus has to be visible on its own: the bevel does not change on :focus, so
+   without this a keyboard user cannot tell where they are. */
+.retro input:focus-visible,
+.retro select:focus-visible,
+.retro textarea:focus-visible,
+.retro button:focus-visible {
+  outline: 2px solid #0000cc;
+  outline-offset: 1px;
+}
+
+.retro label {
+  display: inline-block;
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+.retro fieldset {
+  border: 1px solid #999;
+  padding: 10px 12px;
+  margin: 12px 0;
+}
+.retro legend { font-weight: bold; font-size: 12px; padding: 0 4px; }
+
+/* The reading column, for pages that never opted into .page. Marketing wraps
+   its content in <div class="page">; the console does not, so its pages ran
+   the full width of the window. Constraining <main> gives them the same
+   measure without every console page having to remember a class. */
+.retro main {
+  display: block;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}

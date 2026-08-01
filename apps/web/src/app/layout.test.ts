@@ -46,4 +46,37 @@ describe("root layout", () => {
   test("sets metadataBase, without which OG urls resolve relative and crawlers drop them", () => {
     expect(layout).toMatch(/metadataBase\s*:/);
   });
+
+  /**
+   * The class being applied is not the same as the stylesheet covering what
+   * the app renders, and the gap between those two is where the console spent
+   * its life unstyled.
+   *
+   * Every rule was either a class the marketing pages opt into (`.page`,
+   * `.btn`) or an element the marketing pages use (`a`, `h1`, `table`). The
+   * console is semantic HTML — real `<button>`, `<input>`, `<main>`, no
+   * classes — so `body.retro` was present, the CSS loaded, and nothing
+   * matched. Sign-in was a bare heading, a borderless field, and a line of
+   * text where the button belonged.
+   *
+   * These assert the stylesheet covers the primitives the console actually
+   * emits, which is the thing that was missing rather than the hook.
+   */
+  test("styles the form controls the console renders", () => {
+    for (const selector of [/\.retro\s+button\s*[,{]/, /\.retro\s+input\s*[,{]/, /\.retro\s+select\s*[,{]/, /\.retro\s+textarea\s*[,{]/]) {
+      expect(retroCss).toMatch(selector);
+    }
+  });
+
+  test("constrains <main>, since no console page opts into .page", () => {
+    // Marketing wraps its content in `div.page`; the console does not, so
+    // without this its pages run the full width of the window.
+    expect(retroCss).toMatch(/\.retro\s+main\s*\{[^}]*max-width/);
+  });
+
+  test("keyboard focus stays visible on form controls", () => {
+    // The bevel does not change on :focus, so focus needs its own treatment or
+    // a keyboard user cannot tell where they are.
+    expect(retroCss).toMatch(/\.retro\s+(input|button|select|textarea):focus-visible/);
+  });
 });
