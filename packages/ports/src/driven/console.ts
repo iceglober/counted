@@ -18,8 +18,23 @@
 
 import type { AccountId, Instant } from "@counted/domain";
 
-/** How long a mailed sign-in link stays usable. */
-export const SIGN_IN_TOKEN_TTL_MS = 15 * 60 * 1000;
+/**
+ * How long a mailed sign-in link stays usable.
+ *
+ * An hour, not fifteen minutes. Fifteen sounds safer and mostly is not: the
+ * token is single-use, so the window closes the moment it is clicked. What
+ * expiry really protects against is a mailbox read later by someone else, and
+ * an hour is still narrow for that.
+ *
+ * The short window was losing ordinary sign-ins — a link read on a phone in
+ * another room, or opened after a meeting, was already dead. The cost of that
+ * is not "request another one", it is somebody deciding the product is broken.
+ * Slack and Notion both sit around an hour.
+ *
+ * The mail body derives the figure from `expiresAt` rather than repeating it,
+ * so changing this constant changes what the email says.
+ */
+export const SIGN_IN_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 /** How long a console session lasts without re-authenticating. */
 export const CONSOLE_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
