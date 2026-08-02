@@ -54,7 +54,7 @@ export function SiteFooter() {
 // pages and /docs don't need import changes.
 
 export function Eyebrow({ children }: { children: string }) {
-  return <p className="small muted" style={{ textTransform: "uppercase" }}>{children}</p>;
+  return <p className="eyebrow">{children}</p>;
 }
 
 export function CodeBlock({ children }: { children: React.ReactNode }) {
