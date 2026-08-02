@@ -40,6 +40,47 @@
   --animate-grow-cell: none;
 }
 
+/* Bare aliases for the theme colours above.
+ *
+ * These six were referenced by shipped CSS and defined nowhere, so every rule
+ * using one resolved to nothing:
+ *
+ *   --accent          series-chart.tsx  stroke="var(--accent)" x3
+ *   --accent-hover    globals.css
+ *   --border          console tile rules
+ *   --error           globals.css x2
+ *   --text-primary    globals.css
+ *   --text-tertiary   globals.css x2
+ *
+ * `stroke` is inherited with an initial value of `none`, so an unresolvable
+ * var() in that presentation attribute does not fall back to a visible colour —
+ * it draws nothing. The chart line was the same case as the console that
+ * shipped unstyled: the CSS was present and simply never matched.
+ *
+ * Tailwind's `@theme` emits the `--color-*` names to :root, so aliasing is
+ * enough; no value is duplicated and nothing here changes an intended colour.
+ * DESIGN.md supersedes this block when the visual refresh lands — it inverts
+ * the direction so these bare names become the source and the theme derives.
+ */
+:root {
+  --accent:         var(--color-accent);
+  --accent-hover:   var(--color-accent-hover);
+  --border:         var(--color-border);
+  --error:          var(--color-error);
+  --text-primary:   var(--color-text-primary);
+  --text-tertiary:  var(--color-text-tertiary);
+
+  /* Four more, found by the gate rather than by reading: `--surface-0/1/2` and
+   * `--success` are read from globals.css *and* from an inline style in
+   * onboarding.tsx. A grep over the stylesheets alone missed them, which is
+   * the argument for the check being a test and not a habit. */
+  --surface-0:      var(--color-surface-0);
+  --surface-1:      var(--color-surface-1);
+  --surface-2:      var(--color-surface-2);
+  --success:        var(--color-success);
+}
+
+
 :root {
   color-scheme: light;
 }
