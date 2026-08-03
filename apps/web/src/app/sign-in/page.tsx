@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError, browserApi } from "@/lib/api";
 
 /**
@@ -13,6 +13,21 @@ import { ApiError, browserApi } from "@/lib/api";
  */
 export default function SignIn() {
   const [state, setState] = useState<"idle" | "sending" | "sent" | "invalid" | "failed">("idle");
+
+  // Remember where they were going, so the emailed link can return them there.
+  //
+  // A short-lived, same-site cookie rather than a query parameter carried
+  // through the API: the API builds the mail link from APP_URL, so routing a
+  // caller-supplied destination through it would put an open-redirect target
+  // on a service boundary. This never leaves the web app.
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get("next");
+    // Same-origin absolute paths only. `//evil.example` is protocol-relative
+    // and would leave the site, which is the whole open-redirect trick.
+    if (next !== null && next.startsWith("/") && !next.startsWith("//")) {
+      document.cookie = `counted_next=${encodeURIComponent(next)}; Max-Age=900; Path=/; SameSite=Lax`;
+    }
+  }, []);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -1,6 +1,7 @@
 import { requireCaller } from "@/lib/session";
 import { CredentialTable } from "@/components/credentials";
 import { MonitorTable } from "@/components/monitors";
+import { ProjectName } from "@/components/project-name";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   return (
     <main>
-      <h1>{project.data.name}</h1>
+      <ProjectName projectId={projectId} name={project.data.name} />
 
       <h2>Keys</h2>
       <CredentialTable credentials={credentials} />

@@ -16,6 +16,7 @@
  * design is avoiding.
  */
 
+import { cookies } from "next/headers";
 import { serverApiUrl } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -68,5 +69,20 @@ export async function GET(request: Request): Promise<Response> {
   // successfully dropped the user on the landing page, cookie set, with no
   // sign that anything had happened. /dashboards resolves the caller's
   // workspace, or sends a brand-new account to /start.
-  return redirectTo("/dashboards", response.headers.get("set-cookie"));
+  // Return them to whatever they were trying to reach — most often a claim
+  // link, where dropping them at /dashboards would lose the project they came
+  // for. Validated again here rather than trusted: a cookie is caller-writable,
+  // so this re-checks the same-origin rule the sign-in page applied.
+  const wanted = (await cookies()).get("counted_next")?.value;
+  const decoded = wanted === undefined ? null : decodeURIComponent(wanted);
+  const next =
+    decoded !== null && decoded.startsWith("/") && !decoded.startsWith("//") ? decoded : "/dashboards";
+
+  const headers = new Headers({ location: next });
+  const setCookie = response.headers.get("set-cookie");
+  if (setCookie !== null) headers.append("set-cookie", setCookie);
+  // Spend it. A stale destination outliving the sign-in that wanted it would
+  // send the *next* sign-in somewhere surprising.
+  headers.append("set-cookie", "counted_next=; Max-Age=0; Path=/; SameSite=Lax");
+  return new Response(null, { status: 303, headers });
 }

@@ -1,10 +1,21 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ApiError, serverApi } from "@/lib/api";
 import { ClaimForm } from "@/components/claim-form";
 
 export const dynamic = "force-dynamic";
 
 type Preview = { readonly project: { id: string; name: string }; readonly expiresAt: string | null };
+
+/** Whether this request carries a usable console session. */
+const hasSession = async (): Promise<boolean> => {
+  try {
+    const { data } = await serverApi((await cookies()).toString() || null)<{ kind: string }>("describeCaller");
+    return data.kind === "account";
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Adopting a provisioned project.
@@ -35,6 +46,18 @@ export default async function Claim({ params }: { params: Promise<{ token: strin
       </main>
     );
   }
+
+  // Signed out? Go to sign-in, do not ask them to press a button first.
+  //
+  // The old shape was: a "Claim it" button, which 401s, which reveals a "Sign
+  // in to claim this project" link, which goes where the button was always
+  // going to send them. Three interactions and a failed request to reach a
+  // destination that was knowable server-side, before the page rendered.
+  //
+  // The token stays in `next`, so signing in returns here rather than dropping
+  // the project they arrived for.
+  const signedIn = await hasSession();
+  if (!signedIn) redirect(`/sign-in?next=${encodeURIComponent(`/claim/${token}`)}`);
 
   return (
     <main>

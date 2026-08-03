@@ -23,7 +23,7 @@
  * from being free permanent storage for anyone who can send a POST.
  */
 
-import { Instant, Project, ProjectId, Workspace, WorkspaceId, WorkspaceLimits, CredentialId, type AccountId } from "@counted/domain";
+import { Instant, Project, ProjectId, Workspace, WorkspaceId, WorkspaceLimits, CredentialId, suggestedProjectName, type AccountId } from "@counted/domain";
 import { ProvisionRequestSchema, RedeemClaimRequestSchema } from "@counted/contracts";
 import type { Dependencies } from "../composition";
 import { publicRoute, type RouteDefinition } from "../http/route";
@@ -33,8 +33,17 @@ import { body } from "../http/body";
 /** How long a provisioned project may go unclaimed. */
 export const CLAIM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** The default name, when a caller does not supply one. */
-const UNTITLED = "Untitled project";
+/**
+ * The name when a caller does not supply one.
+ *
+ * Was the literal "Untitled project", which meant the claim page read "Claim
+ * Untitled project" and a dashboard of provisioned projects was a column of
+ * identical rows. `/v1/provision` takes no input by design — that is what lets
+ * an agent get a key in one unauthenticated call — so something has to choose,
+ * and a placeholder was the one option guaranteed to look unfinished.
+ *
+ * Always renameable afterwards; this only picks the starting point.
+ */
 
 /**
  * What to paste.
@@ -81,7 +90,7 @@ export const bootstrapRoutes = (deps: Dependencies): readonly RouteDefinition[] 
           // Named at creation, always. v1 created "My Project" and then asked,
           // so the rename was a second step most people never took and every
           // list read the same.
-          parsed.value.name ?? UNTITLED,
+          parsed.value.name ?? suggestedProjectName(),
           {
             digest: deps.secrets.digest(grantToken),
             expiresAt: Instant.fromEpochMillis(Instant.toEpochMillis(at) + CLAIM_TTL_MS),
