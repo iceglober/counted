@@ -57,12 +57,17 @@ proxy.ts                Request routing (marketing vs app domain, CORS)
 ## Commands
 
 ```bash
-bun run dev          # Start dev server (Turbopack)
-bun run build        # Production build
-bun run typecheck    # TypeScript check
-bun run db:push      # Push Drizzle schema to database
-bun run db:generate  # Generate Drizzle migration
+bun run dev          # database + API on :8080 + web on :3000
+bun run typecheck:v2 # TypeScript check
+bun run test:v2      # the full suite
+bun run seed         # fill a project with ~30 days of events (stack must be running)
 ```
+
+There is no schema push step. The API applies its schema at boot, inside the
+process that will serve traffic — `migrate()` runs in `compose()` before
+anything reads the database, wrapped in an advisory lock so every replica runs
+it and only the first does work. See `deploy/README.md` for why a pre-deploy
+command was rejected.
 
 ## SDK workspace packages
 
