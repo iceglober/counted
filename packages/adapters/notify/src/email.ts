@@ -27,10 +27,31 @@ export class EmailDeliveryError extends Error {
   }
 }
 
+/**
+ * Thrown when no mail provider is configured, instead of sending a request that
+ * can only fail.
+ *
+ * Distinct from `EmailDeliveryError` so a caller can tell "nobody is set up to
+ * send this" from "sending it failed" — the first is a development
+ * environment, the second is an incident.
+ */
+export class EmailNotConfiguredError extends Error {
+  constructor() {
+    super("No mail provider is configured (RESEND_API_KEY is unset).");
+    this.name = "EmailNotConfiguredError";
+  }
+}
+
 export const deliverEmail = async (
   notification: Extract<Notification, { channel: "email" }>,
   config: EmailConfig,
 ): Promise<void> => {
+  // Refuse early rather than POST with an empty bearer token and take a 401.
+  // A comment here used to claim sign-in was testable locally without a mail
+  // provider "because the link is in the log" — it was not, and nothing logged
+  // it. This is the half that makes that true; auth.ts is the other half.
+  if (config.apiKey === "") throw new EmailNotConfiguredError();
+
   const http = config.fetch ?? fetch;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs ?? 10_000);

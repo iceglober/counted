@@ -350,6 +350,17 @@ export const RedeemClaimRequestSchema = z
     workspaceId: z.string().optional(),
     /** Names the workspace when one is being opened. */
     workspaceName: z.string().trim().min(1).max(120).optional(),
+    /**
+     * Renames the project being adopted.
+     *
+     * Provision suggests a name because it has to call the project something,
+     * and the claim page offers it as a placeholder — so the person taking
+     * ownership can name the thing at the moment they take it. Carried on the
+     * redeem rather than left to a follow-up PATCH: two calls can half-fail,
+     * and the half that fails would leave somebody owning a project named
+     * something they just declined.
+     */
+    projectName: z.string().trim().min(1).max(100).optional(),
   })
   .openapi("RedeemClaimRequest");
 

@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ApiError, serverApi } from "@/lib/api";
 import { requireCaller, workspaceFrom } from "@/lib/session";
+import { CreateDashboard } from "@/components/create-dashboard";
+import { ConsoleContext } from "@/components/console-context";
 
 export const dynamic = "force-dynamic";
 
@@ -56,14 +58,17 @@ export default async function Dashboards({
       // dashboard is loading.
       return (
         <main>
+          <ConsoleContext workspaceId={workspaceId} />
           <h1>Dashboards</h1>
           <p className="tile-empty">No dashboards yet. Create one to start asking questions.</p>
+          <CreateDashboard workspaceId={workspaceId} />
         </main>
       );
     }
 
     return (
       <main>
+        <ConsoleContext workspaceId={workspaceId} />
         <h1>Dashboards</h1>
         <ul>
           {data.items.map((dashboard) => (
@@ -73,6 +78,7 @@ export default async function Dashboards({
             </li>
           ))}
         </ul>
+        <CreateDashboard workspaceId={workspaceId} />
       </main>
     );
   } catch (error) {

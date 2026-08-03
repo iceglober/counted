@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireCaller, workspaceFrom } from "@/lib/session";
+import { ConsoleContext } from "@/components/console-context";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function Projects({
 
   return (
     <main>
+      <ConsoleContext workspaceId={workspace.id} />
       <h1>Projects</h1>
       <p className="tile-empty">{workspace.name}</p>
 

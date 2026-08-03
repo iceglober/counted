@@ -22,6 +22,7 @@ import { Instant } from "@counted/domain";
 import { RedeemSessionRequestSchema, SignInRequestSchema } from "@counted/contracts";
 import type { Dependencies } from "../composition";
 import { publicRoute, type RouteDefinition } from "../http/route";
+import { EmailNotConfiguredError } from "@counted/adapter-notify";
 import { sendProblem } from "../http/respond";
 import {
   SESSION_COOKIE,
@@ -74,10 +75,22 @@ export const authRoutes = (deps: Dependencies): readonly RouteDefinition[] => {
             body: mailBody(signInLink(deps.config.appUrl, token), minutes),
           });
         } catch (error) {
-          // Logged, never surfaced. A caller who can tell a delivery failure
-          // from a success can tell a real address from a fake one by whether
-          // the mail provider bounced it.
-          c.get("log").error("auth.mail_failed", { error: String(error) });
+          // No mail provider configured means development, and there the link
+          // has to go somewhere or sign-in cannot be exercised at all. This is
+          // the behaviour the composition comment always claimed and never had.
+          // Gated on *unconfigured* rather than on any failure: a real delivery
+          // failure in production must never print a credential to a log.
+          if (error instanceof EmailNotConfiguredError) {
+            c.get("log").warn("auth.mail_unconfigured", {
+              detail: "No RESEND_API_KEY, so the sign-in link is printed here instead of sent.",
+              link: signInLink(deps.config.appUrl, token),
+            });
+          } else {
+            // Logged, never surfaced. A caller who can tell a delivery failure
+            // from a success can tell a real address from a fake one by whether
+            // the mail provider bounced it.
+            c.get("log").error("auth.mail_failed", { error: String(error) });
+          }
         }
 
         // Identical for a new account, an existing one, and a failed send.

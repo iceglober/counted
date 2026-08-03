@@ -217,8 +217,22 @@ export const bootstrapRoutes = (deps: Dependencies): readonly RouteDefinition[] 
           const claimed = project.claim(deps.secrets.digest(token), workspaceId, at);
           if (!claimed.ok) return { kind: "refused", reason: claimed.error.kind } as const;
 
-          await r.projects.save(claimed.value.project, claimed.value.events);
-          return { kind: "claimed", workspace: workspaceId, project: claimed.value.project } as const;
+          // Rename inside the same unit of work, when the claimer chose one.
+          // The alternative — claim, then PATCH — can half-fail, and the half
+          // that fails leaves somebody owning a project called something they
+          // just declined.
+          let adopted = claimed.value.project;
+          let events = claimed.value.events;
+          const wanted = parsed.value.projectName;
+          if (wanted !== undefined && wanted !== adopted.snapshot().name) {
+            const renamed = adopted.rename(wanted, at);
+            if (!renamed.ok) return { kind: "invalid", detail: renamed.error.kind } as const;
+            adopted = renamed.value.project;
+            events = [...events, ...renamed.value.events];
+          }
+
+          await r.projects.save(adopted, events);
+          return { kind: "claimed", workspace: workspaceId, project: adopted } as const;
         });
 
         switch (outcome.kind) {

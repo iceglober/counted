@@ -2,10 +2,11 @@ import { requireCaller } from "@/lib/session";
 import { CredentialTable } from "@/components/credentials";
 import { MonitorTable } from "@/components/monitors";
 import { ProjectName } from "@/components/project-name";
+import { ConsoleContext } from "@/components/console-context";
 
 export const dynamic = "force-dynamic";
 
-type Project = { readonly id: string; readonly name: string; readonly state: string };
+type Project = { readonly id: string; readonly name: string; readonly state: string; readonly workspaceId: string };
 type Credential = {
   readonly id: string;
   readonly kind: "ingest" | "service";
@@ -48,6 +49,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   return (
     <main>
+      <ConsoleContext workspaceId={project.data.workspaceId} projectId={projectId} />
       <ProjectName projectId={projectId} name={project.data.name} />
 
       <h2>Keys</h2>
