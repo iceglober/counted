@@ -30,7 +30,9 @@ export function LandingCTA() {
     <div>
       <h2>Try it now</h2>
       <p>
-        One click gets you a project key and a live dashboard. No signup.
+          One click gets you a working project key — no signup, no card. Send
+          events straight away. Sign in with an email when you want to keep the
+          project and read what it collected.
       </p>
       {state !== "done" ? (
         <p>
@@ -61,7 +63,7 @@ export function LandingCTA() {
               went nowhere, with the second attempt working — the shape of a
               router transition that cannot resolve its target.
             */}
-            <a href={result.claimUrl}>Open your live dashboard &raquo;</a>
+            <a href={result.claimUrl}>Claim it and open your dashboard &raquo;</a>
           </div>
         )
       )}
