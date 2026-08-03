@@ -3,7 +3,6 @@
 import { browserApi } from "@/lib/api";
 
 import { useState } from "react";
-import Link from "next/link";
 import { track } from "./analytics";
 
 // "Try it now" — mints a project key and a claim link, no signup.
@@ -44,7 +43,25 @@ export function LandingCTA() {
           <div className="note">
             Your client key: <code>{result.clientKey}</code>
             <br />
-            <Link href={result.claimUrl}>Open your live dashboard &raquo;</Link>
+            {/*
+              A plain <a>, not next/link, for two independent reasons.
+
+              `claimUrl` is absolute and built from the API's APP_URL, so in
+              production it points at app.counted.dev while this page is served
+              from counted.dev — a different origin, which next/link does not
+              handle. It only looked fine locally because dev serves both from
+              one port.
+
+              And next/link prefetches. The target is a capability URL; a
+              prefetch would fetch somebody's claim link on hover, before they
+              chose to open it. Nothing is consumed by a preview, but it is a
+              request the person did not make.
+
+              The reported symptom was a first click that closed the panel and
+              went nowhere, with the second attempt working — the shape of a
+              router transition that cannot resolve its target.
+            */}
+            <a href={result.claimUrl}>Open your live dashboard &raquo;</a>
           </div>
         )
       )}
