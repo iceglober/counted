@@ -1,36 +1,24 @@
 @import "tailwindcss";
 @import "./retro.css";
 
-/* One plain, early-2000s theme everywhere: white background, black Verdana,
-   blue links, gray borders, square corners, no shadows, no motion. The whole
-   app reads these tokens, so the look is defined here once. */
+/* One plain theme everywhere: warm paper, near-black ink, blue links, hairline
+   rules, square corners, no shadows, no motion. Fonts are declared here;
+   colours live in the :root source block below (DESIGN.md derivation
+   contract) and the @theme inline block derives Tailwind's names from them. */
 @theme {
-  --font-display: Verdana, Geneva, Tahoma, sans-serif;
-  --font-sans: Verdana, Geneva, Tahoma, sans-serif;
-  --font-mono: "Courier New", Courier, monospace;
-
-  --color-surface-0: #FFFFFF;
-  --color-surface-1: #F5F5F5;
-  --color-surface-2: #E8E8E8;
-  --color-surface-3: #DDDDDD;
-  --color-border: #999999;
-  --color-border-hover: #555555;
-  --color-text-primary: #000000;
-  --color-text-secondary: #333333;
-  --color-text-tertiary: #666666;
-  --color-accent: #0000CC;
-  --color-accent-hover: #3333CC;
-  --color-accent-foreground: #FFFFFF;
-  --color-success: #007700;
-  --color-error: #CC0000;
+  --font-serif: Charter, "Bitstream Charter", "Charis SIL", "Sitka Text", Cambria, Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "IBM Plex Mono", Menlo, Consolas, monospace;
+  /* = --font-serif (DESIGN.md font stack) */
+  --font-display: Charter, "Bitstream Charter", "Charis SIL", "Sitka Text", Cambria, Georgia, serif;
 
   /* Square everything… */
   --radius-xs: 0; --radius-sm: 0; --radius-md: 0; --radius-lg: 0;
   --radius-xl: 0; --radius-2xl: 0; --radius-3xl: 0; --radius-4xl: 0;
   /* …and flatten it. */
-  --shadow-2xs: 0 0 #0000; --shadow-xs: 0 0 #0000; --shadow-sm: 0 0 #0000;
-  --shadow-md: 0 0 #0000; --shadow-lg: 0 0 #0000; --shadow-xl: 0 0 #0000;
-  --shadow-2xl: 0 0 #0000;
+  --shadow-2xs: 0 0 transparent; --shadow-xs: 0 0 transparent; --shadow-sm: 0 0 transparent;
+  --shadow-md: 0 0 transparent; --shadow-lg: 0 0 transparent; --shadow-xl: 0 0 transparent;
+  --shadow-2xl: 0 0 transparent;
 
   --animate-rise: none;
   --animate-fade: none;
@@ -40,49 +28,84 @@
   --animate-grow-cell: none;
 }
 
-/* Bare aliases for the theme colours above.
- *
- * These six were referenced by shipped CSS and defined nowhere, so every rule
- * using one resolved to nothing:
- *
- *   --accent          series-chart.tsx  stroke="var(--accent)" x3
- *   --accent-hover    globals.css
- *   --border          console tile rules
- *   --error           globals.css x2
- *   --text-primary    globals.css
- *   --text-tertiary   globals.css x2
- *
- * `stroke` is inherited with an initial value of `none`, so an unresolvable
- * var() in that presentation attribute does not fall back to a visible colour —
- * it draws nothing. The chart line was the same case as the console that
- * shipped unstyled: the CSS was present and simply never matched.
- *
- * Tailwind's `@theme` emits the `--color-*` names to :root, so aliasing is
- * enough; no value is duplicated and nothing here changes an intended colour.
- * DESIGN.md supersedes this block when the visual refresh lands — it inverts
- * the direction so these bare names become the source and the theme derives.
- */
-:root {
-  --accent:         var(--color-accent);
-  --accent-hover:   var(--color-accent-hover);
-  --border:         var(--color-border);
-  --error:          var(--color-error);
-  --text-primary:   var(--color-text-primary);
-  --text-tertiary:  var(--color-text-tertiary);
-
-  /* Four more, found by the gate rather than by reading: `--surface-0/1/2` and
-   * `--success` are read from globals.css *and* from an inline style in
-   * onboarding.tsx. A grep over the stylesheets alone missed them, which is
-   * the argument for the check being a test and not a habit. */
-  --surface-0:      var(--color-surface-0);
-  --surface-1:      var(--color-surface-1);
-  --surface-2:      var(--color-surface-2);
-  --success:        var(--color-success);
+/* Tailwind's colour names derive from the source tokens — never literals.
+   (DESIGN.md derivation contract: source is the :root block below; this block
+   only maps Tailwind's vocabulary onto it.) */
+@theme inline {
+  --color-surface-0: var(--background);
+  --color-surface-1: var(--surface);
+  --color-surface-2: var(--border-subtle);
+  --color-surface-3: var(--border);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-strong);
+  --color-text-primary: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--ok);
+  --color-error: var(--bad);
 }
 
-
+/* ── The token source block — pasted verbatim from DESIGN.md (locked).
+      The single source of truth for every colour and size in both
+      stylesheets. Light scheme only — a future dark ramp redefines these
+      same names in one [data-theme="dark"] block; nothing is renamed. ── */
 :root {
   color-scheme: light;
+
+  /* ── Ground — warm paper, not #fff ─────────────────────────── */
+  --background:        #fcfcfa;  /* page ground */
+  --surface:           #f4f3ee;  /* tinted block: tables, code, empty tiles */
+  --border-subtle:     #e2e1da;  /* row rules, hr — decorative only */
+  --border:            #c5c4bb;  /* nav rules, tile outlines — decorative only */
+  --border-strong:     #8a8981;  /* form-control borders — the 3:1 floor */
+
+  /* ── Ink — near-black, never #000 ──────────────────────────── */
+  --text:              #17171b;
+  --text-secondary:    #55545e;  /* lede, labels, .muted, th text */
+  --text-tertiary:     #6b6a74;  /* tile-empty, tertiary docs text */
+
+  /* ── Accent — one hue, laddered. #0000cc is heritage, exact. ── */
+  --accent-tint:       #ececf7;  /* palest step: note/callout ground */
+  --accent:            #0000cc;  /* interactive: links, focus ring, h2 rule */
+  --accent-hover:      #3333cc;  /* text-link hover — lighter, same hue */
+  --accent-solid:      #000082;  /* fills: buttons, table header rule; and
+                                    eyebrow text, which the contrast table
+                                    tests — declared here so the token's
+                                    stated role matches what is verified */
+  --accent-foreground: #ffffff;  /* text on accent fills */
+  --visited:           #551a8b;  /* heritage visited */
+  --active:            #cc0000;  /* heritage :active flash ONLY — never status */
+
+  /* ── Functional (console status) — low saturation ──────────── */
+  --ok:                #1b6b3a;
+  --ok-surface:        #e8f2eb;
+  --warn:              #8a5a00;
+  --warn-surface:      #f8f0dd;
+  --bad:               #a8261c;
+  --bad-surface:       #f8e9e7;
+
+  /* ── Legacy aliases — keep today's bare references resolving.
+        New code uses canonical names; drop these once build
+        migrates the references. ───────────────────────────────── */
+  --text-primary:      var(--text);
+  --error:             var(--bad);
+  --success:           var(--ok);
+  --surface-0:         var(--background);
+  --surface-1:         var(--surface);
+  --surface-2:         var(--border-subtle);
+
+  /* ── Type scale (see DESIGN.md ## Type scale) ──────────────── */
+  --t-xs:            0.8125rem;   /* 13 */
+  --t-sm:            0.9375rem;   /* 15 */
+  --t-base:          1.0625rem;   /* 17 */
+  --t-lg:            1.25rem;     /* 20 */
+  --t-xl:            1.75rem;     /* 28 */
+  --t-2xl:           2.75rem;     /* 44 */
+  --t-lede:          1.3125rem;   /* 21 — marketing lede, register variant */
+  --t-title-console: 2rem;        /* 32 — console page title, register variant */
 }
 
 /* Legacy hook: the old dark/light toggle added .light to <html>. There is one
@@ -131,8 +154,8 @@ input[type="checkbox"], input[type="radio"], input[type="submit"] {
 
 @layer base {
   body {
-    background-color: var(--color-surface-0);
-    color: var(--color-text-primary);
+    background-color: var(--background);
+    color: var(--text);
     font-family: var(--font-sans);
     font-size: 13px;
     -webkit-font-smoothing: antialiased;
@@ -166,7 +189,7 @@ input[type="checkbox"], input[type="radio"], input[type="submit"] {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 .react-grid-placeholder {
-  background: var(--color-accent) !important;
+  background: var(--accent) !important;
   opacity: 0.12 !important;
   border-radius: 0 !important;
 }
@@ -192,7 +215,7 @@ input[type="checkbox"], input[type="radio"], input[type="submit"] {
   transform: translateX(50%);
   border: none;
   border-radius: 9999px;
-  background: var(--color-border);
+  background: var(--border);
   opacity: 0;
   transition: opacity 130ms ease, background 130ms ease;
 }
@@ -201,10 +224,10 @@ input[type="checkbox"], input[type="radio"], input[type="submit"] {
 }
 .layout .react-grid-item > .react-resizable-handle.react-resizable-handle-s:hover::after,
 .layout .react-grid-item.resizing > .react-resizable-handle.react-resizable-handle-s::after {
-  background: var(--color-accent);
+  background: var(--accent);
 }
 
-/* ── Accessibility: honour reduced-motion + keyboard focus (flow pass) ─────── */
+/* ── Accessibility: honour reduced-motion (flow pass) ─────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -216,58 +239,20 @@ input[type="checkbox"], input[type="radio"], input[type="submit"] {
   }
 }
 
-/* Classic keyboard-focus treatment: the 1px dotted outline. */
-a:focus-visible,
-button:focus-visible,
-[role="button"]:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-[tabindex]:focus-visible {
-  outline: 1px dotted #000;
-  outline-offset: 1px;
-}
-
 
 /* ------------------------------------------------------------------ *
  * The console.
  *
  * Appended to the same theme the marketing pages use, so there is one
- * plain-retro design rather than two that drift. Tailwind utilities and
+ * plain design rather than two that drift. Tailwind utilities and
  * these component classes coexist; nothing here redeclares a token.
+ * The old console-section duplicates of body, a, h1, h2 and
+ * table/th/td are deleted — retro.css (E1–E15) is the one place those
+ * elements are styled, in token form.
  * ------------------------------------------------------------------ */
-
-
-
 
 * {
   box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  padding: 1.5rem;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-primary);
-  background: var(--surface-0);
-}
-
-a {
-  color: var(--accent);
-}
-a:hover {
-  color: var(--accent-hover);
-}
-
-h1 {
-  font-size: 18px;
-  margin: 0 0 0.75rem;
-}
-h2 {
-  font-size: 15px;
-  margin: 0 0 0.5rem;
 }
 
 /* Tiles sit on a twelfth-based grid, which is what `Tile.width` counts in. */
@@ -277,65 +262,65 @@ h2 {
   gap: 1rem;
 }
 
+/* ── E16 · Console tiles ─────────────────────────────────────────────────── */
 .tile {
   border: 1px solid var(--border);
-  background: var(--surface-0);
+  background: var(--background);
   padding: 0.75rem;
   min-height: 8rem;
   display: flex;
   flex-direction: column;
 }
+.tile-title { font: 600 var(--t-xs)/1.3 var(--font-sans); margin: 0 0 0.5rem; }
+.tile-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 
-.tile-title {
-  font-size: 12px;
-  font-weight: bold;
-  margin: 0 0 0.5rem;
-}
+/* A failure is not a quiet state: bordered, coloured, and named (R5). */
+.tile-error { border-left: 3px solid var(--bad); padding-left: 0.5rem; color: var(--bad); }
+.tile-error-code { font: var(--t-xs)/1.4 var(--font-mono); color: var(--text-tertiary); }
 
-.tile-body {
-  flex: 1;
+/* Deliberately different from an error: grey, unbordered, explanatory. */
+.tile-empty { color: var(--text-tertiary); font-size: var(--t-sm); }
+
+.scalar { font: 600 var(--t-xl)/1.2 var(--font-sans); font-variant-numeric: tabular-nums; }
+
+/* E17 (inline alerts) and E18 (the one focus rule) live in retro.css with the
+   rest of the .retro-scoped element system. */
+
+/* ── Chart legend (Phase 4 data specs §4 — rendered only at 2+ series) ──────
+   Layout only; typographic colour and size come from .tile-empty stacked
+   alongside. Border styles mirror the SVG stroke-dasharray per ramp step so
+   swatch and line always agree. */
+.chart-legend {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
 }
+.chart-legend li { display: inline-flex; align-items: center; }
+.chart-swatch {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0;
+  border-top-width: 2px;
+  margin-right: 0.35rem;
+}
+.chart-swatch--1     { border-top-color: var(--accent-solid); border-top-style: solid; }
+.chart-swatch--2     { border-top-color: var(--accent);       border-top-style: dashed; }
+.chart-swatch--3     { border-top-color: var(--accent-hover); border-top-style: dotted; }
+.chart-swatch--other { border-top-color: var(--text-tertiary); border-top-style: dashed; }
 
-/* A failure is not a quiet state. It is bordered, coloured, and named. */
-.tile-error {
-  border-left: 3px solid var(--error);
-  padding-left: 0.5rem;
-  color: var(--error);
+/* ── Quota pill (Phase 4 data specs §5 — ok/overage/rejected wire states) ───
+   R13/R14: no radius; colour + text, never colour alone. --active is never
+   used here (heritage :active red is not a status colour). */
+.quota-pill {
+  display: inline-block;
+  font: 600 var(--t-xs)/1.2 var(--font-sans);
+  padding: 0.15rem 0.5rem;
+  border: 1px solid currentColor;
+  white-space: nowrap;
 }
-
-.tile-error-code {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-
-/* Deliberately different from an error: grey, unbordered, and explanatory. */
-.tile-empty {
-  color: var(--text-tertiary);
-  font-size: 12px;
-}
-
-.scalar {
-  font-size: 28px;
-  font-weight: bold;
-  font-variant-numeric: tabular-nums;
-}
-
-table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 12px;
-}
-th,
-td {
-  text-align: left;
-  padding: 0.2rem 0.4rem;
-  border-bottom: 1px solid var(--surface-2);
-}
-td.numeric {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
+.quota-pill.ok   { color: var(--ok);   background: var(--ok-surface); }
+.quota-pill.warn { color: var(--warn); background: var(--warn-surface); }
+.quota-pill.bad  { color: var(--bad);  background: var(--bad-surface); }

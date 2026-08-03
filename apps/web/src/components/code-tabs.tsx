@@ -54,11 +54,8 @@ export function CodeTabs({ tabs }: { tabs: CodeTab[] }) {
             key={t.lang}
             type="button"
             onClick={() => choose(i)}
-            className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              i === active
-                ? "bg-accent/15 text-accent"
-                : "text-text-tertiary hover:text-text-primary"
-            }`}
+            aria-pressed={i === active}
+            className="btn secondary shrink-0"
           >
             {t.label}
           </button>

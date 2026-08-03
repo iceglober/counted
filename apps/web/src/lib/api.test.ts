@@ -8,6 +8,8 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { ApiError, createClient } from "./api";
 
 type Captured = { url: string; method: string; headers: Record<string, string>; body: string | null };
@@ -224,5 +226,38 @@ describe("a 2xx with no body", () => {
     );
     const result = await client("describeCaller");
     expect(result.data).toBeUndefined();
+  });
+});
+
+/**
+ * One fallback for the API base URL, not two.
+ *
+ * `urls.ts` fell back to `https://api.counted.dev` while `publicApiUrl()` fell
+ * back to `http://localhost:8080`. Both read `NEXT_PUBLIC_COUNTED_API_URL`, so
+ * production — where it is set — was never wrong. But a deploy that lost the
+ * variable would have served an `/llms.txt` and an `/auth.md` telling agents to
+ * call `api.counted.dev` while the console itself called localhost: the docs
+ * right, the app broken, and nothing comparing them.
+ *
+ * The same shape as the other splits this codebase has had — one place
+ * asserting, another failing to keep it.
+ */
+describe("the API base URL has one fallback", () => {
+  const urls = readFileSync(join(import.meta.dir, "urls.ts"), "utf8");
+  const api = readFileSync(join(import.meta.dir, "api.ts"), "utf8");
+
+  test("only urls.ts declares the literal, and api.ts imports it", () => {
+    expect(urls).toMatch(/export const DEFAULT_API_URL\s*=/);
+    expect(api).toMatch(/import \{[^}]*DEFAULT_API_URL[^}]*\} from "\.\/urls"/);
+  });
+
+  test("neither file hard-codes a second fallback host", () => {
+    // A bare hostname on the same line as the env read is the shape of the bug:
+    // `process.env[...] ?? "https://…"`.
+    for (const [name, src] of [["urls.ts", urls], ["api.ts", api]] as const) {
+      const offenders = [...src.matchAll(/NEXT_PUBLIC_COUNTED_API_URL[^\n]*\?\?\s*"([^"]+)"/g)]
+        .map((m) => `${name}: ${m[1]}`);
+      expect(offenders).toEqual([]);
+    }
   });
 });

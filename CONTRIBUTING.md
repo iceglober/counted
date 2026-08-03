@@ -32,9 +32,12 @@ If you prefer to manage your own Postgres:
 bun install
 cp .env.example .env.local
 # Edit DATABASE_URL in .env.local
-bun run db:push
-bun scripts/seed.ts
+bun run dev          # starts the database, the API on :8080 and the web app on :3000
+bun run seed         # optional: fills a project with ~30 days of realistic events
 ```
+
+`bun run seed` drives the public API, so the stack has to be running. It prints
+a claim link at the end.
 
 ## Making Changes
 

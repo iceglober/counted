@@ -1,243 +1,397 @@
-/* The site-wide look: plain, fast, early-2000s. Applied via .retro on <body>.
-   Element selectors do the work — prose pages should read as semantic HTML
-   with almost no classes. Prose spacing (p/ul margins, list bullets) is scoped
-   to .page containers so dense app UI and menus keep their own spacing. */
+/* The site-wide look: plain on purpose. Applied via .retro on <body>.
+   Element selectors do the work — prose pages read as semantic HTML with
+   almost no classes.
 
+   Transcribed from the locked design contract (DESIGN.md + Phase 3 component
+   specs). Every colour and size cites a token from globals.css — no hex here.
+   Two registers, one system: document (marketing/content/blog — everything
+   wrapped in .page) and tool (console + auth — classless semantic HTML in a
+   bare <main>). The registers differ ONLY by the density variables below. */
+
+/* ── Register density — the only register-conditional CSS ──────────────────
+   The tool register is the default (.retro): the console is classless, so it
+   can only be reached by defaults, and auth follows console for free. The
+   document register is the override (.retro .page). The console's .page
+   wrapper contains only the nav, whose rules pin their own sizes, so the
+   flip inside it is inert. */
+.retro {                              /* tool register defaults */
+  --body-size:   var(--t-sm);
+  --body-lh:     1.5;
+  --h1-size:     var(--t-title-console);
+  --h1-lh:       1.15;
+  --h1-track:    0;
+  --h1-space:    0 0 1.5rem;
+  --h2-size:     var(--t-lg);
+  --h2-space:    2rem 0 0.6rem;
+  --h2-rule-w:   1.5rem;
+  --h2-rule-gap: 0.6rem;
+  --table-size:  var(--t-xs);
+  --measure:     62ch;
+  --label-display: block;
+  --label-space: 0 0 0.4rem;
+}
+.retro .page {                        /* document register overrides */
+  --body-size:   var(--t-base);
+  --body-lh:     1.6;
+  --h1-size:     var(--t-2xl);
+  --h1-lh:       1.08;
+  --h1-track:    -0.018em;
+  --h1-space:    0 0 0.75rem;
+  --h2-size:     var(--t-xl);
+  --h2-space:    3rem 0 0.75rem;
+  --h2-rule-w:   2rem;
+  --h2-rule-gap: 0.9rem;
+  --table-size:  var(--t-sm);
+  --measure:     66ch;
+  --label-display: inline-block;
+  --label-space: 0 0.75rem 0.3rem 0;
+}
+/* Custom properties inherit, but the ground font (E1) is computed at .retro —
+   the flipped values only take effect where font-size is re-declared. This
+   line is required, not optional (found by the transcription harness): */
+.retro .page { font-size: var(--body-size); line-height: var(--body-lh); }
+
+/* ── E1 · Ground ─────────────────────────────────────────────────────────── */
 .retro {
   color-scheme: light;
-  background: #fff;
-  color: #000;
-  font: 13px/1.55 Verdana, Geneva, Tahoma, sans-serif;
+  background: var(--background);
+  color: var(--text);
+  font: var(--body-size)/var(--body-lh) var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
 }
 
-.retro .page {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 0 16px 40px;
-}
+/* ── E2 · Reading column (preserved behaviour) ───────────────────────────────
+   The main rule is what gives console and auth pages their column — they
+   never opt into .page. Both rules stay; marketing nests .page inside main,
+   harmlessly. */
+.retro .page { max-width: 680px; margin: 0 auto; padding: 0 16px 40px; }
+/* Top padding, not just sides. Console pages put `h1` first inside `main`, and
+   the h1 rule carries no top margin — correct for marketing, where an eyebrow
+   sits above it, but on /sign-in and /start it put the heading flush against
+   the viewport edge, clipped. The old stylesheet hid this because its h1 had
+   `margin: 22px 0 10px`. Marketing is unaffected: it wraps content in `.page`
+   and leads with nav. */
+.retro main  { display: block; max-width: 680px; margin: 0 auto; padding: 28px 16px 40px; }
 
-/* Links — the classic pair */
-.retro a {
-  color: #0000cc;
-  text-decoration: underline;
-}
-.retro a:visited { color: #551a8b; }
-.retro a:active { color: #cc0000; }
-
-/* Headings */
+/* ── E3 · Headings + the signature rule ──────────────────────────────────────
+   The h2::before rule is the design's one expressive tic (DESIGN.md signature
+   move) — every h2, both registers, nothing else. Console h2 is serif 400 at
+   --t-lg; h3 stays sans 600 at the same size so the two differ by face. */
 .retro h1 {
-  font-size: 22px;
-  line-height: 1.25;
-  font-weight: bold;
-  margin: 22px 0 10px;
+  font: 400 var(--h1-size)/var(--h1-lh) var(--font-serif);
+  letter-spacing: var(--h1-track);
+  margin: var(--h1-space);
+  text-wrap: balance;
 }
 .retro h2 {
-  font-size: 16px;
-  font-weight: bold;
-  margin: 28px 0 8px;
-  padding-bottom: 3px;
-  border-bottom: 1px solid #ccc;
+  font: 400 var(--h2-size)/1.2 var(--font-serif);
+  margin: var(--h2-space);
 }
-.retro h3 {
-  font-size: 13px;
-  font-weight: bold;
-  margin: 18px 0 6px;
+.retro h2::before {
+  content: "";
+  display: block;
+  width: var(--h2-rule-w);
+  height: 2px;
+  background: var(--accent);
+  margin-bottom: var(--h2-rule-gap);
+}
+.retro h3 { font: 600 var(--t-lg)/1.3 var(--font-sans); margin: 2rem 0 0.5rem; }
+
+/* ── E4 · Eyebrow and lede (document register furniture) ─────────────────── */
+.retro .eyebrow {
+  display: block;
+  font: 600 var(--t-xs)/1 var(--font-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-solid);
+  margin: 0 0 1rem;
+}
+.retro .lede {
+  font: 400 var(--t-lede)/1.5 var(--font-serif);
+  color: var(--text-secondary);
+  margin: 0 0 1.75rem;
+  max-width: 46ch;
 }
 
-/* Prose spacing — only inside .page containers */
-.retro .page p { margin: 10px 0; }
-.retro .page ul, .retro .page ol { margin: 10px 0; padding-left: 26px; }
-.retro .page ul { list-style: disc outside; }
-.retro .page ol { list-style: decimal outside; }
-.retro .page li { margin: 5px 0; }
+/* ── E5 · Prose (both registers declared) ──────────────────────────────────
+   Tool register — the default. Tighter than document register, and declared,
+   not absent: before this rule console prose fell to the UA default. Nav,
+   menus and table cells are unaffected — they are not p/ul/ol/li. */
+.retro p { max-width: var(--measure); }
+.retro p  { margin: 0 0 0.75rem; }
+.retro ul, .retro ol { margin: 0 0 0.75rem; padding-left: 1.15rem; }
+.retro ul { list-style: disc outside; }
+.retro ol { list-style: decimal outside; }
+.retro li { margin: 0.25rem 0; }
+.retro li::marker { color: var(--text-tertiary); }
 
-.retro hr {
-  border: 0;
-  border-top: 1px solid #999;
-  margin: 24px 0;
-}
+/* Document register — roomier, same properties, declared values only. */
+.retro .page p  { margin: 0 0 1.1rem; }
+.retro .page ul, .retro .page ol { margin: 0 0 1.1rem; }
+.retro .page li { margin: 0.45rem 0; }
 
-/* Code */
-.retro pre, .retro code {
-  font-family: "Courier New", Courier, monospace;
-  font-size: 12px;
-  color: #000;
-}
-.retro pre {
-  background: #f5f5f5;
-  border: 1px solid #ccc;
-  border-radius: 0;
-  padding: 8px 10px;
-  overflow-x: auto;
-  line-height: 1.45;
-  margin: 10px 0;
-}
-.retro code {
-  background: #f5f5f5;
-  padding: 0 2px;
-}
-.retro pre code { background: none; padding: 0; }
+/* ── E6 · Text links (source order: LVHA) ────────────────────────────────── */
+.retro a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.retro a:visited { color: var(--visited); }
+.retro a:hover { color: var(--accent-hover); }        /* R3: lightens */
+.retro a:active { color: var(--active); }             /* heritage flash — links only */
 
-/* Tables */
-.retro table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 12px 0;
-  font-size: 12px;
-}
-.retro th, .retro td {
-  border: 1px solid #999;
-  padding: 5px 8px;
-  text-align: left;
-  vertical-align: top;
-}
-.retro th { background: #e8e8e8; }
-.retro td.c, .retro th.c { text-align: center; }
-
-/* System-style link-buttons (real <button>s are styled by components/ui/button) */
-.retro .btn {
-  display: inline-block;
-  font: bold 12px Verdana, Geneva, Tahoma, sans-serif;
-  color: #000;
-  background: #e6e6e6;
-  border: 2px outset #ddd;
-  padding: 3px 14px;
-  text-decoration: none;
-  cursor: pointer;
-}
-.retro .btn:visited { color: #000; }
-.retro .btn:active { border-style: inset; }
-.retro .btn:disabled, .retro .btn[aria-disabled="true"] { color: #888; cursor: default; }
-
-/* Bits */
-.retro .note {
-  background: #ffffcc;
-  border: 1px solid #ddcc88;
-  padding: 8px 12px;
-  margin: 12px 0;
-}
-.retro .muted { color: #666; }
-.retro .small { font-size: 11px; }
-
-/* External / new-tab links get the little arrow */
-a.ext::after {
-  content: "\2197"; /* ↗ */
-  font-size: 9px;
+a.ext::after {                                        /* preserved: ↗ on external links */
+  content: "\2197";
+  font-size: 0.7em;                                   /* was 9px on 13px — now scales */
   vertical-align: super;
   margin-left: 1px;
   text-decoration: none;
   display: inline-block;
 }
 
-/* Chrome */
-.retro .sitenav {
-  border-bottom: 1px solid #999;
-  padding: 10px 0;
-  font-size: 12px;
-}
-.retro .sitenav b { font-size: 14px; }
-.retro .sitefooter {
-  border-top: 1px solid #999;
-  margin-top: 36px;
-  padding-top: 10px;
-  font-size: 11px;
-  color: #666;
-}
-.retro .sitefooter a { color: #0000cc; }
-
-/* ── Form controls ───────────────────────────────────────────────────────────
-   The console shipped unstyled. Every rule above is either a class the
-   marketing pages opt into (.page, .btn) or an element the marketing pages
-   use (a, h1, table, pre) — and the console is semantic HTML with real
-   <button>, <input> and <main> and no classes at all, so nothing matched it.
-   Sign-in rendered as a bare heading, a borderless field, and a line of text
-   where the button should have been.
-
-   The note above .btn said real buttons were "styled by components/ui/button".
-   That component is v1's and was never ported — apps/web/src/components has no
-   ui/ directory. The claim outlived the code.
-
-   Button chrome matches .btn deliberately: a link-button and a submit button
-   should not look like two different controls. Fields take the inverse bevel,
-   which is what made a 2001 form legible at a glance — raised means press me,
-   sunken means type here. */
-
+/* ── E7 · Buttons — link-buttons and real buttons, one control ───────────── */
 .retro button,
 .retro input[type="submit"],
-.retro input[type="button"] {
-  font: bold 12px Verdana, Geneva, Tahoma, sans-serif;
-  color: #000;
-  background: #e6e6e6;
-  border: 2px outset #ddd;
-  padding: 3px 14px;
+.retro input[type="button"],
+.retro .btn {
+  display: inline-block;
+  font: 600 var(--t-sm)/1 var(--font-sans);
+  color: var(--accent-foreground);
+  background: var(--accent-solid);            /* never --accent at rest (DESIGN.md) */
+  border: 1px solid var(--accent-solid);
+  padding: 0.7rem 1.3rem;
+  text-decoration: none;
   cursor: pointer;
 }
-.retro button:active,
-.retro input[type="submit"]:active { border-style: inset; }
-.retro button:disabled,
-.retro input[type="submit"]:disabled { color: #888; cursor: default; border-style: outset; }
 
+/* R1 — a link styled as a button restates every link state. This shipped as a bug. */
+.retro a.btn:link,
+.retro a.btn:visited,
+.retro a.btn:hover,
+.retro a.btn:active { color: var(--accent-foreground); }
+
+/* R3 — hover lightens; :active holds the hover fill (pressing never darkens). */
+.retro .btn:hover,
+.retro .btn:active,
+.retro button:hover,
+.retro button:active,
+.retro input[type="submit"]:hover,
+.retro input[type="submit"]:active,
+.retro input[type="button"]:hover,
+.retro input[type="button"]:active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.retro .btn[aria-disabled="true"],
+.retro button:disabled,
+.retro input[type="submit"]:disabled,
+.retro input[type="button"]:disabled {
+  color: var(--text-tertiary);
+  background: var(--surface);
+  border-color: var(--border);
+  cursor: default;
+}
+
+/* Secondary variant — quiet button (docs button clusters: code tabs, SDK vote).
+   One primary action per cluster: a row of tabs must not render as a row of
+   primary CTAs. */
+.retro .btn.secondary,
+.retro a.btn.secondary:link,
+.retro a.btn.secondary:visited,
+.retro a.btn.secondary:hover,
+.retro a.btn.secondary:active {
+  color: var(--text);
+  background: transparent;
+  border-color: var(--border-strong);          /* R7: control border ≥ 3:1 */
+}
+.retro .btn.secondary:hover,
+.retro .btn.secondary:active { background: var(--surface); }
+.retro .btn.secondary[aria-pressed="true"] {
+  color: var(--accent-solid);                  /* 14.29 on --surface (verified) */
+  background: var(--surface);
+  border-color: var(--accent-solid);
+}
+
+/* ── E8 · Form fields ────────────────────────────────────────────────────── */
 .retro input,
 .retro select,
 .retro textarea {
-  font: 13px Verdana, Geneva, Tahoma, sans-serif;
-  color: #000;
-  background: #fff;
-  border: 2px inset #ddd;
-  padding: 2px 4px;
+  font: var(--t-sm)/1.5 var(--font-sans);
+  color: var(--text);
+  background: var(--background);
+  border: 1px solid var(--border-strong);      /* R7 — verified 3.42 / 3.16 */
+  padding: 0.55rem 0.7rem;
 }
-.retro textarea { line-height: 1.45; }
-
-/* Re-raises the button-like inputs that the sunken rule above would otherwise
-   flatten. Order matters — do not sort these declarations. */
-.retro input[type="submit"],
-.retro input[type="button"] { background: #e6e6e6; border: 2px outset #ddd; }
-.retro input[type="checkbox"],
-.retro input[type="radio"] { border: 0; padding: 0; }
-
-/* Focus has to be visible on its own: the bevel does not change on :focus, so
-   without this a keyboard user cannot tell where they are. */
-.retro input:focus-visible,
-.retro select:focus-visible,
-.retro textarea:focus-visible,
-.retro button:focus-visible {
-  outline: 2px solid #0000cc;
-  outline-offset: 1px;
+.retro textarea { line-height: 1.5; }
+.retro ::placeholder { color: var(--text-tertiary); opacity: 1; }
+.retro input[aria-invalid="true"],
+.retro select[aria-invalid="true"],
+.retro textarea[aria-invalid="true"] { border-color: var(--bad); }
+.retro input:disabled,
+.retro select:disabled,
+.retro textarea:disabled {
+  color: var(--text-tertiary);
+  background: var(--surface);
+  border-color: var(--border);
 }
 
-/* Breathing room. Without it the label, field and submit button sit flush
-   against each other in one unbroken run — styled, but reading as a single
-   smeared control. Margins rather than a flex gap so this cannot disturb the
-   marketing pages, which lay themselves out. */
+/* Breathing room (preserved behaviour, tokenized): margins, not flex gaps, so
+   marketing pages that lay themselves out are undisturbed. Also provides the
+   ≥ 4px inter-control clearance the focus ring's bleed needs (R4). */
 .retro input,
 .retro select,
 .retro textarea,
-.retro button {
-  margin: 2px 6px 2px 0;
-  vertical-align: middle;
+.retro button { margin: 0 0.5rem 0.5rem 0; vertical-align: middle; }
+
+/* Re-resets the box-like inputs the base rule would otherwise style.
+   Source order: MUST follow the base input rule. */
+.retro input[type="checkbox"],
+.retro input[type="radio"] {
+  border: 0;
+  padding: 0;
+  margin: 0 0.35rem 0 0;
+  accent-color: var(--accent);
 }
 
+/* ── E9 · Labels, fieldset, legend ───────────────────────────────────────── */
 .retro label {
-  display: inline-block;
-  margin: 0 6px 3px 0;
-  font-size: 12px;
-  vertical-align: middle;
+  display: var(--label-display);               /* tool: block · document: inline-block */
+  margin: var(--label-space);
+  font: 500 var(--t-sm)/1.4 var(--font-sans);
+  color: var(--text-secondary);
+  vertical-align: middle;                      /* inert when block */
 }
-.retro fieldset {
-  border: 1px solid #999;
-  padding: 10px 12px;
-  margin: 12px 0;
-}
-.retro legend { font-weight: bold; font-size: 12px; padding: 0 4px; }
+.retro fieldset { border: 1px solid var(--border); padding: 0.7rem 0.8rem; margin: 0.75rem 0; }
+.retro legend { font: 600 var(--t-xs)/1.4 var(--font-sans); padding: 0 0.25rem; }
 
-/* The reading column, for pages that never opted into .page. Marketing wraps
-   its content in <div class="page">; the console does not, so its pages ran
-   the full width of the window. Constraining <main> gives them the same
-   measure without every console page having to remember a class. */
-.retro main {
-  display: block;
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 0 16px 40px;
+/* ── E10 · Tables ────────────────────────────────────────────────────────────
+   The full 1px cell grid and the header fill are gone; hierarchy comes from
+   the --accent-solid header rule and the row separators. One table system,
+   sized by register via --table-size. */
+.retro table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.25rem 0;
+  font-size: var(--table-size);
+  font-variant-numeric: tabular-nums;
+  background: var(--surface);                  /* the block reads as one object */
 }
+.retro th {
+  text-align: left;
+  font: 600 var(--t-xs)/1.2 var(--font-sans);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 0.7rem 0.9rem;
+  border-bottom: 2px solid var(--accent-solid);
+  background: none;
+  white-space: nowrap;
+  vertical-align: top;
+}
+.retro td {
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--border-subtle);  /* decorative separator (R7 ok) */
+  text-align: left;
+  vertical-align: top;
+}
+.retro tr:last-child td { border-bottom: 0; }
+.retro td.c, .retro th.c { text-align: center; }     /* preserved: ×36 call sites */
+.retro td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── E11 · Code ──────────────────────────────────────────────────────────── */
+.retro pre, .retro code { font-family: var(--font-mono); color: var(--text); }
+.retro pre {
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  padding: 0.6rem 0.8rem;
+  overflow-x: auto;
+  margin: 0 0 1.1rem;
+}
+.retro code {
+  font-size: 0.88em;                           /* relative — tracks either register */
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  padding: 0.1em 0.35em;
+}
+.retro pre code { background: none; border: 0; padding: 0; font-size: 100%; }
+
+/* ── E12 · Callout ───────────────────────────────────────────────────────────
+   The old yellow note ground is retired — the tint is the palest step of the
+   one hue (DESIGN.md: no second hue). */
+.retro .note {
+  background: var(--accent-tint);
+  border: 0;
+  border-left: 3px solid var(--accent);        /* verified 9.57 non-text vs tint */
+  padding: 0.9rem 1.1rem;
+  margin: 1.5rem 0;
+  color: var(--text-secondary);                /* 6.36 on tint */
+  font-size: var(--t-sm);
+}
+
+/* ── E13 · Rule ──────────────────────────────────────────────────────────── */
+.retro hr { border: 0; border-top: 1px solid var(--border-subtle); margin: 3rem 0; }
+
+/* ── E14 · Site/console nav (one chrome, both registers) ─────────────────────
+   Production markup is <b>logo-link</b> · tagline <br> link | link | link —
+   text separators, block flow. No flex, no markup change. */
+.retro .sitenav {
+  border-bottom: 1px solid var(--border);
+  padding: 0.7rem 0 1rem;
+  margin: 0 0 2rem;
+  font-size: var(--t-sm);
+  color: var(--text-secondary);                /* tagline + pipe separators */
+}
+.retro .sitenav b { font: 400 var(--t-lg)/1.3 var(--font-serif); margin-right: 0.25rem; }
+
+/* R1 — nav links are recolored, so all four states are restated. */
+.retro .sitenav a:link,
+.retro .sitenav a:visited { color: var(--text-secondary); text-decoration: none; }
+.retro .sitenav a:hover,
+.retro .sitenav a:active { color: var(--accent); text-decoration: underline; }
+.retro .sitenav b a:link,
+.retro .sitenav b a:visited { color: var(--text); text-decoration: none; }
+.retro .sitenav b a:hover,
+.retro .sitenav b a:active { color: var(--accent); text-decoration: none; }
+
+/* ── E15 · Footer ────────────────────────────────────────────────────────────
+   Footer links are not recolored — the heritage cascade (E6) applies
+   untouched. The old .sitefooter a colour rule is dropped (R1: it tied with
+   a:visited and won by source order only). */
+.retro .sitefooter {
+  border-top: 1px solid var(--border);
+  margin-top: 3rem;
+  padding-top: 0.75rem;
+  font-size: var(--t-xs);
+  color: var(--text-secondary);
+}
+
+/* ── E17 · Inline alerts and status text ─────────────────────────────────────
+   Gives /sign-in's plain-paragraph alerts the same treatment as the console's
+   .tile-error (which carries role="alert" already — identical declarations,
+   so the overlap is harmless). */
+.retro [role="alert"] {
+  border-left: 3px solid var(--bad);
+  padding-left: 0.5rem;
+  color: var(--bad);
+}
+
+/* ── E18 · Focus — the one rule (R2) ─────────────────────────────────────────
+   The offset is LOAD-BEARING (DESIGN.md): --accent on --accent-solid is far
+   below the 3:1 non-text floor; the ring is only visible because the offset
+   places it on the ground (10.92:1). Never reduce the offset below 2px; never
+   add a competing focus rule. */
+.retro a:focus-visible,
+.retro button:focus-visible,
+.retro input:focus-visible,
+.retro select:focus-visible,
+.retro textarea:focus-visible,
+.retro [role="button"]:focus-visible,
+.retro [tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── E19 · Small print ───────────────────────────────────────────────────── */
+.retro .muted { color: var(--text-secondary); }
+.retro .small { font-size: var(--t-xs); }

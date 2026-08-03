@@ -50,11 +50,7 @@ export function SdkVote() {
           onClick={() => vote(s.id)}
           disabled={voted[s.id]}
           aria-pressed={voted[s.id]}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-            voted[s.id]
-              ? "border-accent/40 bg-accent/10 text-accent cursor-default"
-              : "border-border text-text-secondary hover:border-border-hover hover:text-text-primary"
-          }`}
+          className="btn secondary"
         >
           {s.label}
           <span className="text-xs font-medium">{voted[s.id] ? "✓ +1’d" : "+1"}</span>

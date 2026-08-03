@@ -21,6 +21,7 @@
  */
 
 import { OPERATIONS, resolveTag, type OperationSpec } from "@counted/contracts";
+import { DEFAULT_API_URL } from "./urls";
 
 export class ApiError extends Error {
   constructor(
@@ -213,7 +214,7 @@ export const serverApi = (cookieHeader: string | null, traceparent?: string): Ap
  * setup needs neither.
  */
 export const publicApiUrl = (): string =>
-  process.env["NEXT_PUBLIC_COUNTED_API_URL"] ?? "http://localhost:8080";
+  process.env["NEXT_PUBLIC_COUNTED_API_URL"] ?? DEFAULT_API_URL;
 
 export const serverApiUrl = (): string =>
   process.env["COUNTED_API_URL"] ?? publicApiUrl();

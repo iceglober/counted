@@ -1,5 +1,12 @@
 # Deploy Counted to Railway
 
+> **This document describes v1 and is retained for history.**
+> The current deployment is three services — `apps/api`, `apps/web`,
+> `apps/worker` — and is documented in [`deploy/README.md`](./deploy/README.md).
+> Nothing below applies to the running system; in particular there is no
+> `db:push` step, because the API applies its schema at boot.
+
+
 ## Prerequisites
 
 1. [Railway account](https://railway.app)

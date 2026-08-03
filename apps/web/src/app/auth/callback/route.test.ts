@@ -38,9 +38,23 @@ describe("sign-in callback", () => {
   });
 
   test("every redirect location is a relative path", () => {
-    const locations = [...source.matchAll(/redirectTo\(\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]);
-    expect(locations.length).toBeGreaterThan(2);
-    for (const l of locations) expect(l).toMatch(/^\//);
+    // Covers both forms: the redirectTo() helper and the success path, which
+    // builds its own Headers so it can append two Set-Cookies.
+    const literals = [
+      ...[...source.matchAll(/redirectTo\(\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]),
+      ...[...source.matchAll(/location:\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]),
+      ...[...source.matchAll(/\?\s*decoded\s*:\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]),
+    ];
+    expect(literals.length).toBeGreaterThan(2);
+    for (const l of literals) expect(l).toMatch(/^\//);
+  });
+
+  test("a caller-supplied redirect target is re-validated here, not trusted", () => {
+    // The destination arrives in a cookie, which the caller can write. Both the
+    // same-origin rule and the protocol-relative guard must be applied in this
+    // file, not only where the cookie was set.
+    expect(source).toMatch(/startsWith\("\/"\)/);
+    expect(source).toMatch(/startsWith\("\/\/"\)/);
   });
 
   test("lands a signed-in account in the console, not on the marketing page", () => {
@@ -48,7 +62,9 @@ describe("sign-in callback", () => {
     // marketing homepage. Redirecting there on success dropped the user on the
     // landing page with a session cookie set and nothing to show for it.
     expect(source).not.toMatch(/redirectTo\(\s*["'`]\/["'`]/);
-    expect(source).toMatch(/redirectTo\(\s*["'`]\/(dashboards|start)\b/);
+    // The default destination is now the fallback of the `next` ternary rather
+    // than a redirectTo literal; it must still be a console route.
+    expect(source).toMatch(/["'`]\/(dashboards|start)\b/);
   });
 
   test("no console page bounces to the marketing homepage", () => {
@@ -72,6 +88,15 @@ describe("sign-in callback", () => {
     // Re-deriving Domain/SameSite/Max-Age here is how the two implementations
     // would come to disagree about what a session is.
     expect(source).toMatch(/set-cookie/i);
-    expect(source).not.toMatch(/Domain=|SameSite=|Max-Age=/);
+    // The session cookie is forwarded verbatim: it is only ever read from the
+    // API response and appended, never constructed.
+    expect(source).toMatch(/response\.headers\.get\("set-cookie"\)/);
+    expect(source).not.toMatch(/counted_session/);
+    // The one cookie this file writes is the `next` breadcrumb, and only to
+    // expire it. Any Domain= or a Max-Age on anything else would mean it had
+    // started minting session state of its own.
+    const written = [...source.matchAll(/"([a-z_]+)=[^"]*Max-Age=[^"]*"/g)].map((m) => m[1]);
+    expect(written).toEqual(["counted_next"]);
+    expect(source).not.toMatch(/Domain=/);
   });
 });
