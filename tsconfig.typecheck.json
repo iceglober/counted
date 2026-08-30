@@ -64,5 +64,8 @@
     "packages/aptabase-compat/src/**/*",
     "packages/migrate/src/**/*",
     "scripts/**/*"
+  ],
+  "exclude": [
+    "scripts/growth-readback.ts"
   ]
 }
