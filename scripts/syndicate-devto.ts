@@ -31,12 +31,12 @@ function parseFrontmatter(src: string): { data: Record<string, string>; body: st
   const m = src.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!m) return { data: {}, body: src };
   const data: Record<string, string> = {};
-  for (const line of m[1].split("\n")) {
+  for (const line of (m[1] ?? "").split("\n")) {
     const i = line.indexOf(":");
     if (i === -1) continue;
     data[line.slice(0, i).trim()] = line.slice(i + 1).trim();
   }
-  return { data, body: m[2].trim() };
+  return { data, body: (m[2] ?? "").trim() };
 }
 
 type Article = {
@@ -50,11 +50,11 @@ type Article = {
 
 function toArticle(data: Record<string, string>, body: string): Article {
   return {
-    title: data.title,
+    title: data.title ?? "",
     body_markdown: body,
     published: data.published === "true",
-    canonical_url: data.canonical_url,
-    description: data.description,
+    canonical_url: data.canonical_url ?? "",
+    description: data.description ?? "",
     tags: (data.tags ?? "").split(",").map((t) => t.trim()).filter(Boolean).slice(0, 4),
   };
 }
@@ -63,7 +63,7 @@ async function devto(path: string, method: string, body?: unknown) {
   const res = await fetch(`${API}${path}`, {
     method,
     headers: { "api-key": key!, "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (!res.ok) throw new Error(`dev.to ${method} ${path} → ${res.status} ${(await res.text()).slice(0, 200)}`);
   return res.json();

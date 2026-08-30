@@ -62,6 +62,7 @@
     "packages/agent-core/src/**/*",
     "packages/agent-cli/src/**/*",
     "packages/aptabase-compat/src/**/*",
-    "packages/migrate/src/**/*"
+    "packages/migrate/src/**/*",
+    "scripts/**/*"
   ]
 }

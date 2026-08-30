@@ -26,9 +26,12 @@ jobs:
       - name: Run smoke checks
         run: bun scripts/smoke.ts
         env:
+          # The API is its own deployable in v2. Pointing these checks at the
+          # console is how the canary spent its time reporting 404s.
+          SMOKE_API_URL: https://api.counted.dev
           SMOKE_APP_URL: https://app.counted.dev
           SMOKE_MARKETING_URL: https://counted.dev
           # Optional — set as repo secrets to unlock the ingestion + authenticated checks:
           SMOKE_CLIENT_KEY: ${{ secrets.SMOKE_CLIENT_KEY }}
-          SMOKE_SESSION_COOKIE: ${{ secrets.SMOKE_SESSION_COOKIE }}
+          SMOKE_SERVICE_KEY: ${{ secrets.SMOKE_SERVICE_KEY }}
           SMOKE_PROJECT_ID: ${{ secrets.SMOKE_PROJECT_ID }}

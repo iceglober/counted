@@ -61,6 +61,7 @@ for (const file of files) {
   let fileFailed = false;
   for (let i = 0; i < stmts.length; i++) {
     const s = stmts[i];
+    if (s === undefined) continue;
     total++;
     try {
       await pool.query(s);
@@ -68,7 +69,7 @@ for (const file of files) {
     } catch (err) {
       const e = err as { code?: string; message?: string; detail?: string };
       fileFailed = true;
-      failures.push({ file, i, head: s.split("\n")[0].slice(0, 120), error: `${e.code ?? ""} ${e.message ?? err}`.trim() });
+      failures.push({ file, i, head: (s.split("\n")[0] ?? "").slice(0, 120), error: `${e.code ?? ""} ${e.message ?? err}`.trim() });
     }
   }
   // Only mark the file done when every statement applied — a partially-applied

@@ -51,7 +51,7 @@ const OSES = [
 type Sys = { osName: string; osVersion: string; locale: string; appVersion: string; deviceModel: string | null; sdkVersion: string; isDebug: boolean };
 type Evt = { eventName: string; sessionId: string; timestamp: string; props: Record<string, string | number | boolean>; systemProps: Sys };
 
-const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
+const pick = <T>(a: readonly T[]): T => a[Math.floor(Math.random() * a.length)] as T;
 const chance = (p: number) => Math.random() < p;
 const rid = () => Math.random().toString(36).slice(2, 10);
 
@@ -59,7 +59,8 @@ function pickOs() {
   const total = OSES.reduce((s, i) => s + i.weight, 0);
   let r = Math.random() * total;
   for (const o of OSES) { r -= o.weight; if (r <= 0) return o; }
-  return OSES[0];
+  // OSES is a non-empty literal, so this is the rounding tail, not a real absence.
+  return OSES[0]!;
 }
 function makeSys(): Sys {
   const os = pickOs();

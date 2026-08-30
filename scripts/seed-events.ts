@@ -21,6 +21,7 @@
  * Deterministic by default: the same `--seed` produces the same data, so a
  * screenshot can be reproduced rather than being a one-off.
  */
+export {}; // a module, so the top-level await below is legal
 
 const arg = (name: string, fallback: string): string => {
   const i = process.argv.indexOf(`--${name}`);
@@ -50,7 +51,7 @@ const PLANS = ["free", "pro"];
 const BROWSERS = ["Chrome", "Safari", "Firefox", "Edge"];
 const OSES = ["macOS", "Windows", "Linux", "iOS", "Android"];
 
-type Event = {
+type SeedEvent = {
   name: string;
   visitId: string;
   userId?: string;
@@ -63,7 +64,7 @@ type Event = {
  * identity model. Only visits that sign up get a `userId`, and it arrives on
  * the signup event onward, exactly as `identify()` would deliver it.
  */
-const visit = (index: number, now: number): Event[] => {
+const visit = (index: number, now: number): SeedEvent[] => {
   const id = crypto.randomUUID();
   // Weight recent days more heavily so the chart has a visible trend rather
   // than a flat band.
@@ -77,7 +78,7 @@ const visit = (index: number, now: number): Event[] => {
     os: pick(OSES),
   };
 
-  const events: Event[] = [];
+  const events: SeedEvent[] = [];
   let t = 0;
 
   // Landing.
@@ -175,7 +176,7 @@ const main = async (): Promise<void> => {
   }
 
   const now = Date.now();
-  const events: Event[] = [];
+  const events: SeedEvent[] = [];
   for (let i = 0; i < VISITS; i += 1) events.push(...visit(i, now));
   // Oldest first, so the ingest order matches the occurrence order.
   events.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
