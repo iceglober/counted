@@ -34,6 +34,8 @@ if (command === "date") {
   console.log(now);
 } else if (command === "sleep") {
   // The clock advances deterministically, so a missing deployment times out.
+} else if (command === "bun") {
+  if (args.join(" ") !== "scripts/verify-railway-config.ts") fail("Unexpected Bun command");
 } else if (command === "railway") {
   if (existsSync(dir + "/counted-production-release.json")) fail("Release record exists before deployment verification finished");
   const service = args[args.indexOf("--service") + 1];
@@ -63,7 +65,7 @@ async function deploy(scenario: Scenario = {}) {
     await writeFile(join(dir, "stub.js"), stub);
     await writeFile(join(dir, "scenario.json"), JSON.stringify({ scenario, ids: deploymentIds }));
     await writeFile(join(dir, "verified.jsonl"), "");
-    for (const command of ["railway", "date", "sleep"]) {
+    for (const command of ["railway", "date", "sleep", "bun"]) {
       const path = join(dir, command);
       await writeFile(path, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(join(dir, "stub.js"))} ${quote(command)} "$@"\n`);
       await chmod(path, 0o700);

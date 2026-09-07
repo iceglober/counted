@@ -24,6 +24,7 @@ type Scenario = {
   uploadResponse?: unknown;
   statuses?: Record<string, Array<string | null>>;
   unrelatedStatus?: string;
+  nativeConfigFailureAt?: number;
 };
 type Call = { command: string; args: string[] };
 
@@ -54,6 +55,9 @@ if (command === "git") {
   process.stdout.write(String((next("clock") + 1) * 1000) + "\\n");
 } else if (command === "sleep") {
   // Advancing date above makes a timeout deterministic without sleeping.
+} else if (command === "bun") {
+  if (args.join(" ") !== "scripts/verify-railway-config.ts") fail("Unexpected Bun command");
+  if (next("native-config") === scenario.nativeConfigFailureAt) fail("Native settings mismatch");
 } else if (command === "railway") {
   if (args.includes("--project")) fail("CLI 4.68 requires an environment with --project");
   if (args[0] === "status") {
@@ -92,7 +96,7 @@ async function runStep(name: string, scenario: Scenario = {}) {
     await writeFile(join(dir, "scenario.json"), JSON.stringify({ runs: [successfulRun], ...scenario }));
     await writeFile(join(dir, "calls.jsonl"), "");
     await writeFile(join(dir, "output"), "");
-    for (const command of ["git", "gh", "railway", "date", "sleep"]) {
+    for (const command of ["git", "gh", "railway", "date", "sleep", "bun"]) {
       const path = join(dir, command);
       await writeFile(path, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(join(dir, "stub.js"))} ${quote(command)} "$@"\n`);
       await chmod(path, 0o700);
@@ -196,6 +200,26 @@ describe("Railway deployment shell from deploy.yml", () => {
 
   test("an unrelated failed deployment cannot fail the requested successful deployment", async () => {
     expect((await runStep("Deploy", { unrelatedStatus: "FAILED" })).code).toBe(0);
+  });
+
+  test("rechecks native settings immediately before each native release mutation", async () => {
+    const result = await runStep("Deploy");
+    expect(result.code).toBe(0);
+    expect(result.calls.filter((call) => call.command === "bun")).toHaveLength(2);
+    for (const service of ["counted-mcp", "counted-docs"]) {
+      const index = result.calls.findIndex((call) => call.command === "railway" && call.args[0] === "variable" && call.args.includes(service));
+      expect(result.calls[index - 1]).toEqual({ command: "bun", args: ["scripts/verify-railway-config.ts"] });
+    }
+  });
+
+  test("settings changed during earlier builds stop the next native upload and release mutation", async () => {
+    for (const [nativeConfigFailureAt, service, uploaded] of [[0, "counted-mcp", 2], [1, "counted-docs", 4]] as const) {
+      const result = await runStep("Deploy", { nativeConfigFailureAt });
+      expect(result.code).not.toBe(0);
+      expect(result.stderr).toContain("Native settings mismatch");
+      expect(result.calls.filter((call) => call.command === "railway" && call.args[0] === "up")).toHaveLength(uploaded);
+      expect(result.calls.some((call) => call.command === "railway" && call.args[0] === "variable" && call.args.includes(service))).toBe(false);
+    }
   });
 
   for (const status of ["FAILED", "CRASHED", "REMOVED", "SKIPPED", "CANCELED", "NEEDS_APPROVAL"]) {

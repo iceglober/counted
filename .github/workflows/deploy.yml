@@ -59,6 +59,7 @@ jobs:
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      RAILWAY_ENVIRONMENT_ID: ${{ vars.RAILWAY_ENVIRONMENT_ID }}
       # Pinned, like Bun is. `variable set` and `deployment list --json` are
       # what this file relies on, and both are 4.x.
       RAILWAY_CLI_VERSION: 4.68.0
@@ -101,6 +102,10 @@ jobs:
       - name: Install the Railway CLI
         run: npm install -g "@railway/cli@${RAILWAY_CLI_VERSION}"
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
       # Fails before anything is uploaded if the token cannot see the project.
       # All commands use the project token's project and environment. The
       # expected ID guards against accidentally configuring another project.
@@ -119,6 +124,12 @@ jobs:
             railway deployment list --service "$service" --limit 1 --json > /dev/null
           done
 
+      # New services cannot opt in to Railway's deprecated config-as-code.
+      # Check the applied native settings against this checked-out release;
+      # this is read-only and cannot commit unrelated staged configuration.
+      - name: Verify native Railway settings
+        run: bun scripts/verify-railway-config.ts
+
       - name: Deploy
         env:
           RELEASE: ${{ steps.release.outputs.sha }}
@@ -127,6 +138,11 @@ jobs:
 
           deploy() {
             local service="$1" upload deployment
+            # API startup can take minutes. Recheck immediately before each
+            # native service upload as well as before the first mutation.
+            case "$service" in
+              counted-mcp|counted-docs) bun scripts/verify-railway-config.ts >&2 || return 1 ;;
+            esac
             # --skip-deploys: setting a variable otherwise starts a redeploy
             # of the current build, which would race the upload below.
             railway variable set "RELEASE=${RELEASE}" \

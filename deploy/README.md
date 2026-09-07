@@ -119,6 +119,46 @@ and MCP resource metadata agree, and confirm documentation serves `/openapi.json
 The Deploy workflow requires these services and Smoke requires their public
 endpoints; an unprovisioned service is an incomplete release configuration.
 
+### Native Railway settings
+
+[Railway configuration-as-code](https://docs.railway.com/config-as-code) is
+deprecated. New services cannot opt in; existing services that already use it
+remain supported only until December 1, 2026. Docs and MCP use native service
+settings, with no configuration-file link. Their `deploy/docs.railway.json`
+and `deploy/mcp.railway.json` files remain the checked-out release's expected
+settings, read by Counted's release preflight rather than Railway.
+
+Apply each file's `build.builder`, `build.dockerfilePath` and `deploy` fields
+to the corresponding native service settings. For the manifest's `numReplicas`,
+use an explicit native `deploy.multiRegionConfig` map in the chosen service
+region, with counts totaling one. Railway's legacy flat replica field can be
+null; the preflight requires either an authoritative numeric count or the
+explicit regional map, and never assumes that null means one. Use the repository
+root, the image CMD, and no build/start/pre-deploy command or watch-pattern override.
+Docs listens on port 3001 and checks `/openapi.json`; MCP listens on port 8080
+and checks `/health/ready`. Both use a 120-second health timeout, one replica,
+and `ON_FAILURE` with three retries. Docs uses 20-second overlap and 10-second
+draining; MCP uses 30 and 20 seconds respectively.
+
+Stage and review configuration separately from deployment. An unapplied change
+does not configure the next source upload. Before changing any `RELEASE`
+variable or uploading source, Deploy verifies the token's project and environment
+IDs, reads applied configuration with variable decryption disabled, and compares
+docs/MCP settings against the exact checked-out release. Railway omits defaults
+from the raw configuration; the preflight checks effective service-instance
+values rather than assuming what an absent field means. Missing or mismatched
+settings, a file link, conflicting overrides or an unreadable response stop the release. It
+never writes configuration or commits other staged changes. For a rollback
+whose expected settings differ, review and apply those settings first. The same
+read runs immediately before each docs/MCP upload because API startup can take
+minutes. Keep provider settings unchanged throughout deployment: the GitHub
+deployment lock cannot prevent simultaneous edits in the Railway dashboard.
+
+Existing API, worker and web services retain their previously enabled
+configuration-file links for now. Move their settings to native configuration
+and extend the release preflight before the December 1 deadline; creating a new
+installation must use native settings for all five services.
+
 ## Monitor checks and delivery
 
 Monitor evaluation and notification delivery require the worker. The console
@@ -155,8 +195,9 @@ push-to-main run of `ci.yml` for that exact SHA through GitHub's Actions API.
 For each service it sets `RELEASE=<sha>` as a service variable
 (`railway variable set … --skip-deploys`, so the variable change does not
 start a redeploy of its own) and then uploads with `railway up --service
-<name> --detach --json` from the repository root, where each service's
-`railwayConfigFile` under `deploy/` names its Dockerfile. The API goes first,
+<name> --detach --json` from the repository root. The native docs/MCP settings
+and the existing API/worker/web configuration files select the matching
+Dockerfile under `deploy/`. The API goes first,
 and the job waits for that deployment to reach `SUCCESS` before uploading the
 worker, MCP server, console and documentation. All five services are required:
 the workflow checks access to each before uploading and waits for the exact
@@ -168,12 +209,13 @@ deployment fails the workflow even when its detached upload succeeded.
 Railway stubs, including mismatched CI commits and unrelated successful releases.
 CI runs this check before permitting a release.
 
-It needs two things in the repository's Actions settings: the secret
+It needs three things in the repository's Actions settings: the secret
 `RAILWAY_TOKEN` — a **project** token for the production environment
 (Railway → project → Settings → Tokens), which scopes the CLI to that project
-and environment — and the variable `RAILWAY_PROJECT_ID`. Before uploading, the
-workflow verifies the token's project ID against that variable. All CLI commands
-use the project and environment supplied by the token. Nothing else
+and environment — and the variables `RAILWAY_PROJECT_ID` and
+`RAILWAY_ENVIRONMENT_ID`. Before uploading, the workflow verifies both token
+IDs against those variables and requires the production environment. All CLI
+commands use the project and environment supplied by the token. Nothing else
 deploys: the services are not connected to GitHub in Railway, so a push does
 not deploy on its own, and `railway up` from a laptop works but leaves no
 record of what went out.
@@ -377,9 +419,10 @@ The analytics engine ships inside the image: `@litics/core` and
 
 ## Three things that bit during the first deploy
 
-**The root `railway.toml` wins.** Railway's config-as-code overrides anything
-set through the API or dashboard. Each service names its own
-`railwayConfigFile` under `deploy/`.
+**A configuration file overrides native settings while legacy support lasts.**
+For the existing API, worker and web services, the file selected under `deploy/`
+overrides the dashboard. New docs/MCP services have no such link and use the
+native settings checked by the release preflight above.
 
 **Watch patterns filter `railway up`, not just git pushes.** A deploy from an
 unchanged tree comes back `SKIPPED`, which in the dashboard reads like a deploy
@@ -425,11 +468,13 @@ custom hostname's routing or certificate.
 
 ## API documentation
 
-Create a `counted-docs` Railway service with repository root `/` and config file
-`/deploy/docs.railway.json`. Its image builds the oRPC OpenAPI document and serves
-Next's standalone output on port 3001. Use `/openapi.json` for the health check.
-No database or application secrets belong on this service. `PORT` and `HOSTNAME`
-are the only optional runtime settings (defaults: 3001 and `0.0.0.0`).
+Create a `counted-docs` Railway service with repository root `/` and the native
+settings described above, with no configuration-file link. Its image builds the
+oRPC OpenAPI document and serves Next's standalone output on port 3001. Use
+`/openapi.json` for the health check.
+No database or application secrets belong on this service. See the documentation
+service's environment section above for its optional runtime destinations;
+`PORT` and `HOSTNAME` default to 3001 and `0.0.0.0`.
 
 Attach the custom domain `docs.counted.dev` to that service and add the DNS record
 Railway provides before running the production Deploy workflow. Documentation
