@@ -1,6 +1,6 @@
 # The worker. Bun, one process. Serves nothing.
 # so there is nothing that can get stale between the source and what runs.
-FROM oven/bun:1.3.11 AS base
+FROM oven/bun:1.3.14 AS base
 WORKDIR /app
 
 FROM base AS deps
@@ -20,6 +20,9 @@ RUN bun scripts/prune-workspace.ts apps/worker && bun install
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# The git SHA of this build, reported by /health/* and the boot log.
+ARG RELEASE=
+ENV RELEASE=$RELEASE
 COPY --from=deps /app ./
 
 
@@ -31,4 +34,4 @@ COPY --from=deps /app ./
 # No shell wrapper. The process is PID 1 and receives SIGTERM directly, which
 # its graceful drain depends on: the current tick finishes and its jobs settle
 # before exit.
-CMD ["bun", "run", "apps/worker/src/index.ts"]
+CMD ["bun", "run", "apps/worker/src/main.ts"]

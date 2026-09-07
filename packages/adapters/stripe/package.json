@@ -2,9 +2,21 @@
   "name": "@counted/adapter-stripe",
   "version": "0.0.0",
   "private": true,
+  "description": "BillingGateway over Stripe. Tenancy only.",
   "type": "module",
-  "description": "Stripe: hosted sessions and signed webhooks. Reports payment state; never decides an entitlement.",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "build": "tsc --build", "test": "bun test", "typecheck": "tsc --noEmit" },
-  "dependencies": { "@counted/domain": "workspace:*", "@counted/ports": "workspace:*" }
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@counted/adapter-crypto": "workspace:*",
+    "@counted/kernel": "workspace:*",
+    "@counted/tenancy-app": "workspace:*",
+    "@counted/tenancy-domain": "workspace:*",
+    "@counted/tenancy-ports": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test src"
+  }
 }

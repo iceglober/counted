@@ -11,7 +11,7 @@
  * that breaks somebody's agent session is worse than one that reports nothing.
  */
 
-import { Counted, type CountedOptions } from "@counted/sdk-js";
+import { Counted, type CountedOptions } from "@counted/sdk";
 import {
   validateAgentContext,
   validateAgentEvent,

@@ -1,34 +1,18 @@
-# apps/web
 
-The Counted console. A pure client of the public API.
+## Public site and console hosts
 
-There is no database driver here, no `DATABASE_URL`, and no import from
-`@counted/domain`. If the UI can do it, the public API can do it — which is
-only true for as long as the UI has no private path, so `src/lib/purity.test.ts`
-checks it rather than trusting it.
+This web service also serves the public site. `COUNTED_SITE_URL` defaults to
+`https://counted.dev`; only its Host renders the public homepage at `/`.
+With the default setting, `www.counted.dev` is also recognized. The console host
+and ordinary localhost keep the signed-in workspace redirect. For local public
+site review, explicitly set `COUNTED_SITE_URL=http://localhost:3000`.
 
-## How it reaches the API
-
-One client, in `src/lib/api.ts`, addressed by the `operationId` from the
-committed OpenAPI contract. Paths, cache tags and invalidation all come from
-`@counted/contracts`; nothing here maintains a second description of the API.
-
-- **Browser** — `fetch(api.counted.dev, {credentials: "include"})`. The session
-  cookie is set on the registrable domain, so `app.` reaching `api.` is
-  same-site and `SameSite=Lax` permits it. No proxy hop.
-- **Server components** — forward the incoming `Cookie` header verbatim.
-
-## The one server-side exception
-
-`/auth/callback` redeems a magic link and re-emits the API's own `Set-Cookie`.
-It exists because arriving from a mail client is a top-level navigation, not a
-script — nothing is running yet to make a `fetch`, and `Set-Cookie` on a
-cross-origin redirect chain is fragile. It does not mint, parse or understand
-the session; that would be a second implementation of auth.
-
-## Environment
-
-| Variable | Meaning |
-|---|---|
-| `NEXT_PUBLIC_COUNTED_API_URL` | Where the browser calls the API. |
-| `COUNTED_API_URL` | Where server components call it. Defaults to the public one. |
+`COUNTED_CONSOLE_URL` supplies sign-in links, and `COUNTED_DOCS_URL` defaults to
+`https://docs.counted.dev`. `COUNTED_PUBLIC_API_URL` supplies the public API destination, separately from
+the console’s potentially internal `COUNTED_API_URL`. These are deployment
+destinations, not secrets.
+The same service must retain both public and console domains. `/docs` and its
+legacy HTML paths redirect to the docs service; the old docs `llms.txt` paths
+remain readable. Public discovery includes `/llms.txt`, `/index.md`, `/auth.md`,
+`/pricing.md`, `/.well-known/api-catalog`, `/robots.txt`, and `/sitemap.xml`.
+Public pages do not call the account API or load an analytics tracker.

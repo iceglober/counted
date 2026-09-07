@@ -1,169 +1,217 @@
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from "@counted/ui/components/alert";
+import { Empty } from "./notice";
+import { InsightTable } from "./insight-table";
 /**
- * Rendering one readout.
+ * One tile's answer, or a stated reason there is none. Never a silent blank.
  *
- * This file exists to make one bug unrepresentable. v1 rendered a dashboard
- * with `Promise.allSettled` and an `emptyData()` fallback, so any rejection
- * became a blank chart indistinguishable from a project with no events. The
- * customer saw a flat line and concluded their integration was broken; it was
- * the query that failed.
+ * `Readout` is discriminated on `ok` and its failure branch names the engine's
+ * own four kinds, so "no events in this window" and "the query died" cannot
+ * render the same way. v1 returned an empty series for both and they came out
+ * as the same flat line.
  *
- * The contract already made that impossible on the wire — a `Readout` is
- * either `ok` with a value or `ok: false` with a named failure, and `Outcome`
- * has no zero value. This is the other half: **three states that render
- * differently**, decided by a `switch` on the readout rather than by whether
- * some array happened to be empty.
- *
- *   answered, with data  → the chart
- *   answered, no data    → a grey sentence explaining *why there is none*
- *   failed               → a red, bordered, named error
- *
- * The second and third are the ones that used to be the same pixel. They are
- * now different colours, different borders, and different words.
+ * The empty check is here, above the chart, rather than inside it: a series of
+ * zeros is not something to draw and then apologise for, and `SeriesChart`
+ * therefore never receives one in production.
  */
-
-import type { ReactElement } from "react";
+import type { ContractOutputs } from "../lib/client";
+import { measured } from "../lib/format";
 import { SeriesChart } from "./series-chart";
-
-export type ReadoutFailure = {
-  readonly code: "timeout" | "unsupported" | "store_unavailable" | "invalid_request";
-  readonly detail: string;
-  readonly retriable: boolean;
-};
-
-export type ReadoutValue =
-  | { readonly shape: "scalar"; readonly value: number }
-  | { readonly shape: "series"; readonly points: readonly { bucketStart: string; value: number }[] }
-  | { readonly shape: "breakdown"; readonly rows: readonly { label: string; value: number }[] };
-
-export type Readout =
-  | { readonly id: string; readonly ok: true; readonly value: ReadoutValue; readonly computedAt: string }
-  | { readonly id: string; readonly ok: false; readonly failure: ReadoutFailure };
-
-/**
- * What to say when a query succeeded and found nothing.
- *
- * Per failure-free shape, because "no rows" means something different for each
- * and a single "No data" is the sentence that made the v1 bug invisible. The
- * wording says what the *window* contains, not what the project contains —
- * those are different facts and conflating them sends people to the wrong fix.
- */
-const EMPTY_MESSAGE: Readonly<Record<ReadoutValue["shape"], string>> = {
-  scalar: "Nothing matched in this window.",
-  series: "No events in this window.",
-  breakdown: "No events in this window to group.",
-};
-
-/** Whether an answered readout actually carries anything to draw. */
-export const isEmpty = (value: ReadoutValue): boolean => {
+import { BreakdownChart } from "./breakdown-chart";
+import { BreakdownTable } from "./breakdown-table";
+type Readout = ContractOutputs["dashboards"]["readouts"]["readouts"][number];
+type ReadoutValue = Extract<
+  Readout,
+  {
+    ok: true;
+  }
+>["value"];
+type Trend = NonNullable<
+  Extract<
+    ReadoutValue,
+    {
+      shape: "scalar";
+    }
+  >["trend"]
+>;
+/** Nothing measured is a different fact from nothing returned. */
+const isEmpty = (value: ReadoutValue): boolean => {
   switch (value.shape) {
     case "scalar":
-      // Zero is a *number*, not an absence: a project that genuinely recorded
-      // nothing today should show `0`, which is a fact. Only a scalar that is
-      // not finite is missing.
-      return !Number.isFinite(value.value);
+      return false;
     case "series":
-      return value.points.length === 0 || value.points.every((p) => p.value === 0);
+      return value.series
+        ? value.series.every((series) =>
+            series.points.every((point) => point.value === 0),
+          )
+        : value.points.every((point) => point.value === 0);
     case "breakdown":
       return value.rows.length === 0;
+    case "funnel":
+      return value.result.steps.length === 0;
   }
 };
-
-const formatNumber = (value: number): string =>
-  Number.isInteger(value) ? value.toLocaleString("en-US") : value.toLocaleString("en-US", { maximumFractionDigits: 1 });
-
 /**
- * How a failure is described to somebody who has to act on it.
- *
- * Named per code, because the four have different fixes and "something went
- * wrong" sends everybody to the same place: support.
+ * `percentChange` is null when the previous window had no events, and it is
+ * rendered as "no comparison" rather than as 0% or ∞. There is no percentage
+ * change from nothing, and every number you could put there is a lie a
+ * dashboard renders as a badge.
  */
-const FAILURE_HEADLINE: Readonly<Record<ReadoutFailure["code"], string>> = {
-  timeout: "This query took too long",
-  unsupported: "This tile asks for something the store cannot do",
-  store_unavailable: "The store could not be reached",
-  invalid_request: "This tile is misconfigured",
-};
-
-export const FailureNotice = ({ failure }: { failure: ReadoutFailure }): ReactElement => (
-  <div className="tile-error" role="alert">
-    <div>
-      <strong>{FAILURE_HEADLINE[failure.code]}</strong>
-    </div>
-    <div>{failure.detail}</div>
-    <div className="tile-error-code">
-      {failure.code}
-      {/* Whether retrying helps is the server's judgement, not a guess made
-          from the status code. It decides whether a Retry control appears. */}
-      {failure.retriable ? " · retrying may help" : " · retrying will not help"}
-    </div>
-  </div>
+const TrendNote = ({ trend }: { readonly trend: Trend }) => (
+  <p className="mt-3 text-xs text-muted-foreground">
+    {trend.percentChange === null
+      ? `no comparison — the previous window had ${measured(trend.previous)}`
+      : `${trend.direction === "down" ? "−" : trend.direction === "up" ? "+" : "±"}${Math.abs(trend.percentChange).toFixed(1)}% vs ${measured(trend.previous)}`}
+  </p>
 );
-
-const Value = ({ value }: { value: ReadoutValue }): ReactElement => {
+const Value = ({
+  value,
+  label,
+  view,
+  analysis,
+  fill = false,
+}: {
+  readonly value: ReadoutValue;
+  readonly label: string;
+  readonly view?: string | undefined;
+  readonly analysis?:
+    | ContractOutputs["dashboards"]["get"]["dashboard"]["tiles"][number]["analysis"]
+    | undefined;
+  readonly fill?: boolean;
+}) => {
   switch (value.shape) {
     case "scalar":
-      return <div className="scalar">{formatNumber(value.value)}</div>;
-    case "series":
-      return <SeriesChart points={value.points} />;
-    case "breakdown":
       return (
-        <table>
-          <tbody>
-            {value.rows.map((row) => (
-              <tr key={row.label}>
-                <td>{row.label}</td>
-                <td className="numeric">{formatNumber(row.value)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <p className="font-heading text-4xl leading-none tabular-nums">
+            {measured(value.value)}
+          </p>
+          {value.trend === undefined ? null : <TrendNote trend={value.trend} />}
+        </>
+      );
+    case "series":
+      return (
+        <>
+          <SeriesChart
+            fill={fill}
+            label={label}
+            view={view}
+            series={
+              value.series
+                ? value.series.map((series) => ({
+                    name: series.label,
+                    points: series.points,
+                  }))
+                : [{ name: label, points: value.points }]
+            }
+          />
+          {value.trend === undefined ? null : <TrendNote trend={value.trend} />}
+        </>
+      );
+    case "breakdown":
+      if (view === "bar")
+        return (
+          <BreakdownChart
+            label={label}
+            rows={value.rows}
+            dimensions={value.dimensions}
+            fill={fill}
+          />
+        );
+      return <BreakdownTable value={value} analysis={analysis} fill={fill} />;
+    case "funnel":
+      return (
+        <InsightTable
+          fill={fill}
+          columns={[
+            { key: "step", label: "Step" },
+            { key: "reached", label: "Reached", numeric: true },
+            { key: "rate", label: "Of first", numeric: true },
+          ]}
+          rows={value.result.steps.map((step, index) => ({
+            key: String(index),
+            cells: [
+              step.label,
+              measured(step.reached),
+              `${step.cumulativeRate.toFixed(1)}%`,
+            ],
+          }))}
+        />
       );
   }
 };
-
 /**
- * The whole decision, in one place.
- *
- * A `switch` on the readout rather than a chain of truthiness checks: the
- * three states are exhaustive and the compiler says so, which is what stops a
- * fourth case from quietly falling through to the chart.
+ * A failure names the missing capability rather than saying "error", so the
+ * page can say "retention is not available yet" instead of showing a spinner
+ * that never stops.
  */
-export const ReadoutBody = ({ readout }: { readout: Readout }): ReactElement => {
-  if (!readout.ok) return <FailureNotice failure={readout.failure} />;
-  if (isEmpty(readout.value)) return <p className="tile-empty">{EMPTY_MESSAGE[readout.value.shape]}</p>;
-  return <Value value={readout.value} />;
+const Failed = ({
+  failure,
+}: {
+  readonly failure: Extract<
+    Readout,
+    {
+      ok: false;
+    }
+  >["failure"];
+}) => {
+  const sentence =
+    failure.kind === "Timeout"
+      ? `The query ran past its ${Math.round(failure.budgetMs / 1000)}s budget.`
+      : failure.kind === "Unavailable"
+        ? "The analytics engine is not answering."
+        : failure.kind === "InvalidQuery"
+          ? "This question is not answerable as written."
+          : failure.feature === "retention"
+            ? "Retention is not available yet."
+            : `Not available yet: ${failure.feature.replace(/_/g, " ")}.`;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>{sentence}</AlertTitle>
+      <AlertDescription>
+        {failure.kind}
+        {failure.kind === "Unavailable" || failure.kind === "InvalidQuery"
+          ? ` · ${failure.detail}`
+          : ""}
+      </AlertDescription>
+    </Alert>
+  );
 };
-
-export type TileSpec = {
-  readonly id: string;
-  readonly title: string;
-  readonly width: number;
-};
-
-/**
- * A tile, and its readout.
- *
- * `width` is in twelfths — the same unit the domain's `TileWidth` uses, so
- * there is no second layout vocabulary to disagree with the first. v1 had
- * three.
- */
-export const Tile = ({ tile, readout }: { tile: TileSpec; readout: Readout | undefined }): ReactElement => (
-  <section className="tile" style={{ gridColumn: `span ${Math.min(12, Math.max(1, tile.width))}` }}>
-    <h2 className="tile-title">{tile.title}</h2>
-    <div className="tile-body">
-      {readout === undefined ? (
-        // The server must answer every tile it was asked about. If one is
-        // missing, say so — do not draw a blank and let it read as no data.
-        <FailureNotice
-          failure={{
-            code: "store_unavailable",
-            detail: "The server returned no answer for this tile.",
-            retriable: true,
-          }}
-        />
-      ) : (
-        <ReadoutBody readout={readout} />
-      )}
+export const ReadoutBody = ({
+  readout,
+  label,
+  view,
+  analysis,
+  fill = false,
+}: {
+  readonly readout: Readout;
+  readonly label: string;
+  readonly view?: string | undefined;
+  readonly analysis?:
+    | ContractOutputs["dashboards"]["get"]["dashboard"]["tiles"][number]["analysis"]
+    | undefined;
+  readonly fill?: boolean;
+}) => {
+  if (!readout.ok) return <Failed failure={readout.failure} />;
+  if (isEmpty(readout.value)) return <Empty>No events in this window.</Empty>;
+  return (
+    <div
+      className={
+        fill
+          ? `flex h-full min-h-0 flex-col ${readout.value.shape === "scalar" ? "justify-end" : ""}`
+          : undefined
+      }
+    >
+      <Value
+        value={readout.value}
+        label={label}
+        view={view}
+        analysis={analysis}
+        fill={fill}
+      />
     </div>
-  </section>
-);
+  );
+};

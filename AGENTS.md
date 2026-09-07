@@ -13,7 +13,8 @@ This is the core principle the whole product is built on, and it constrains how 
   or leave the gap and flag it. The privacy stance wins over the metric.
 - **`localStorage` only for first-party, non-identifying values** — preferences, a first-touch
   channel, an A/B bucket. Never a stable user/device identifier.
-- **Sessions are ephemeral and in-memory.** No IP storage. GDPR/CCPA-clean without a consent
+- **The actor is the visit, not the person.** IP addresses are never stored: a country is
+  derived at the edge and the address is discarded. GDPR/CCPA-clean without a consent
   banner — that's the whole pitch, so don't quietly undermine it.
 
 When a change touches tracking, attribution, auth, or storage, check it against this list
@@ -21,84 +22,74 @@ first. "It would improve the funnel" is not a reason to add a cookie.
 
 ## Stack
 
-- **Framework**: Next.js 16 (App Router, Turbopack)
-- **Language**: TypeScript 6
-- **Styling**: Tailwind CSS v4 (CSS-first config via `@theme`)
-- **Database**: PostgreSQL + TimescaleDB, Drizzle ORM
-- **Auth**: better-auth (magic link + Resend)
-- **Billing**: Stripe
-- **Package manager**: Bun
-- **Deployment**: Railway (Dockerfile), GitHub Actions CI
+- **Runtime and package manager**: Bun 1.3.14. Workspace packages point `main` at
+  TypeScript source; nothing is built to run locally.
+- **API**: Hono + oRPC v2. The contract in `packages/contract` is the single source of
+  truth; `openapi.json` and every SDK's generated types come from it and CI fails on drift.
+- **Console**: Next.js under `apps/web`, a pure client of the contract (a test forbids
+  hand-written response shapes).
+- **Worker**: `apps/worker` — monitors, retention, the analytics compactor, reconciliation.
+- **MCP**: `apps/mcp` projects the contract into tools for agents, OAuth 2.0 bearer auth.
+- **Docs**: `apps/docs` serves the generated OpenAPI reference and integration guide.
+- **Auth**: better-auth (magic link, email/password, organizations, machine credentials).
+- **Analytics engine**: litics (`@litics/core`, `@litics/compactor`), vendored under
+  `vendor/` from the sibling `iceglober/litics` repository and consumed in-process.
+- **Database**: plain PostgreSQL 14+ with nothing installed — Neon, Supabase, RDS, or the
+  official image. There is no extension anywhere; CI asserts that `pg_extension` holds one row.
+- **Billing**: Stripe. **Deployment**: Railway from `deploy/*.Dockerfile`, GitHub Actions.
 
 ## Repo structure
 
 ```
-app/                    Next.js App Router pages and API routes
-  (marketing)/          Landing page, pricing (served on www.counted.dev)
-  (dashboard)/          App pages behind auth (served on app.counted.dev)
-  api/                  API routes (v0 event/query/dashboards/projects, auth, billing)
-components/             React components
-lib/                    Server utilities (auth, db, query engine, stripe, types)
-packages/
-  sdk/                  @counted/sdk — vanilla JS event tracking (~3KB)
-  react/                @counted/react — React provider + hook
-  migrate/              @counted/migrate — Aptabase migration CLI
-proxy.ts                Request routing (marketing vs app domain, CORS)
+apps/api, apps/web, apps/worker, apps/mcp, apps/docs
+                                           the five deployables
+packages/<context>/{domain,ports,app,adapter-*}
+                                           bounded contexts: analytics, dashboarding, identity,
+                                           ingestion, projects, tenancy, billing …
+packages/contract                          the oRPC contract, error vocabulary, schemas
+packages/adapters/postgres                 the domain schema, migrations, repositories
+packages/sdk-js, react, python, go, rust   client SDKs (generated contract types inside)
+vendor/litics-core, vendor/litics-compactor  the analytics engine (do not edit; re-vendor)
+tests/journey                              one customer, start to finish, over real HTTP
+deploy/                                    Dockerfiles, Railway configs, the runbook
 ```
 
-## Key patterns
-
-- **Insights** (not widgets/cards): the composable dashboard unit. Each has a type (metric, timeseries, breakdown), a query, and a span.
-- **Dashboard layout**: stored as JSONB in the `dashboards` table. Flat list of `InsightLayout` objects.
-- **Query engine** (`lib/query-engine.ts`): builds parameterized SQL from `InsightQuery` specs. All user input goes through `$N` placeholders — never interpolate.
-- **Auth guard** (`lib/auth-guard.ts`): `requireSession()` and `requireProjectAccess(projectId)` for API routes.
-- **Proxy routing** (`proxy.ts`): `www.counted.dev` serves marketing pages only; `app.counted.dev` serves the full app.
+`.dependency-cruiser.cjs` enforces the layering (domains import nothing, apps are
+independent, only `packages/analytics/adapter-litics` may import litics). `bun run arch`
+runs it.
 
 ## Commands
 
 ```bash
-bun run dev          # database + API on :8080 + web on :3000
-bun run typecheck:v2 # TypeScript check
-bun run test:v2      # the full suite
-bun run seed         # fill a project with ~30 days of events (stack must be running)
+bun run dev              # database + API + console, one command (scripts/dev.sh)
+bun run typecheck        # the whole workspace, tests included
+bun run arch             # dependency rules
+bun run test             # unit suites (in-memory doubles)
+bun run journey          # end to end, needs `docker compose up -d db`
+bun run openapi:check    # openapi.json is current
+bun run contract:check   # every generated SDK artefact is current
+bun scripts/vendor-litics.ts   # refresh vendor/ from ../litics (clean tree only)
 ```
 
-There is no schema push step. The API applies its schema at boot, inside the
-process that will serve traffic — `migrate()` runs in `compose()` before
-anything reads the database, wrapped in an advisory lock so every replica runs
-it and only the first does work. See `deploy/README.md` for why a pre-deploy
-command was rejected.
+## Key patterns
 
-## SDK workspace packages
-
-The app imports `@counted/sdk` as a workspace dependency. SDK must be built before the app:
-
-```bash
-cd packages/sdk && bun run build
-cd packages/react && bun run build
-```
-
-The Dockerfile handles this automatically. CI builds SDKs before typecheck.
-
-## API client (`@counted/api`)
-
-`@counted/api` is a small **hand-written** typed client for the management API
-(used by e.g. `scripts/growth-readback.ts`). `lib/openapi.ts` is the source of
-truth for the HTTP API — served as OpenAPI 3.1 at `/api/v0/openapi.json`, rendered
-for humans at `/docs/api`, and summarized for agents at `/docs/llms.txt` (all of
-which render directly from it, so they never drift). When the API changes, update
-the client's types alongside `lib/openapi.ts` by hand.
+- **Failures are values.** Ports return `Result`s and typed outcomes; an engine failure never
+  becomes an empty chart. Read `packages/analytics/ports` before adding a query.
+- **Every write surface is a contract procedure first.** A console button or an MCP tool is a
+  projection of the contract, never a route of its own.
+- **Generated migrations are ledgered.** litics' DDL and any change to an existing domain
+  table are named steps applied once under one advisory lock; boot refuses to serve on drift.
+- **Tests beside code**, `bun:test`, doubles in memory; anything that needs Postgres uses the
+  `describeLive` helper and `COUNTED_TEST_DATABASE_URL`.
 
 ## Environment variables
 
-See `.env.example` for the full list. Key ones:
-- `DATABASE_URL` — Postgres connection string
-- `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` — auth config
-- `TRUSTED_ORIGINS` — comma-separated list of allowed origins
-- `RESEND_API_KEY` / `RESEND_FROM` — email sending
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_*_ID` — billing
-- `NEXT_PUBLIC_COUNTED_PROJECT_KEY` — dog-food analytics tracking
+`.env.example` is the reference and is loaded by `scripts/dev.sh`; each service reads its
+environment once at boot and prints every problem before exiting. `deploy/README.md` has the
+per-service table.
 
-## For maintainers
+## Where to read next
 
-Internal docs live in a separate private repo. Ask a maintainer for access.
+- `DEVELOPING.md` — setup, the three schemas, the journey suite, resetting.
+- `deploy/README.md` — services, environment, migrations, zero downtime, the restore drill.
+- `self-host/README.md` — running it yourself.

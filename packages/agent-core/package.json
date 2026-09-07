@@ -1,10 +1,41 @@
 {
   "name": "@counted/agent-core",
   "version": "2.0.0",
-  "private": true,
   "type": "module",
   "description": "The shared port behind Counted's agent integrations: vocabulary, redaction, setup fingerprint.",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "test": "bun test", "typecheck": "tsc --noEmit" },
-  "dependencies": { "@counted/sdk-js": "workspace:*" }
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "tsup",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "@counted/sdk": "^2.0.0"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iceglober/counted.git",
+    "directory": "packages/agent-core"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0"
+  }
 }

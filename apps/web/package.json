@@ -1,27 +1,32 @@
 {
   "name": "@counted/web",
-  "version": "2.0.0",
+  "version": "0.0.0",
   "private": true,
+  "description": "The console. A contract client and a forwarding proxy — it holds no credential of its own.",
   "type": "module",
-  "description": "The Counted console. A pure client of the public API.",
-  "scripts": {
-    "dev": "next dev --turbopack --port 3000",
-    "build": "next build",
-    "start": "next start",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit"
-  },
   "dependencies": {
-    "@counted/contracts": "workspace:*",
-    "next": "^15.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@counted/sdk-js": "workspace:*"
+    "@counted/contract": "workspace:*",
+    "@counted/openapi": "workspace:*",
+    "@counted/ui": "workspace:*",
+    "@tabler/icons-react": "^3.46.0",
+    "cn": "^0.2.5",
+    "react-grid-layout": "2.2.3",
+    "react-resizable": "3.1.3",
+    "recharts": "3.8.0"
+  },
+  "scripts": {
+    "test": "bun test src",
+    "dev": "next dev",
+    "build": "bun ../../scripts/generate-openapi.ts && next build",
+    "start": "next start --port 3000"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "tailwindcss": "^4.3.0",
-    "@tailwindcss/postcss": "^4.3.0"
+    "@tailwindcss/postcss": "4.3.3",
+    "tailwindcss": "4.3.3"
+  },
+  "imports": {
+    "#components/*": "./src/components/*.tsx",
+    "#lib/*": "./src/lib/*.ts",
+    "#hooks/*": "./src/hooks/*.ts"
   }
 }

@@ -1,13 +1,20 @@
 name: Smoke
 
-# Production smoke test. Railway has no clean post-deploy hook, so we run on a
-# schedule (catches a bad deploy within the interval) plus on demand. Exercises
+# Production smoke test. Run after each successful Deploy, on a schedule
+# (catches failures between deployments), and on demand. Exercises
 # the real data path that /api/health can't — see scripts/smoke.ts.
 
 on:
   schedule:
     - cron: "*/10 * * * *" # every 10 minutes
   workflow_dispatch:
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
 
 concurrency:
   group: smoke
@@ -18,6 +25,7 @@ jobs:
     name: Production smoke
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -31,6 +39,8 @@ jobs:
           SMOKE_API_URL: https://api.counted.dev
           SMOKE_APP_URL: https://app.counted.dev
           SMOKE_MARKETING_URL: https://counted.dev
+          SMOKE_DOCS_URL: https://docs.counted.dev
+          SMOKE_MCP_URL: https://mcp.counted.dev
           # Optional — set as repo secrets to unlock the ingestion + authenticated checks:
           SMOKE_CLIENT_KEY: ${{ secrets.SMOKE_CLIENT_KEY }}
           SMOKE_SERVICE_KEY: ${{ secrets.SMOKE_SERVICE_KEY }}

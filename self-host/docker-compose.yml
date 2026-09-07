@@ -1,33 +1,14 @@
+# Counted, self-hosted: API, console, worker, docs, MCP, and a stock Postgres.
+#
+# The database is the official image with nothing installed. The analytics
+# engine keeps its schema in plain SQL and runs its background work in the
+# worker, so there is nothing to add to Postgres and any managed provider
+# can replace this container by pointing DATABASE_URL at it.
+#
+# Copy .env.example to .env and set COUNTED_AUTH_SECRET and BASE_URL first.
 services:
-  app:
-    image: ghcr.io/iceglober/counted:latest
-    build:
-      context: ..
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: postgres://counted:${POSTGRES_PASSWORD:-counted}@db:5432/counted
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BASE_URL:-http://localhost:3000}
-      TRUSTED_ORIGINS: ${BASE_URL:-http://localhost:3000}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM: ${RESEND_FROM:-}
-      CRON_SECRET: ${CRON_SECRET:-}
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      # bun is always present in the image; wget/curl are not guaranteed.
-      test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-    restart: unless-stopped
-
   db:
-    image: timescale/timescaledb:2.27.1-pg17
+    image: postgres:17
     environment:
       POSTGRES_USER: counted
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-counted}
@@ -36,30 +17,107 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U counted"]
+      test: ["CMD-SHELL", "pg_isready -U counted -d counted"]
       interval: 5s
       timeout: 5s
       retries: 10
     restart: unless-stopped
 
-  # Alert evaluation scheduler. The evaluate endpoint is protected by CRON_SECRET
-  # and has no built-in scheduler, so without this alerts never fire on self-host.
-  # No-op unless CRON_SECRET is set (the endpoint 401s an empty Bearer, harmless).
-  cron:
-    image: curlimages/curl:8.11.1
+  api:
+    image: ghcr.io/iceglober/counted-api:latest
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://counted:${POSTGRES_PASSWORD:-counted}@db:5432/counted
+      COUNTED_API_URL: ${API_URL:-http://localhost:8080}
+      COUNTED_CONSOLE_URL: ${BASE_URL:-http://localhost:3000}
+      COUNTED_AUTH_SECRET: ${COUNTED_AUTH_SECRET}
+      COUNTED_MCP_URL: ${MCP_URL:-http://localhost:3002/mcp}
+      COUNTED_UNCLAIMED_WORKSPACE_ID: ${COUNTED_UNCLAIMED_WORKSPACE_ID:-ws_holding}
+      COUNTED_UNCLAIMED_WORKSPACE_OWNER_ID: ${COUNTED_UNCLAIMED_WORKSPACE_OWNER_ID:-acct_operator}
+      COUNTED_TRUSTED_PROXY_HOPS: ${COUNTED_TRUSTED_PROXY_HOPS:-0}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      COUNTED_MAIL_FROM: ${COUNTED_MAIL_FROM:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     depends_on:
-      app:
+      db:
         condition: service_healthy
-    entrypoint:
-      - sh
-      - -c
-      - |
-        while true; do
-          curl -fsS -X POST \
-            -H "Authorization: Bearer ${CRON_SECRET:-}" \
-            http://app:3000/api/v0/alerts/evaluate || true
-          sleep 300
-        done
+    healthcheck:
+      # bun is always present in the image; wget/curl are not guaranteed.
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:8080/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/iceglober/counted-worker:latest
+    build:
+      context: ..
+      dockerfile: deploy/worker.Dockerfile
+    environment:
+      DATABASE_URL: postgres://counted:${POSTGRES_PASSWORD:-counted}@db:5432/counted
+      COUNTED_API_URL: ${API_URL:-http://localhost:8080}
+      COUNTED_AUTH_SECRET: ${COUNTED_AUTH_SECRET}
+      COUNTED_UNCLAIMED_WORKSPACE_ID: ${COUNTED_UNCLAIMED_WORKSPACE_ID:-ws_holding}
+      COUNTED_UNCLAIMED_WORKSPACE_OWNER_ID: ${COUNTED_UNCLAIMED_WORKSPACE_OWNER_ID:-acct_operator}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      COUNTED_MAIL_FROM: ${COUNTED_MAIL_FROM:-}
+      COUNTED_WEBHOOK_SIGNING_SECRET: ${COUNTED_WEBHOOK_SIGNING_SECRET:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/iceglober/counted-web:latest
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      COUNTED_API_URL: http://api:8080
+      COUNTED_CONSOLE_URL: ${BASE_URL:-http://localhost:3000}
+      COUNTED_DOCS_URL: ${DOCS_URL:-http://localhost:3001}
+      COUNTED_PUBLIC_API_URL: ${API_URL:-http://localhost:8080}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  docs:
+    build:
+      context: ..
+      dockerfile: deploy/docs.Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      COUNTED_DOCS_URL: ${DOCS_URL:-http://localhost:3001}
+      COUNTED_CONSOLE_URL: ${BASE_URL:-http://localhost:3000}
+      COUNTED_PUBLIC_API_URL: ${API_URL:-http://localhost:8080}
+    restart: unless-stopped
+
+  mcp:
+    build:
+      context: ..
+      dockerfile: deploy/mcp.Dockerfile
+    ports:
+      - "3002:8080"
+    environment:
+      COUNTED_API_URL: http://api:8080
+      COUNTED_MCP_RESOURCE: ${MCP_URL:-http://localhost:3002/mcp}
+      COUNTED_OAUTH_ISSUER: ${API_URL:-http://localhost:8080}/api/auth
+    depends_on:
+      api:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

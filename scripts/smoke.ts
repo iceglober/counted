@@ -20,6 +20,8 @@
  *   SMOKE_API_URL        default https://api.counted.dev   (the API)
  *   SMOKE_APP_URL        default https://app.counted.dev   (the console)
  *   SMOKE_MARKETING_URL  default https://counted.dev
+ *   SMOKE_DOCS_URL       default https://docs.counted.dev
+ *   SMOKE_MCP_URL        default https://mcp.counted.dev
  *   SMOKE_CLIENT_KEY     ck_... ingest credential -> enables the 202 ingest check
  *   SMOKE_SERVICE_KEY + SMOKE_PROJECT_ID -> enables the authenticated query check
  *
@@ -30,6 +32,8 @@ export {}; // make this a module so top-level await is allowed
 const API = (process.env.SMOKE_API_URL ?? "https://api.counted.dev").replace(/\/$/, "");
 const APP = (process.env.SMOKE_APP_URL ?? "https://app.counted.dev").replace(/\/$/, "");
 const MKT = (process.env.SMOKE_MARKETING_URL ?? "https://counted.dev").replace(/\/$/, "");
+const DOCS = (process.env.SMOKE_DOCS_URL ?? "https://docs.counted.dev").replace(/\/$/, "");
+const MCP = (process.env.SMOKE_MCP_URL ?? "https://mcp.counted.dev").replace(/\/$/, "");
 const CLIENT_KEY = process.env.SMOKE_CLIENT_KEY;
 const SERVICE_KEY = process.env.SMOKE_SERVICE_KEY;
 const PROJECT_ID = process.env.SMOKE_PROJECT_ID;
@@ -78,6 +82,20 @@ await check("openapi.json 200", async () => {
   expect(r.status === 200, `expected 200, got ${r.status}`);
   const body = (await r.json().catch(() => ({}))) as { paths?: Record<string, unknown> };
   expect(Boolean(body.paths?.["/v1/events"]), "spec served but does not describe /v1/events");
+  return "200";
+});
+
+// The public docs and MCP are required release surfaces, not optional extras.
+await check("docs openapi.json 200", async () => {
+  const r = await fetch(`${DOCS}/openapi.json`);
+  expect(r.status === 200, `expected 200, got ${r.status}`);
+  const body = (await r.json().catch(() => ({}))) as { paths?: Record<string, unknown> };
+  expect(Boolean(body.paths?.["/v1/events"]), "docs spec is missing /v1/events");
+  return "200";
+});
+await check("mcp health/ready 200", async () => {
+  const r = await fetch(`${MCP}/health/ready`);
+  expect(r.status === 200, `expected 200, got ${r.status}`);
   return "200";
 });
 

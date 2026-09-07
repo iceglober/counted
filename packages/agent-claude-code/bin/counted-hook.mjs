@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// ../sdk-js/src/gen/contract.ts
+// ../sdk-js/dist/index.js
 var BACKOFF = {
   "baseMs": 500,
   "maxMs": 6e4,
@@ -8,8 +8,6 @@ var BACKOFF = {
   "jitter": "full"
 };
 var FATAL_STATUSES = [401, 403];
-
-// ../sdk-js/src/queue.ts
 var EventQueue = class {
   constructor(capacity) {
     this.capacity = capacity;
@@ -50,8 +48,6 @@ var EventQueue = class {
     this.dropped += excess;
   }
 };
-
-// ../sdk-js/src/platform.ts
 var NODE_PLATFORMS = {
   darwin: "macos",
   win32: "windows",
@@ -116,8 +112,6 @@ var detectSystem = (options) => ({
   device_model: null,
   sdk_version: options.sdkVersion
 });
-
-// ../sdk-js/src/transport.ts
 var parseRetryAfter = (header) => {
   if (header === null) return null;
   const seconds = Number(header);
@@ -178,8 +172,6 @@ var sendBeacon = (events, options) => {
     return false;
   }
 };
-
-// ../sdk-js/src/visit.ts
 var DEFAULT_IDLE_MS = 30 * 60 * 1e3;
 var Visit = class {
   id = null;
@@ -221,8 +213,6 @@ var Visit = class {
     return `${Math.floor(now / 1e3)}.${this.random().toString(36).slice(2, 10)}`;
   }
 };
-
-// ../sdk-js/src/client.ts
 var SDK_VERSION = "counted-js/2.0.0";
 var DEFAULTS = {
   endpoint: "https://api.counted.dev/v1/events",
@@ -430,7 +420,8 @@ var Counted = class {
   }
 };
 
-// ../agent-core/src/gen/vocabulary.ts
+// ../agent-core/dist/index.js
+import { createHash } from "crypto";
 var AGENT_EVENT_PREFIX = "agent_";
 var AGENT_HOSTS = ["claude-code", "opencode", "codex", "gemini", "generic"];
 var SETUP_SPEC = "counted.setup/1";
@@ -591,9 +582,6 @@ var validateAgentContext = (context) => {
   const problems = checkAgainst(AGENT_CONTEXT_FIELDS, context);
   return problems.length === 0 ? null : { event: "context", problems };
 };
-
-// ../agent-core/src/fingerprint.ts
-import { createHash } from "crypto";
 var sha256 = (content) => createHash("sha256").update(content, "utf8").digest("hex");
 var canonicalize = (value) => {
   if (value === null) return "null";
@@ -631,8 +619,6 @@ var emptyProjection = (host) => ({
   tools: { allow: [], deny: [], mode: null },
   sampling: { temperature: null, topP: null, reasoningEffort: null }
 });
-
-// ../agent-core/src/redaction.ts
 var LANGUAGES = {
   ts: "typescript",
   tsx: "typescript",
@@ -719,8 +705,6 @@ var scrubSecrets = (value) => {
   return out;
 };
 var truncate = (value, max) => value.length <= max ? value : `${value.slice(0, max - 1)}\u2026`;
-
-// ../agent-core/src/tracker.ts
 var NOOP_PROMISE = async () => {
 };
 var disabled = {

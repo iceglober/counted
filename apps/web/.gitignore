@@ -1,0 +1,14 @@
+# Written by `next build` and `next dev`, and both break `bun run arch`.
+#
+# dependency-cruiser walks `apps/` from the filesystem, so it picks up
+# `next-env.d.ts` and everything under `.next/`. `next-env.d.ts` references
+# `next/image-types/global` and `./.next/types/routes.d.ts`, and `.next`'s own
+# generated `validator.ts` imports `./routes.js` — none of which the config's
+# resolver can resolve, so `not-to-unresolvable` fires three times on files
+# nobody wrote.
+#
+# Ignoring them keeps them out of the tree. The durable fix is one line in
+# `.dependency-cruiser.cjs` — adding `^apps/web/(\.next/|next-env\.d\.ts$)` to
+# `options.exclude` — which is outside this app and is flagged in the hand-off.
+.next/
+next-env.d.ts

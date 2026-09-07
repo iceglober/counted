@@ -1,0 +1,56 @@
+/* Document rhythm and layout only; controls and surfaces come from @counted/ui. */
+@layer components {
+  .app-content {
+    color: var(--foreground);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+  }
+  .app-content :where(h2:not([class])) {
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    line-height: 1.25;
+  }
+  .app-content :where(h3:not([class])) {
+    font-weight: 600;
+    margin-top: 28px;
+  }
+  .app-content :where(p:not([class])) {
+    max-width: 70ch;
+  }
+  .app-content :where(a:not([data-slot]):not([class])) {
+    color: var(--primary-ink);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .app-content :where(a:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  .app-content :where(pre) {
+    max-width: 100%;
+    overflow-x: auto;
+    background: var(--muted);
+    padding: 20px;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .app-content :where(code) {
+    font-family: var(--font-mono);
+    overflow-wrap: anywhere;
+  }
+  .app-content :where([id]) {
+    scroll-margin-top: 90px;
+  }
+}
+
+/* The grid owns placement; shared cards own the visual surface. */
+.insight-grid .react-grid-item { transition: none; }
+.insight-grid .react-grid-placeholder { background: var(--primary); opacity: .08; border: 1px dashed var(--primary); }
+.insight-grid.is-editing .insight-card { border-color: var(--muted-foreground); }
+.insight-grid .react-grid-item > .react-resizable-handle { background-image: none; z-index: 2; opacity: 1; transform: none; }
+.insight-grid .react-grid-item > .react-resizable-handle::after { border-color: var(--muted-foreground); }
+.insight-grid .react-grid-item > .react-resizable-handle.react-resizable-handle-se { width: 28px; height: 28px; }
+.insight-grid .react-grid-item > .react-resizable-handle.react-resizable-handle-e { width: 12px; height: calc(100% - 40px); top: 20px; margin-top: 0; transform: none; }
+.insight-grid .react-grid-item > .react-resizable-handle.react-resizable-handle-s { width: calc(100% - 40px); height: 12px; left: 20px; margin-left: 0; transform: none; }
+.insight-grid .react-grid-item > .react-resizable-handle-e::after, .insight-grid .react-grid-item > .react-resizable-handle-s::after { display: none; }
+.insight-grid .react-grid-item.resizing, .insight-grid .react-grid-item.react-draggable-dragging { z-index: 3; }

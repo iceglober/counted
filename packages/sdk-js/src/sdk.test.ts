@@ -12,6 +12,7 @@ import {
   EventQueue,
   Visit,
   detectPlatform,
+  detectSystem,
   type CountedOptions,
   type Diagnostic,
   type QueuedEvent,
@@ -441,6 +442,23 @@ describe("the platform is the canonical value, not this runtime's word for it", 
     counted.track("x");
     await counted.flush();
     expect(bodyOf(capture).events[0]!.systemProperties).toMatchObject({ sdk_version: "counted-js/2.0.0" });
+  });
+
+  /** SDK-072. */
+  test("it never reports geography — the server derives that and throws the address away", () => {
+    // The whole set, so a field added later has to be a deliberate edit here.
+    // `country` is the server's, derived from the request address; a client
+    // that could set it could put its traffic anywhere on the map, and a client
+    // that could write a string there could write an address there.
+    const system = detectSystem({ sdkVersion: "counted-js/2.0.0" });
+    expect(Object.keys(system).sort()).toEqual([
+      "app_version",
+      "device_model",
+      "locale",
+      "os_name",
+      "os_version",
+      "sdk_version",
+    ]);
   });
 });
 

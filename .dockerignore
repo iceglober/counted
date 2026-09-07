@@ -4,6 +4,10 @@ node_modules
 **/node_modules
 .next
 **/.next
+.next-*
+**/.next-*
+playwright-report
+test-results
 dist
 **/dist
 target
@@ -16,4 +20,14 @@ target
 # anybody who can pull it, and layers outlive the file being deleted later.
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
+.npmrc
+**/.npmrc
+
+# The geo-IP build cache: 20MB of registry text `bun run geo:build` downloads.
+# The table it produces (packages/ingestion/adapter-geoip/data/ip-country.bin)
+# is NOT ignored — apps/api reads it at startup and refuses to boot without it.
+.geo-cache

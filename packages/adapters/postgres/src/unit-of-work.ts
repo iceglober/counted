@@ -1,139 +1,143 @@
 /**
- * The transactional boundary.
+ * One transaction, one set of repositories, one connection.
  *
- * Every repository method takes the client this holds, so nothing inside a
- * unit of work can quietly open its own connection and escape the
- * transaction. v1 had no such boundary: project deletion ran a raw
- * `pool.query("DELETE FROM events …")` outside the drizzle transaction it
- * appeared to be inside, and the dashboard PUT did demote-default then update
- * as two unwrapped statements.
+ * `UnitOfWork` is generic in the repository bundle because the bundle is chosen
+ * by the composition root — the only place that knows which contexts are
+ * deployed together. `CountedRepositories` is the bundle for a deployment that
+ * runs all of them, which today is every deployment.
  *
- * `transact` commits when the callback resolves and rolls back when it throws.
- * There is no third option, and no way to hold the client afterwards.
+ * The whole reason this type exists is that some commands legitimately touch
+ * two aggregates: creating a project registers it against the workspace's cap
+ * *and* creates the project, and the tenancy and projects packages may not
+ * import each other, so the two halves are composed here inside one `transact`.
+ * v1 had no such boundary, which is why project deletion ran its `DELETE FROM
+ * events` on the pool while a transaction was open on another connection — the
+ * rollback that was supposed to protect it rolled back nothing.
+ *
+ * **Nesting is not supported and does not silently half-work.** A `transact`
+ * called inside another `transact` would need a savepoint to mean anything, and
+ * without one the inner `COMMIT` would end the outer transaction early. Since
+ * the repositories are only reachable through the callback, the only way to
+ * nest is to close over the unit of work itself, which a use case has no reason
+ * to do.
  */
 
-import type { Pool, PoolClient } from "pg";
-import type { Instant } from "@counted/domain";
-import type { Repositories, UnitOfWork } from "@counted/ports";
-import { dashboardRepo, monitorRepo, outboxRepo, projectRepo, workspaceRepo } from "./repositories";
+import type { Dashboard, DashboardEvent, Monitor, MonitorEvent } from "@counted/dashboarding-domain";
+import type { DashboardRepository, MonitorRepository } from "@counted/dashboarding-ports";
+import type { Outbox, UnitOfWork } from "@counted/persistence-ports";
+import type { Project, ProjectEvent } from "@counted/projects-domain";
+import type { ProjectRepository } from "@counted/projects-ports";
+import type { Subscription, Workspace, WorkspaceEvent } from "@counted/tenancy-domain";
+import type {
+  SubscriptionRepository,
+  WebhookLedger,
+  WorkspaceRepository,
+} from "@counted/tenancy-ports";
+import type { Pool } from "pg";
+
+import type { AnalysisCodec } from "./decode";
+import { PostgresDashboardRepository } from "./dashboard-repository";
+import type { WorkspaceMemberships } from "./memberships";
+import { PostgresMonitorRepository } from "./monitor-repository";
+import { PostgresOutbox, type OutboxOptions } from "./outbox";
+import { PostgresProjectRepository } from "./project-repository";
+import {
+  PostgresSubscriptionRepository,
+  PostgresWebhookLedger,
+} from "./subscription-repository";
+import type { Queryable } from "./queryable";
+import type { TenancyTree } from "./tenancy-tree";
+import { PostgresWorkspaceRepository } from "./workspace-repository";
 
 /**
- * Repositories bound to one open transaction.
- *
- * Declared here *and* checked against the port below. An earlier version was
- * only declared here, and it quietly drifted: the port promised
- * `listForWorkspace` and `delete` that this facade did not expose, so no route
- * could call them and nothing said so until one tried.
+ * Every repository a command can reach, closed over `A` — the analytics
+ * context's Analysis IR, which stays a type parameter until the composition
+ * root (V3-SPEC §7).
  */
-export type BoundRepositories = {
-  readonly workspaces: {
-    find: (id: Parameters<typeof workspaceRepo.find>[1]) => ReturnType<typeof workspaceRepo.find>;
-    listForAccount: (
-      account: Parameters<typeof workspaceRepo.listForAccount>[1],
-    ) => ReturnType<typeof workspaceRepo.listForAccount>;
-    save: (
-      w: Parameters<typeof workspaceRepo.save>[1],
-      e: Parameters<typeof workspaceRepo.save>[2],
-    ) => Promise<void>;
-  };
-  readonly projects: {
-    find: (id: Parameters<typeof projectRepo.find>[1]) => ReturnType<typeof projectRepo.find>;
-    findByCredentialDigest: (
-      d: Parameters<typeof projectRepo.findByCredentialDigest>[1],
-    ) => ReturnType<typeof projectRepo.findByCredentialDigest>;
-    listForWorkspace: (
-      w: Parameters<typeof projectRepo.listForWorkspace>[1],
-    ) => ReturnType<typeof projectRepo.listForWorkspace>;
-    findByClaimDigest: (
-      d: Parameters<typeof projectRepo.findByClaimDigest>[1],
-    ) => ReturnType<typeof projectRepo.findByClaimDigest>;
-    save: (p: Parameters<typeof projectRepo.save>[1], e: Parameters<typeof projectRepo.save>[2]) => Promise<void>;
-  };
-  readonly dashboards: {
-    find: (id: Parameters<typeof dashboardRepo.find>[1]) => ReturnType<typeof dashboardRepo.find>;
-    findByShareDigest: (d: string) => ReturnType<typeof dashboardRepo.findByShareDigest>;
-    listForWorkspace: (
-      w: Parameters<typeof dashboardRepo.listForWorkspace>[1],
-    ) => ReturnType<typeof dashboardRepo.listForWorkspace>;
-    delete: (id: Parameters<typeof dashboardRepo.delete>[1]) => Promise<void>;
-    save: (d: Parameters<typeof dashboardRepo.save>[1], e: Parameters<typeof dashboardRepo.save>[2]) => Promise<void>;
-  };
-  readonly monitors: {
-    find: (id: Parameters<typeof monitorRepo.find>[1]) => ReturnType<typeof monitorRepo.find>;
-    listForProject: (
-      p: Parameters<typeof monitorRepo.listForProject>[1],
-    ) => ReturnType<typeof monitorRepo.listForProject>;
-    listEnabled: (limit: number) => ReturnType<typeof monitorRepo.listEnabled>;
-    save: (m: Parameters<typeof monitorRepo.save>[1], e: Parameters<typeof monitorRepo.save>[2]) => Promise<void>;
-  };
-  readonly outbox: {
-    enqueue: (events: Parameters<typeof outboxRepo.enqueue>[1]) => Promise<void>;
-    claim: (limit: number) => ReturnType<typeof outboxRepo.claim>;
-    recordFailure: (id: string, error: string, at: Instant) => Promise<number>;
-    markDispatched: (ids: readonly string[], at: Instant) => Promise<void>;
-    pendingCount: () => Promise<number>;
-  };
+export type CountedRepositories<A> = {
+  readonly workspaces: WorkspaceRepository<Workspace, WorkspaceEvent>;
+  readonly subscriptions: SubscriptionRepository<Subscription>;
+  readonly webhooks: WebhookLedger;
+  readonly projects: ProjectRepository<Project, ProjectEvent>;
+  readonly dashboards: DashboardRepository<Dashboard<A>, DashboardEvent>;
+  readonly monitors: MonitorRepository<Monitor<A>, MonitorEvent>;
+  readonly outbox: Outbox;
 };
 
-const bind = (client: PoolClient): BoundRepositories => ({
-  workspaces: {
-    find: (id) => workspaceRepo.find(client, id),
-    listForAccount: (account) => workspaceRepo.listForAccount(client, account),
-    save: (w, e) => workspaceRepo.save(client, w, e),
-  },
-  projects: {
-    find: (id) => projectRepo.find(client, id),
-    findByCredentialDigest: (d) => projectRepo.findByCredentialDigest(client, d),
-    findByClaimDigest: (d) => projectRepo.findByClaimDigest(client, d),
-    listForWorkspace: (w) => projectRepo.listForWorkspace(client, w),
-    save: (p, e) => projectRepo.save(client, p, e),
-  },
-  dashboards: {
-    find: (id) => dashboardRepo.find(client, id),
-    findByShareDigest: (d) => dashboardRepo.findByShareDigest(client, d),
-    listForWorkspace: (w) => dashboardRepo.listForWorkspace(client, w),
-    delete: (id) => dashboardRepo.delete(client, id),
-    save: (d, e) => dashboardRepo.save(client, d, e),
-  },
-  monitors: {
-    find: (id) => monitorRepo.find(client, id),
-    listForProject: (p) => monitorRepo.listForProject(client, p),
-    listEnabled: (limit) => monitorRepo.listEnabled(client, limit),
-    save: (m, e) => monitorRepo.save(client, m, e),
-  },
-  outbox: {
-    enqueue: (events) => outboxRepo.enqueue(client, events),
-    claim: (limit) => outboxRepo.claim(client, limit),
-    recordFailure: (id, error, at) => outboxRepo.recordFailure(client, id, error, at),
-    markDispatched: (ids, at) => outboxRepo.markDispatched(client, ids, at),
-    pendingCount: () => outboxRepo.pendingCount(client),
-  },
+export type PostgresAdapterOptions<A> = {
+  /** How an opaque analysis becomes jsonb and back. See `decode.ts`. */
+  readonly analysis: AnalysisCodec<A>;
+  /** Where `listForAccount` gets its roles. See `memberships.ts`. */
+  readonly memberships: WorkspaceMemberships;
+  /**
+   * How a workspace and a project are recorded in the analytics engine's
+   * tenancy tree. Required, not optional: a deployment that leaves it out
+   * answers every analytics question with zero and reports no error, so the
+   * choice is made explicitly — `noTenancyTree` when there is genuinely
+   * nothing to tell. See `tenancy-tree.ts`.
+   */
+  readonly tenancy: TenancyTree;
+  readonly outbox?: OutboxOptions;
+};
+
+/**
+ * Repositories bound to whatever you hand them.
+ *
+ * `locking` is the one behaviour that differs between a pooled read and a
+ * transactional write: inside a transaction, loading a workspace takes a row
+ * lock so the project cap's read-then-write cannot interleave with another
+ * one's. On a pool that lock would be released by the next statement, so it is
+ * not taken — see `workspace-repository.ts`.
+ */
+export const postgresRepositories = <A>(
+  db: Queryable,
+  options: PostgresAdapterOptions<A>,
+  locking: boolean,
+): CountedRepositories<A> => ({
+  workspaces: new PostgresWorkspaceRepository(db, {
+    memberships: options.memberships,
+    locking,
+    tenancy: options.tenancy,
+  }),
+  subscriptions: new PostgresSubscriptionRepository(db),
+  webhooks: new PostgresWebhookLedger(db),
+  projects: new PostgresProjectRepository(db, options.tenancy),
+  dashboards: new PostgresDashboardRepository<A>(db, options.analysis),
+  monitors: new PostgresMonitorRepository<A>(db, options.analysis),
+  outbox: new PostgresOutbox(db, options.outbox ?? {}),
 });
 
 /**
- * Checked, not assumed.
- *
- * `implements UnitOfWork` is what makes the facade and the port impossible to
- * drift apart — a method the port declares and this does not expose is now a
- * compile error rather than a runtime surprise.
+ * Read-only-ish repositories on the pool, for the reads that are not part of a
+ * command. They write perfectly well; what they do not have is a transaction,
+ * so two writes through them are two transactions.
  */
-export class PostgresUnitOfWork implements UnitOfWork {
-  constructor(private readonly pool: Pool) {}
+export const pooledRepositories = <A>(
+  pool: Pool,
+  options: PostgresAdapterOptions<A>,
+): CountedRepositories<A> => postgresRepositories(pool, options, false);
 
-  async transact<T>(work: (repos: Repositories) => Promise<T>): Promise<T> {
-    const client = await this.pool.connect();
+export const postgresUnitOfWork = <A>(
+  pool: Pool,
+  options: PostgresAdapterOptions<A>,
+): UnitOfWork<CountedRepositories<A>> => ({
+  async transact<T>(work: (repositories: CountedRepositories<A>) => Promise<T>): Promise<T> {
+    const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      const result = await work(bind(client));
+      // A Result returned from `work` is a successful transaction reporting a
+      // refused rule, and it commits (V3-SPEC §5). Only a throw rolls back.
+      const result = await work(postgresRepositories(client, options, true));
       await client.query("COMMIT");
       return result;
-    } catch (e) {
-      await client.query("ROLLBACK").catch(() => {
-        /* the connection may already be unusable; the release below handles it */
-      });
-      throw e;
+    } catch (cause) {
+      // If the ROLLBACK itself fails the connection is already unusable; the
+      // original error is the one worth propagating, so this one is swallowed
+      // deliberately rather than by omission.
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw cause;
     } finally {
       client.release();
     }
-  }
-}
+  },
+});

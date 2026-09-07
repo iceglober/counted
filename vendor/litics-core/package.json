@@ -1,0 +1,18 @@
+{
+  "name": "@litics/core",
+  "version": "0.1.0",
+  "description": "Fast event analytics on vanilla RDS PostgreSQL — config-driven DDL generator and dialect-agnostic query builders (vendored from iceglober/litics@a1911c042be7)",
+  "private": true,
+  "type": "module",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./types/index.d.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "peerDependencies": {
+    "pg": ">=8.11.0"
+  }
+}

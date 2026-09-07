@@ -1,86 +1,71 @@
-import type { Metadata } from "next";
-import { Tile, type Readout, type TileSpec } from "@/components/readout";
-import { ShareControls } from "@/components/share-controls";
-import { serverApi } from "@/lib/api";
+import Link from "next/link";
+import { CenteredPage, PageHeader } from "../../../components/layout";
+import { InsightGrid } from "../../../components/insight-grid";
+/**
+ * A shared dashboard, read-only and unauthenticated.
+ *
+ * The two share routes have no 401 and no 403 — only 404 — because a wrong
+ * token and an unshared dashboard have to be indistinguishable. If they were
+ * not, the endpoint would be an oracle for which dashboards have live links.
+ * This page keeps that property: every failure renders the same sentence.
+ *
+ * The token travels in the path here and as a query parameter to the API. That
+ * is the contract's shape, and it is why a share URL should be treated as the
+ * credential it is.
+ */
+
+import { attempt, contractClient } from "../../../lib/client";
+import { Empty } from "../../../components/notice";
 
 export const dynamic = "force-dynamic";
 
-/**
- * A shared dashboard, read by whoever holds the link.
- *
- * **Zero database access, and zero token in the browser.** The token is a
- * credential: it is read from the path on the *server*, sent to the API as a
- * Bearer, and never written into the HTML, the props, or a client bundle. What
- * the browser holds is a URL — which it must, since that is the link — and
- * nothing that looks like a credential to any code running in it.
- *
- * Interactivity goes through `/bff/share/[token]/render`, a same-origin route
- * that re-reads the token from its own path. That is the one place a BFF is
- * genuinely required: without it, changing the time range would mean building
- * an `Authorization: Bearer st_…` header in page JavaScript.
- *
- * An expired, revoked or invented token renders as "not found" — never as
- * "forbidden", which would confirm that some token exists.
- */
 
-export const metadata: Metadata = {
-  // A shared link is not published. Belt and braces with the API's own
-  // `X-Robots-Tag` and the `robots.txt` disallow: a crawler that ignores one
-  // has to ignore three.
-  robots: { index: false, follow: false, nocache: true },
-  title: "Shared dashboard",
-};
-
-type SharedDashboard = { readonly name: string; readonly tiles: readonly TileSpec[] };
-type SharedData = { readonly readouts: readonly Readout[]; readonly computedAt: string };
-
-export default async function SharePage({ params }: { params: Promise<{ token: string }> }) {
+const Shared = async ({
+  params,
+}: {
+  readonly params: Promise<{ readonly token: string }>;
+}) => {
   const { token } = await params;
-  // No cookie forwarded. A signed-in visitor reading a shared link is still
-  // only a share principal here — the link's scope is the link's, not theirs.
-  const api = serverApi(null);
 
-  let dashboard: SharedDashboard | null = null;
-  let data: SharedData | null = null;
-  let failure: string | null = null;
+  // No cookie, no header, nothing. A share link is its own authority and
+  // forwarding a signed-in reader's session here would quietly make the page
+  // show more to some readers than to others.
+  const client = contractClient({ authority: {} });
+  const [view, readouts] = await Promise.all([
+    attempt(client.share.view({ shareToken: token })),
+    attempt(client.share.readouts({ shareToken: token })),
+  ]);
 
-  try {
-    dashboard = (await api<SharedDashboard>("getSharedDashboard", { bearer: token })).data;
-    data = (await api<SharedData>("renderSharedDashboard", { bearer: token, body: {} })).data;
-  } catch {
-    // One outcome for expired, revoked and never-issued. Telling them apart
-    // would let somebody test guessed tokens for existence.
-    failure = "not_found";
-  }
-
-  if (dashboard === null || failure !== null) {
+  if (!view.ok) {
     return (
-      <main>
-        <meta name="robots" content="noindex, nofollow, noarchive" />
-        <h1>This link is not available</h1>
-        <p className="tile-empty">
-          It may have expired, or been revoked by whoever shared it. Ask them for a new one.
-        </p>
-      </main>
+      <CenteredPage>
+        <h1 className="font-heading text-2xl">Not available</h1>
+        {/*
+          Deliberately not error-styled, and deliberately one sentence for every
+          cause. "No such link", "expired" and "revoked" must read identically
+          or this page becomes a way to enumerate live links.
+        */}
+        <Empty>
+          This link is not available. It may have expired, or it may never have
+          existed.
+        </Empty>
+      </CenteredPage>
     );
   }
 
-  const byId = new Map((data?.readouts ?? []).map((readout) => [readout.id, readout]));
+  const dashboard = view.value.dashboard;
 
   return (
-    <main>
-      <meta name="robots" content="noindex, nofollow, noarchive" />
-      <h1>{dashboard.name}</h1>
-      <p className="tile-empty">Shared, read-only. Anyone with this link can see it.</p>
-
-      <div className="grid">
-        {dashboard.tiles.map((tile) => (
-          <Tile key={tile.id} tile={tile} readout={byId.get(tile.id)} />
-        ))}
-      </div>
-
-      {/* Given no token. It reads its own path to reach the BFF. */}
-      <ShareControls />
+    <main className="app-content mx-auto min-h-dvh max-w-[1320px] px-5 py-8 sm:px-8 lg:p-10">
+      <Link href="/" className="mb-8 inline-block font-heading text-xl">
+        counted
+      </Link>
+      <PageHeader
+        title={dashboard.name}
+        purpose="Shared dashboard · Read-only"
+      />
+      {dashboard.tiles.length ? <InsightGrid dashboard={dashboard} readouts={readouts.ok ? readouts.value.readouts : []} /> : <Empty>This dashboard has no insights.</Empty>}
     </main>
   );
-}
+};
+export default Shared;

@@ -1,6 +1,6 @@
 # The API. Bun, one process, no transpile step — Bun runs TypeScript directly,
 # so there is nothing that can get stale between the source and what runs.
-FROM oven/bun:1.3.11 AS base
+FROM oven/bun:1.3.14 AS base
 WORKDIR /app
 
 FROM base AS deps
@@ -20,6 +20,9 @@ RUN bun scripts/prune-workspace.ts apps/api && bun install
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# The git SHA of this build, reported by /health/* and the boot log.
+ARG RELEASE=
+ENV RELEASE=$RELEASE
 COPY --from=deps /app ./
 
 ENV PORT=8080
@@ -28,4 +31,4 @@ EXPOSE 8080
 # No shell wrapper. The process is PID 1 and receives SIGTERM directly, which
 # its graceful drain depends on — a shell would swallow the signal and the
 # container would be killed mid-flush.
-CMD ["bun", "run", "apps/api/src/index.ts"]
+CMD ["bun", "run", "apps/api/src/main.ts"]

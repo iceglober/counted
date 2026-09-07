@@ -1,0 +1,13 @@
+/* Public document rhythm; controls and surfaces use the shared system. */
+@layer components {
+  .site-shell { overflow-wrap: anywhere; }
+  .site-shell :where(a:focus-visible) { outline: 2px solid var(--ring); outline-offset: 4px; }
+  .site-shell nav a:hover { color: var(--primary-ink); }
+  .site-prose { font-size: var(--text-sm); line-height: 1.85; }
+  .site-prose > :where(p, ul, ol, pre) { margin-block: 20px; }
+  .site-prose > :where(h2) { margin-top: 40px; margin-bottom: 14px; font-family: var(--font-heading); font-size: var(--text-2xl); line-height: 1.25; }
+  .site-prose :where(ul) { padding-left: 22px; list-style: disc; }
+  .site-prose :where(li) { padding-left: 3px; margin-block: 8px; }
+  .site-prose :where(a:not([data-slot])) { color: var(--primary-ink); text-decoration: underline; text-underline-offset: 4px; }
+  .site-prose :where(code) { font-family: var(--font-mono); font-size: .9em; }
+}

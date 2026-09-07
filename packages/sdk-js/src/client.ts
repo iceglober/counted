@@ -136,7 +136,7 @@ export class Counted {
       occurredAt: new Date(this.now()).toISOString(),
       idempotencyKey: this.mintKey(),
       ...(properties === undefined ? {} : { properties }),
-      systemProperties: this.system as unknown as Record<string, string | null>,
+      systemProperties: this.system,
     });
 
     const dropped = this.queue.droppedCount - before;

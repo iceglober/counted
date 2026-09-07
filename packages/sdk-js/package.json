@@ -1,16 +1,39 @@
 {
-  "name": "@counted/sdk-js",
+  "name": "@counted/sdk",
   "version": "2.0.0",
-  "private": true,
   "type": "module",
   "description": "The reference SDK. Every other language is asserted against the traces this one produces.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsup",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iceglober/counted.git",
+    "directory": "packages/sdk-js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0"
+  }
 }

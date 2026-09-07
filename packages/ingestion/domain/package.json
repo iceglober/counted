@@ -1,0 +1,18 @@
+{
+  "name": "@counted/ingestion-domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "IngestBatch, admission, dedup, the person/visit separation.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@counted/kernel": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test src"
+  }
+}

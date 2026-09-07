@@ -176,21 +176,14 @@ describe("every published package contains what it promises", () => {
 });
 
 describe("the two byte-identical packages are gone", () => {
-  test("codex-cli and gemini-cli no longer ship an integration", () => {
-    // They were `md5 48ab6ab2…` identical: a copy of the SDK wrapper and no
-    // hook, so installing either produced no events. Kept as deprecation
-    // stubs, because unpublishing breaks existing installs and explains
-    // nothing.
+  test("codex-cli and gemini-cli are deleted, not deprecated", () => {
+    // These duplicate SDK wrappers supplied no integration hook, so installing
+    // either produced no events. They are removed from the workspace; assert
+    // that the directories are gone, not merely marked deprecated.
     for (const name of ["codex-cli", "gemini-cli"]) {
-      const manifest = JSON.parse(readFileSync(join(ROOT, `packages/${name}/package.json`), "utf8")) as Record<
-        string,
-        unknown
-      >;
-      expect({ name, deprecated: typeof manifest["deprecated"] }).toMatchObject({ deprecated: "string" });
-      const source = readFileSync(join(ROOT, `packages/${name}/src/index.ts`), "utf8");
-      expect(source).toContain("@counted/agent");
-      // No SDK, so it cannot pretend to send anything.
-      expect(source).not.toContain("@counted/sdk");
+      expect({ name, present: existsSync(join(ROOT, `packages/${name}`)) }).toMatchObject({
+        present: false,
+      });
     }
   });
 

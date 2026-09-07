@@ -1,0 +1,18 @@
+{
+  "name": "@counted/analytics-domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Analysis IR — what to measure, over what window, sliced how. No state, no SQL.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@counted/kernel": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test src"
+  }
+}

@@ -93,6 +93,12 @@ do not share or clobber it.
 **SDK-071** Detection works with no browser present, and reports the host
 platform rather than `other` when running on a server runtime.
 
+**SDK-072** An SDK does not send `country`, and must not add it. Geography is
+derived by the server from the request address, which is then discarded; a
+`country` in `systemProperties` is ignored, because a client that could write to
+that field could write an address into it. There is likewise no address field:
+an SDK never reports where it is.
+
 ## Shutdown
 
 **SDK-080** Shutdown flushes what is queued. In a browser the page-hide path

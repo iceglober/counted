@@ -1,0 +1,183 @@
+name: Deploy
+
+# Production deploys, from one place, with the commit recorded.
+#
+# Runs when the CI workflow succeeds on a push to `main`, and deploys exactly
+# the commit CI tested — `workflow_run.head_sha`, not the branch head, which
+# may have moved by then. Each service gets `RELEASE=<sha>` as a service
+# variable before its upload; both API health paths return it and the worker
+# logs it, so which build is serving is a `curl`. See deploy/README.md.
+#
+# A rollback is this same job pointed at an older commit: run it from the
+# Actions tab with the `sha` input. The commit must already be on `main` and
+# have a successful push-to-main run of ci.yml for that exact SHA.
+#
+# `railway up --detach` returns once the upload is accepted, not when the
+# deployment is healthy. The API goes first — it applies the schema, and the
+# console is a pure client of it — and the job waits for that deployment to
+# reach SUCCESS before uploading the worker, MCP server, console and docs. Every
+# service must then reach SUCCESS before this workflow reports success.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit to deploy. An older commit already on main is a rollback."
+        required: true
+        type: string
+
+# Deploys queue behind one another and are never cancelled part-way: a
+# cancelled job leaves the API on one build and the console on another.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # A completed CI run is not a successful one, and a CI run for a pull
+    # request against main is not a push to it.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    # A GitHub environment, so every deploy — and every rollback — is a row
+    # in the repository's Deployments view with its commit.
+    environment:
+      name: production
+      url: https://api.counted.dev/health
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      # Pinned, like Bun is. `variable set` and `deployment list --json` are
+      # what this file relies on, and both are 4.x.
+      RAILWAY_CLI_VERSION: 4.68.0
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || github.event.workflow_run.head_sha }}
+          # The whole history, so the guard below can ask whether the commit
+          # is on main.
+          fetch-depth: 0
+
+      - name: Resolve the release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          if ! git merge-base --is-ancestor "$sha" origin/main; then
+            echo "::error::$sha is not on main"
+            exit 1
+          fi
+          # Being an ancestor of main does not prove CI passed. Check the
+          # workflow identity, exact commit, event and result for rollbacks too.
+          runs="$(gh api --method GET --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
+            -f head_sha="$sha" -f event=push -f branch=main -f status=success -f per_page=100)"
+          if ! jq -e --arg sha "$sha" '
+            any(.[].workflow_runs[];
+              .head_sha == $sha and .head_branch == "main" and
+              .event == "push" and .status == "completed" and .conclusion == "success")
+            ' <<< "$runs" > /dev/null; then
+            echo "::error::No successful CI push-to-main run exists for $sha"
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Deploying $sha"
+
+      - name: Install the Railway CLI
+        run: npm install -g "@railway/cli@${RAILWAY_CLI_VERSION}"
+
+      # Fails before anything is uploaded if the token cannot see the project.
+      # All commands use the project token's project and environment. The
+      # expected ID guards against accidentally configuring another project.
+      - name: Check access to every required service
+        run: |
+          set -euo pipefail
+          : "${RAILWAY_TOKEN:?A production project token is required}"
+          : "${RAILWAY_PROJECT_ID:?The production project ID is required}"
+          project="$(railway status --json)"
+          if ! jq -e --arg expected "$RAILWAY_PROJECT_ID" '.id == $expected' \
+            <<< "$project" > /dev/null; then
+            echo "::error::Railway token does not target the configured project"
+            exit 1
+          fi
+          for service in counted-api counted-worker counted-mcp counted-web counted-docs; do
+            railway deployment list --service "$service" --limit 1 --json > /dev/null
+          done
+
+      - name: Deploy
+        env:
+          RELEASE: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          deploy() {
+            local service="$1" upload deployment
+            # --skip-deploys: setting a variable otherwise starts a redeploy
+            # of the current build, which would race the upload below.
+            railway variable set "RELEASE=${RELEASE}" \
+              --service "$service" --skip-deploys >&2 || return 1
+            upload="$(railway up --service "$service" \
+              --detach --json --message "deploy ${RELEASE}")" || return 1
+            if ! deployment="$(jq -er '.deploymentId | select(type == "string" and length > 0)' \
+              <<< "$upload")"; then
+              echo "::error::$service upload did not return a deployment ID" >&2
+              return 1
+            fi
+            echo "$service: uploaded $RELEASE as $deployment" >&2
+            printf '%s\n' "$deployment"
+          }
+
+          # Only the deployment returned by this upload can satisfy the wait.
+          # Another release becoming healthy must not hide our build failing.
+          wait_for() {
+            local service="$1" deployment="$2" status
+            local deadline="${3:-$(( $(date +%s) + 25 * 60 ))}"
+            while :; do
+              status="$(railway deployment list --service "$service" --limit 100 --json \
+                | jq -r --arg deployment "$deployment" '
+                    map(select(.id == $deployment)) | first | .status // "PENDING"' \
+                || echo "UNKNOWN")"
+              case "$status" in
+                SUCCESS) echo "$service ($deployment): $status"; return 0 ;;
+                FAILED|CRASHED|REMOVED|REMOVING|SKIPPED|CANCELED|CANCELLED|SLEEPING|NEEDS_APPROVAL) echo "::error::$service ($deployment) ended $status"; return 1 ;;
+                *) echo "$service ($deployment): $status" ;;
+              esac
+              if [ "$(date +%s)" -ge "$deadline" ]; then
+                echo "::error::$service ($deployment) did not reach SUCCESS within 25 minutes"
+                return 1
+              fi
+              sleep 15
+            done
+          }
+
+          deployment="$(deploy counted-api)"
+          wait_for counted-api "$deployment"
+          # Build the remaining services together, then wait for every result.
+          # A detached upload succeeding says nothing about its deployment.
+          services=(counted-worker counted-mcp counted-web counted-docs)
+          deployments=()
+          for service in "${services[@]}"; do
+            deployment="$(deploy "$service")"
+            deployments+=("$deployment")
+          done
+          failed=0
+          deadline=$(( $(date +%s) + 25 * 60 ))
+          for index in "${!services[@]}"; do
+            wait_for "${services[$index]}" "${deployments[$index]}" "$deadline" || failed=1
+          done
+          exit "$failed"

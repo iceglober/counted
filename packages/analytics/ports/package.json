@@ -1,0 +1,19 @@
+{
+  "name": "@counted/analytics-ports",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AnalyticsEngine and SchemaCatalog. Retention is a declared not-implemented outcome.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@counted/kernel": "workspace:*",
+    "@counted/analytics-domain": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test src"
+  }
+}

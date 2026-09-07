@@ -1,0 +1,19 @@
+{
+  "name": "@counted/dashboarding-ports",
+  "version": "0.0.0",
+  "private": true,
+  "description": "DashboardRepository, MonitorRepository.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@counted/kernel": "workspace:*",
+    "@counted/dashboarding-domain": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test src"
+  }
+}

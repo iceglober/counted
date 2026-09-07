@@ -1,8 +1,8 @@
-name: Publish self-host image
+name: Publish images
 
-# Builds and pushes the self-host container to GHCR so `docker compose up` in
-# self-host/ pulls a prebuilt image instead of doing a full local Next build
-# (which can OOM small hosts). Triggers on version tags and published releases.
+# Publishes API, worker and MCP images on version tags. Self-host Compose builds
+# the checked-out version of all services, including the console and docs.
+# The console's API upstream is configured at runtime through its proxy.
 on:
   push:
     tags:
@@ -11,15 +11,16 @@ on:
     types: [published]
   workflow_dispatch:
 
-env:
-  IMAGE: ghcr.io/iceglober/counted
-
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, worker, mcp]
     steps:
       - uses: actions/checkout@v4
 
@@ -40,7 +41,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE }}
+          images: ghcr.io/iceglober/counted-${{ matrix.service }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -50,8 +51,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: deploy/${{ matrix.service }}.Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            RELEASE=${{ github.sha }}

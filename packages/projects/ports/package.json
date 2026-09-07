@@ -1,0 +1,18 @@
+{
+  "name": "@counted/projects-ports",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ProjectRepository and the project-side schema catalog.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@counted/kernel": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test src"
+  }
+}

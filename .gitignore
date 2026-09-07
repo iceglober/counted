@@ -3,10 +3,16 @@ node_modules/
 
 # next.js
 .next/
+.next-*/
 out/
 
 # build
 dist/
+
+# the RIR downloads `bun run geo:build` caches. The TABLE it produces
+# (packages/ingestion/adapter-geoip/data/ip-country.bin) IS committed; the
+# 20MB of registry text it was built from is not.
+.geo-cache/
 
 # env
 .env
@@ -45,9 +51,9 @@ packages/rust/Cargo.lock
 .npmrc
 
 # playwright
-/test-results
-/playwright-report
-/blob-report
+test-results/
+playwright-report/
+blob-report/
 /.playwright
 /tests/e2e/.auth
 
@@ -57,3 +63,4 @@ packages/rust/Cargo.lock
 
 # Scratch projects built by `bun run readmes` (kept only when a check fails).
 .readme-check/
+.neon
