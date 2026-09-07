@@ -78,8 +78,8 @@ no API call, no compute restart.
 
 The current services read the names in the table above. Legacy environment
 names are not aliases; leaving them set does not configure the replacement.
-Update variables without automatically redeploying each edit, then release the
-API and worker together through the Deploy workflow.
+Update variables using the [apply-without-deployment procedure](#applying-reviewed-configuration-without-deployment),
+then release the API and worker together through the Deploy workflow.
 
 | Legacy setting | Current setting | Placement |
 |---|---|---|
@@ -158,6 +158,65 @@ Existing API, worker and web services retain their previously enabled
 configuration-file links for now. Move their settings to native configuration
 and extend the release preflight before the December 1 deadline; creating a new
 installation must use native settings for all five services.
+
+### Applying reviewed configuration without deployment
+
+For a database cutover, applying configuration must not redeploy the previous
+source. In particular, committing a new `DATABASE_URL` with an ordinary Railway
+Deploy action can start legacy code against the empty replacement database.
+Complete the recovery preparation below and have the tested release ready before
+applying its configuration.
+
+1. Pause other configuration edits and deployments for the target environment,
+   including automatic triggers. Confirm the production project/environment IDs
+   and review the **entire** staged patch, including unrelated services. Record
+   its ID, `updatedAt`, applied configuration and each service's latest and active
+   deployment IDs (including services with no deployment). Read
+   configuration with `decryptVariables: false`; keep sensitive reviews in the
+   provider and never copy secrets into release logs.
+2. Recheck that the staged patch has not changed, then commit it with
+   `skipDeploys: true`. This applies the environment's staged changes together;
+   it is not a per-service operation. The API has no expected-patch-ID or version
+   argument, so keeping other writers paused is necessary even after readback.
+3. Read `environmentPatch(id: ...)` using the original patch ID until its status
+   is `COMMITTED`, `appliedAt` is non-null and `lastAppliedError` is null. Verify
+   its environment and compare the applied configuration with the reviewed
+   changes. Confirm all latest and active deployment IDs
+   remain unchanged, including that previously empty services still have none.
+   An acknowledgement alone does not prove application completed. On an error,
+   timeout or lost response, read back state before deciding whether to retry;
+   a blind retry could commit a different patch.
+4. Run the read-only native configuration preflight, then release the tested SHA
+   through the Deploy workflow. It uploads API first and waits for that exact
+   deployment to succeed before starting worker and the remaining services.
+   Keep configuration edits and manual redeploys paused through this sequence.
+
+Railway's [staged-changes documentation](https://docs.railway.com/deployments/staged-changes)
+provides an Alt-click on Deploy to commit without redeploying. The explicit API
+equivalent, supported by the [pinned CLI's schema](https://github.com/railwayapp/cli/blob/v4.68.0/src/gql/schema.json),
+is this mutation at `https://backboard.railway.com/graphql/v2`, authenticated with
+the target environment's project token (`Project-Access-Token` header):
+
+```graphql
+mutation ApplyReviewedConfiguration($environmentId: String!, $message: String!) {
+  environmentPatchCommitStaged(
+    environmentId: $environmentId
+    commitMessage: $message
+    skipDeploys: true
+  )
+}
+```
+
+The mutation changes provider configuration; run it only for the reviewed
+cutover. Railway CLI 4.68.0 `environment edit` does not expose this deployment
+suppression option. The workflow's `variable set --skip-deploys` only handles its
+`RELEASE` update; it does not replace applying the reviewed staged patch.
+
+The applied database references now belong to the replacement release. If the
+release is postponed or fails, do not redeploy legacy source with those values.
+Review and restore the legacy configuration without deployment before any
+legacy redeploy. A source-only rollback cannot cross the v2/v3 database boundary;
+retain both databases and their matching release/configuration records.
 
 ## Monitor checks and delivery
 
