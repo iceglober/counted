@@ -1,0 +1,232 @@
+name: Release npm SDKs
+
+# Version PRs never publish. Publication is an explicit action after production
+# serves the same tested commit, and its failure cannot fail the CI Deploy uses.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Full main commit SHA already tested and serving in production"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  version:
+    name: Prepare Changesets version PR
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: sdk-version-main
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # The version action pushes its own branch, so this is the sole checkout
+      # that retains credentials. Never version from a stale CI result.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Verify version source
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]] ||
+             [ "$(git rev-parse HEAD)" != "$TESTED_SHA" ] ||
+             [ "$(git rev-parse origin/main)" != "$TESTED_SHA" ]; then
+            echo "::error::Main moved after this CI run; wait for its own successful CI"
+            exit 1
+          fi
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - name: Open or update version PR
+        uses: changesets/action@v1
+        with:
+          version: bun run version-packages
+          title: "Version Packages"
+          commit: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Publish tested production npm packages
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Do not let another coordinated deploy move production between the live
+    # release check and publication. A failed publish releases this lock.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify release eligibility
+        env:
+          REQUESTED_SHA: ${{ inputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]] ||
+             [ "$(git rev-parse HEAD)" != "$REQUESTED_SHA" ]; then
+            echo "::error::A full immutable checkout SHA is required"
+            exit 1
+          fi
+          git merge-base --is-ancestor "$REQUESTED_SHA" origin/main || {
+            echo "::error::The requested release is not on main"
+            exit 1
+          }
+          runs="$(gh api --method GET --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
+            -f head_sha="$REQUESTED_SHA" -f event=push -f branch=main -f status=success -f per_page=100)"
+          if ! jq -e --arg sha "$REQUESTED_SHA" --arg repo "$GITHUB_REPOSITORY" '
+            any(.[].workflow_runs[];
+              .head_sha == $sha and .head_branch == "main" and .event == "push" and
+              .head_repository.full_name == $repo and
+              .status == "completed" and .conclusion == "success")
+            ' <<< "$runs" > /dev/null; then
+            echo "::error::No successful push-to-main CI exists for this exact release"
+            exit 1
+          fi
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+      - run: bun install --frozen-lockfile
+      - name: Require versioned packages
+        run: |
+          set -euo pipefail
+          bun -e '
+            // Use the same reader as Changesets. Resolve it through the CLI
+            // package so a non-hoisted install works, without git branch state.
+            const { createRequire } = await import("node:module");
+            const require = createRequire(process.cwd() + "/package.json");
+            const fromCli = createRequire(require.resolve("@changesets/cli/package.json"));
+            const changesets = await fromCli("@changesets/read").default(process.cwd());
+            if (changesets.some(change => change.releases.length > 0)) {
+              console.error("Merge the Changesets version PR before publishing this commit.");
+              process.exit(1);
+            }
+            // Empty notes do not change any package version. Remove them only
+            // in this disposable checkout so changesets/action can publish the
+            // existing versions instead of silently doing nothing.
+            for (const change of changesets) {
+              if (!/^[a-zA-Z0-9_-]+$/.test(change.id)) throw new Error("Invalid changeset id");
+              await Bun.file(".changeset/" + change.id + ".md").delete();
+            }
+          '
+      - name: Build and check publishable packages
+        run: |
+          bun run sdks:build
+          bun scripts/check-npm-packages.ts
+      - name: Verify production release
+        env:
+          REQUESTED_SHA: ${{ inputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Deploy workflow metadata can name the dispatch ref, not the SHA it
+          # deployed. Only its successful resolved-release artifact is proof.
+          runs="$(gh api --method GET --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy.yml/runs" \
+            -f branch=main -f status=success -f per_page=100)"
+          matched=false
+          for run_id in $(jq -r --arg repo "$GITHUB_REPOSITORY" '
+            .[].workflow_runs[] | select(
+              .head_branch == "main" and .head_repository.full_name == $repo and
+              (.event == "workflow_run" or .event == "workflow_dispatch") and
+              .status == "completed" and .conclusion == "success") |
+              .id | select(type == "number" and . > 0 and floor == .)
+            ' <<< "$runs"); do
+            artifacts="$(gh api --method GET --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts" -f per_page=100)"
+            for artifact_id in $(jq -r '
+              .[].artifacts[] | select(.name == "counted-production-release" and
+                .expired == false and .size_in_bytes > 0 and .size_in_bytes <= 65536) |
+                .id | select(type == "number" and . > 0 and floor == .)
+              ' <<< "$artifacts"); do
+              gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > "$RUNNER_TEMP/counted-release.zip"
+              manifest="$(python3 -c '
+          import json, sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              entries = archive.infolist()
+              if len(entries) != 1 or entries[0].filename != "counted-production-release.json" or entries[0].file_size > 16384:
+                  raise ValueError("Unexpected production release artifact")
+              print(json.dumps(json.loads(archive.read(entries[0]))))
+          ' "$RUNNER_TEMP/counted-release.zip")"
+              if jq -e --arg sha "$REQUESTED_SHA" '
+                .release == $sha and
+                (.services | type == "object") and
+                (.services | keys == ["counted-api", "counted-docs", "counted-mcp", "counted-web", "counted-worker"]) and
+                (.services | all(.[]; type == "string" and length > 0)) and
+                (.services | [.[]] | unique | length == 5)
+                ' <<< "$manifest" > /dev/null; then
+                matched=true
+                break 2
+              fi
+            done
+          done
+          if [ "$matched" != true ]; then
+            echo "::error::No successful complete Deploy artifact proves this exact release"
+            exit 1
+          fi
+          readiness="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 20 \
+            -H 'Cache-Control: no-cache' https://api.counted.dev/health/ready)"
+          if ! jq -e --arg sha "$REQUESTED_SHA" '
+            .status == "ready" and .service == "counted-api" and .release == $sha
+            ' <<< "$readiness" > /dev/null; then
+            echo "::error::Production is not ready on the requested release"
+            exit 1
+          fi
+      - name: Verify production journeys
+        run: bun scripts/smoke.ts
+        env:
+          SMOKE_MODE: release
+          SMOKE_EXPECTED_RELEASE: ${{ inputs.sha }}
+          SMOKE_API_URL: https://api.counted.dev
+          SMOKE_APP_URL: https://app.counted.dev
+          SMOKE_MARKETING_URL: https://counted.dev
+          SMOKE_DOCS_URL: https://docs.counted.dev
+          SMOKE_MCP_URL: https://mcp.counted.dev
+          SMOKE_CLIENT_KEY: ${{ secrets.SMOKE_CLIENT_KEY }}
+          SMOKE_SERVICE_KEY: ${{ secrets.SMOKE_SERVICE_KEY }}
+          SMOKE_PROJECT_ID: ${{ secrets.SMOKE_PROJECT_ID }}
+      # Changesets configures its own GitHub credentials in the disposable
+      # runner for tag pushes and release entries; checkout keeps none.
+      - name: Publish npm packages
+        uses: changesets/action@v1
+        with:
+          publish: bun run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

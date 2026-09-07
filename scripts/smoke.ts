@@ -1,207 +1,222 @@
 #!/usr/bin/env bun
 /**
- * Post-deploy / continuous smoke test.
+ * Post-deploy and continuous checks of the five public services.
  *
- * Exercises the real data path that a liveness probe can't — the class of
- * regression that took prod down on 2026-06-01 (a schema column the app
- * SELECTs went missing, invisible to the health check).
+ * Release mode (the default) requires a dedicated synthetic project's ingest
+ * key, query service key, project ID and SMOKE_EXPECTED_RELEASE (a full commit
+ * SHA). SMOKE_MODE=local explicitly permits
+ * running the public checks without those credentials. Override SMOKE_API_URL,
+ * SMOKE_APP_URL, SMOKE_MARKETING_URL, SMOKE_DOCS_URL and SMOKE_MCP_URL for local
+ * services. Ingestion writes one synthetic smoke_test event per run.
  *
- * **This ran against v1's topology until v2 went live.** Every API check
- * pointed at `app.counted.dev/api/v0/*`, which in v2 is the Next.js console
- * and serves none of those paths — so all three returned 404 and the canary
- * reported them as outages. Worse than the noise: a canary aimed at a service
- * that no longer exists cannot detect the outage it was built for. The API is
- * `api.counted.dev` now, and the console is a separate deployable.
- *
- * Most checks need NO secrets: a bad-key event POST returns 401 only if the
- * credential lookup actually runs — a 500 there means schema drift.
- *
- * Env:
- *   SMOKE_API_URL        default https://api.counted.dev   (the API)
- *   SMOKE_APP_URL        default https://app.counted.dev   (the console)
- *   SMOKE_MARKETING_URL  default https://counted.dev
- *   SMOKE_DOCS_URL       default https://docs.counted.dev
- *   SMOKE_MCP_URL        default https://mcp.counted.dev
- *   SMOKE_CLIENT_KEY     ck_... ingest credential -> enables the 202 ingest check
- *   SMOKE_SERVICE_KEY + SMOKE_PROJECT_ID -> enables the authenticated query check
- *
- * Exit non-zero if any required check fails.
+ * Runtime imports use only repository files: the scheduled job needs Bun but
+ * no dependency install. Types and focused tests tie the request to the contract.
  */
-export {}; // make this a module so top-level await is allowed
+import spec from "../openapi.json";
+import type { ContractInputs, ContractOutputs } from "../packages/contract/src";
 
-const API = (process.env.SMOKE_API_URL ?? "https://api.counted.dev").replace(/\/$/, "");
-const APP = (process.env.SMOKE_APP_URL ?? "https://app.counted.dev").replace(/\/$/, "");
-const MKT = (process.env.SMOKE_MARKETING_URL ?? "https://counted.dev").replace(/\/$/, "");
-const DOCS = (process.env.SMOKE_DOCS_URL ?? "https://docs.counted.dev").replace(/\/$/, "");
-const MCP = (process.env.SMOKE_MCP_URL ?? "https://mcp.counted.dev").replace(/\/$/, "");
-const CLIENT_KEY = process.env.SMOKE_CLIENT_KEY;
-const SERVICE_KEY = process.env.SMOKE_SERVICE_KEY;
-const PROJECT_ID = process.env.SMOKE_PROJECT_ID;
-
+type Environment = Readonly<Record<string, string | undefined>>;
 type Result = { name: string; ok: boolean; detail: string; skipped?: boolean };
-const results: Result[] = [];
+export type SmokeReport = { mode: "release" | "local"; results: Result[]; ok: boolean };
 
-async function check(name: string, fn: () => Promise<string>) {
-  try {
-    const detail = await fn();
-    results.push({ name, ok: true, detail });
-  } catch (err) {
-    results.push({ name, ok: false, detail: String((err as Error).message ?? err) });
+// Resolve operation paths from the generated contract rather than maintaining
+// another route map. The served docs must expose these same POST operations.
+function postPath(operationId: string): string {
+  const entry = Object.entries(spec.paths).find(([, path]) =>
+    "post" in path && path.post.operationId === operationId,
+  );
+  if (!entry) throw new Error(`Generated OpenAPI is missing POST ${operationId}`);
+  return entry[0];
+}
+const eventsPath = postPath("events.ingest");
+const queryPath = postPath("queries.run");
+const eventFilter = { op: "eq", field: { source: "dimension", key: "event_type" }, value: "smoke_test" } as const;
+const queryBody = (runMarker?: string) => ({
+  analysis: {
+    shape: "scalar",
+    measure: { kind: "count" },
+    where: runMarker ? { op: "and", operands: [
+      eventFilter,
+      { op: "eq", field: { source: "property", key: "smoke_run" }, value: runMarker },
+    ] } : eventFilter,
+    window: { kind: "relative", amount: 1, unit: "hour" },
+    summary: "total",
+  },
+} satisfies Omit<ContractInputs["queries"]["run"], "projectId">);
+
+function expect(condition: boolean, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+
+export async function runSmoke(env: Environment = process.env): Promise<SmokeReport> {
+  const mode = env.SMOKE_MODE ?? "release";
+  expect(mode === "release" || mode === "local", "SMOKE_MODE must be release or local");
+  const clientKey = env.SMOKE_CLIENT_KEY?.trim();
+  const serviceKey = env.SMOKE_SERVICE_KEY?.trim();
+  const projectId = env.SMOKE_PROJECT_ID?.trim();
+  const expectedRelease = env.SMOKE_EXPECTED_RELEASE;
+  if (mode === "release") {
+    const missing = [
+      !clientKey && "SMOKE_CLIENT_KEY",
+      !serviceKey && "SMOKE_SERVICE_KEY",
+      !projectId && "SMOKE_PROJECT_ID",
+      !expectedRelease && "SMOKE_EXPECTED_RELEASE",
+    ].filter(Boolean);
+    expect(missing.length === 0, `Release smoke requires ${missing.join(", ")}`);
   }
-}
-function skip(name: string, why: string) {
-  results.push({ name, ok: true, skipped: true, detail: why });
-}
-function expect(cond: boolean, msg: string) {
-  if (!cond) throw new Error(msg);
-}
+  expect(Boolean(serviceKey) === Boolean(projectId), "Set SMOKE_SERVICE_KEY and SMOKE_PROJECT_ID together");
+  expect(expectedRelease === undefined || (expectedRelease.length === 40 && /^[0-9a-f]{40}$/.test(expectedRelease)), "SMOKE_EXPECTED_RELEASE must be a full lowercase 40-character commit SHA");
 
-/** A visit id is a UUID; the API rejects anything else before it reaches storage. */
-const smokeVisitId = () => crypto.randomUUID();
-
-// 1. Liveness.
-await check("api health 200", async () => {
-  const r = await fetch(`${API}/health`);
-  expect(r.status === 200, `expected 200, got ${r.status}`);
-  const body = (await r.json().catch(() => ({}))) as { status?: string };
-  expect(body.status === "ok", `expected status:ok, got ${JSON.stringify(body)}`);
-  return "200 ok";
-});
-
-// 2. Readiness — separate from liveness on purpose: this one talks to Postgres,
-//    so it is the check that goes red when the database is gone.
-await check("api health/ready 200", async () => {
-  const r = await fetch(`${API}/health/ready`);
-  expect(r.status === 200, `expected 200, got ${r.status} — readiness covers the database`);
-  return "200";
-});
-
-// 3. The contract is served. Every SDK and generated client derives from it.
-await check("openapi.json 200", async () => {
-  const r = await fetch(`${API}/v1/openapi.json`);
-  expect(r.status === 200, `expected 200, got ${r.status}`);
-  const body = (await r.json().catch(() => ({}))) as { paths?: Record<string, unknown> };
-  expect(Boolean(body.paths?.["/v1/events"]), "spec served but does not describe /v1/events");
-  return "200";
-});
-
-// The public docs and MCP are required release surfaces, not optional extras.
-await check("docs openapi.json 200", async () => {
-  const r = await fetch(`${DOCS}/openapi.json`);
-  expect(r.status === 200, `expected 200, got ${r.status}`);
-  const body = (await r.json().catch(() => ({}))) as { paths?: Record<string, unknown> };
-  expect(Boolean(body.paths?.["/v1/events"]), "docs spec is missing /v1/events");
-  return "200";
-});
-await check("mcp health/ready 200", async () => {
-  const r = await fetch(`${MCP}/health/ready`);
-  expect(r.status === 200, `expected 200, got ${r.status}`);
-  return "200";
-});
-
-// 4. SCHEMA-DRIFT CANARY: a bad credential must 401 (the lookup ran), not 500.
-await check("event bad-key -> 401 (credential schema canary)", async () => {
-  const r = await fetch(`${API}/v1/events`, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: "Bearer ck_smoke_invalid" },
-    body: JSON.stringify({
-      events: [{ name: "smoke", visitId: smokeVisitId(), occurredAt: new Date().toISOString() }],
-    }),
+  const base = (name: string, fallback: string) => (env[name] ?? fallback).replace(/\/$/, "");
+  const API = base("SMOKE_API_URL", "https://api.counted.dev");
+  const APP = base("SMOKE_APP_URL", "https://app.counted.dev");
+  const MKT = base("SMOKE_MARKETING_URL", "https://counted.dev");
+  const DOCS = base("SMOKE_DOCS_URL", "https://docs.counted.dev");
+  const MCP = base("SMOKE_MCP_URL", "https://mcp.counted.dev");
+  const results: Result[] = [];
+  // Unique per execution, never a persistent user or device identifier.
+  const runMarker = clientKey ? crypto.randomUUID() : undefined;
+  const request = (url: string, init?: RequestInit) => fetch(url, {
+    ...init, redirect: "manual", signal: AbortSignal.timeout(10_000),
   });
-  expect(
-    r.status === 401,
-    `expected 401 (bad key), got ${r.status} — 500 here means credential-table schema drift`,
-  );
-  return "401";
-});
+  async function check(name: string, fn: () => Promise<string>) {
+    try {
+      results.push({ name, ok: true, detail: await fn() });
+    } catch (err) {
+      results.push({ name, ok: false, detail: err instanceof Error ? err.message : "Request failed" });
+    }
+  }
+  function skip(name: string, why: string) {
+    results.push({ name, ok: true, skipped: true, detail: `local mode: ${why}` });
+  }
 
-// 5. Real ingestion, all the way to commit (needs a synthetic project's ingest key).
-if (CLIENT_KEY) {
-  await check("event good-key -> 202 (ingestion)", async () => {
-    const r = await fetch(`${API}/v1/events`, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${CLIENT_KEY}` },
-      body: JSON.stringify({
-        events: [
-          {
-            name: "smoke_test",
-            visitId: smokeVisitId(),
-            occurredAt: new Date().toISOString(),
-            properties: { source: "smoke" },
-          },
-        ],
-      }),
-    });
-    expect(r.status === 202, `expected 202, got ${r.status}`);
-    // The ack is post-commit, so a 202 that accepted nothing is still a failure.
-    const body = (await r.json().catch(() => ({}))) as { accepted?: number };
-    expect(body.accepted === 1, `expected accepted:1, got ${JSON.stringify(body)}`);
-    return "202 accepted:1";
-  });
-} else {
-  skip("event good-key -> 202 (ingestion)", "set SMOKE_CLIENT_KEY to enable");
-}
-
-// 6. Console-load path: logged-out /dashboards redirects, does not crash (500).
-await check("dashboards -> redirect (console loads, no SSR crash)", async () => {
-  const r = await fetch(`${APP}/dashboards`, { redirect: "manual" });
-  expect(
-    r.status === 307 || r.status === 302,
-    `expected 307/302 redirect, got ${r.status} — 500 means the console crashed in render`,
-  );
-  return String(r.status);
-});
-
-// 7/8. Marketing SEO files serve on the marketing host (proxy-routing regression class).
-await check("marketing /sitemap.xml 200", async () => {
-  const r = await fetch(`${MKT}/sitemap.xml`);
-  expect(r.status === 200, `expected 200, got ${r.status}`);
-  const body = await r.text();
-  expect(body.includes("<urlset"), "sitemap body missing <urlset");
-  return "200 xml";
-});
-await check("marketing /robots.txt 200", async () => {
-  const r = await fetch(`${MKT}/robots.txt`);
-  expect(r.status === 200, `expected 200, got ${r.status}`);
-  const body = await r.text();
-  expect(/sitemap:/i.test(body), "robots.txt missing Sitemap line");
-  return "200";
-});
-
-// 9. Authenticated query: exercises credential resolution + the IR compiler + the
-//    event store. A service credential, not a console cookie — the public API is
-//    the only door, and smoke-testing it through the console's would prove less.
-if (SERVICE_KEY && PROJECT_ID) {
-  await check("authenticated query -> 200 (credentials + query engine)", async () => {
-    const r = await fetch(`${API}/v1/projects/${PROJECT_ID}/query`, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${SERVICE_KEY}` },
-      body: JSON.stringify({
-        question: {
-          kind: "analysis",
-          analysis: {
-            measure: { kind: "count" },
-            window: { kind: "relative", amount: 7, unit: "day" },
-          },
-        },
-      }),
-    });
+  await check("api health 200", async () => {
+    const r = await request(`${API}/health`);
     expect(r.status === 200, `expected 200, got ${r.status}`);
+    const body = await r.json() as { status?: string } | null;
+    expect(body?.status === "ok", "expected status:ok");
+    return "200 ok";
+  });
+  await check("api health/ready 200", async () => {
+    const r = await request(`${API}/health/ready`);
+    expect(r.status === 200, `expected 200, got ${r.status} — readiness covers the database`);
+    const body = await r.json() as { status?: string; release?: string } | null;
+    expect(body?.status === "ready", "expected status:ready");
+    if (expectedRelease) expect(body.release === expectedRelease, `expected API readiness release ${expectedRelease}`);
+    return expectedRelease ? `200 ready ${expectedRelease}` : "200 ready";
+  });
+  // Do not write the synthetic event to a missing or different release.
+  if (expectedRelease && !results.at(-1)?.ok) return { mode, results, ok: false };
+  await check("docs openapi.json 200", async () => {
+    const r = await request(`${DOCS}/openapi.json`);
+    expect(r.status === 200, `expected 200, got ${r.status}`);
+    const body = await r.json() as {
+      paths?: Record<string, { post?: { operationId?: string } }>;
+    } | null;
+    for (const [path, operationId] of [[eventsPath, "events.ingest"], [queryPath, "queries.run"]] as const) {
+      expect(body?.paths?.[path]?.post?.operationId === operationId, `docs spec is missing POST ${path} (${operationId})`);
+    }
+    return "200 ingestion + query contract";
+  });
+  await check("mcp health/ready 200", async () => {
+    const r = await request(`${MCP}/health/ready`);
+    expect(r.status === 200, `expected 200, got ${r.status}`);
+    const body = await r.json() as { ready?: boolean } | null;
+    expect(body?.ready === true, "expected ready:true");
+    return "200 ready";
+  });
+
+  await check("event invalid credential -> 401", async () => {
+    const r = await request(`${API}${eventsPath}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer ck_smoke_invalid" },
+      body: JSON.stringify({
+        events: [{ name: "smoke_test", visitId: crypto.randomUUID(), occurredAt: new Date().toISOString() }],
+      }),
+    });
+    expect(r.status === 401, `expected 401 (invalid credential), got ${r.status}`);
+    return "401";
+  });
+
+  const ingestionCheck = "event good-key -> 202 (ingestion)";
+  if (clientKey) {
+    await check(ingestionCheck, async () => {
+      const r = await request(`${API}${eventsPath}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${clientKey}` },
+        body: JSON.stringify({
+          events: [{
+            name: "smoke_test", visitId: crypto.randomUUID(), occurredAt: new Date().toISOString(),
+            properties: { source: "smoke", smoke_run: runMarker },
+          }],
+        }),
+      });
+      expect(r.status === 202, `expected 202, got ${r.status}`);
+      const body = await r.json() as { accepted?: number } | null;
+      expect(body?.accepted === 1, "expected accepted:1 after commit");
+      return "202 accepted:1";
+    });
+  } else {
+    skip(ingestionCheck, "SMOKE_CLIENT_KEY not configured");
+  }
+
+  await check("console root -> sign-in (no SSR crash)", async () => {
+    const r = await request(`${APP}/`);
+    expect(r.status === 307 || r.status === 302, `expected 307/302 redirect, got ${r.status}`);
+    const location = r.headers.get("location");
+    expect(location !== null, "console redirect is missing Location");
+    const target = new URL(location, `${APP}/`);
+    expect(target.origin === new URL(APP).origin && target.pathname === "/sign-in", "expected console redirect to /sign-in on the same origin");
+    return `${r.status} /sign-in`;
+  });
+  await check("marketing /sitemap.xml 200", async () => {
+    const r = await request(`${MKT}/sitemap.xml`);
+    expect(r.status === 200, `expected 200, got ${r.status}`);
+    expect((await r.text()).includes("<urlset"), "sitemap body missing <urlset");
+    return "200 xml";
+  });
+  await check("marketing /robots.txt 200", async () => {
+    const r = await request(`${MKT}/robots.txt`);
+    expect(r.status === 200, `expected 200, got ${r.status}`);
+    expect(/sitemap:/i.test(await r.text()), "robots.txt missing Sitemap line");
     return "200";
   });
-} else {
-  skip("authenticated query -> 200", "set SMOKE_SERVICE_KEY + SMOKE_PROJECT_ID to enable");
+
+  const queryCheck = "authenticated query -> 200 (credentials + query engine)";
+  if (serviceKey && projectId) {
+    await check(queryCheck, async () => {
+      const r = await request(`${API}${queryPath.replace("{projectId}", encodeURIComponent(projectId))}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${serviceKey}` },
+        body: JSON.stringify(queryBody(runMarker)),
+      });
+      expect(r.status === 200, `expected 200, got ${r.status}`);
+      const body = await r.json() as Partial<ContractOutputs["queries"]["run"]> | null;
+      const readout = body?.readout;
+      expect(typeof readout?.id === "string" && typeof readout.computedAt === "string" && Number.isFinite(Date.parse(readout.computedAt)), "expected a computed readout");
+      expect(readout.value?.shape === "scalar" && typeof readout.value.value === "number" && Number.isFinite(readout.value.value) && readout.value.value >= 0, "expected a finite, nonnegative scalar count");
+      if (runMarker) expect(readout.value.value === 1, "expected count:1 for this run's committed event");
+      return runMarker ? "200 count:1 for this run" : "200 scalar readout";
+    });
+  } else {
+    skip(queryCheck, "SMOKE_SERVICE_KEY + SMOKE_PROJECT_ID not configured");
+  }
+  return { mode, results, ok: results.every((result) => result.ok) };
 }
 
-// Report
-const failed = results.filter((r) => !r.ok);
-console.log(`\nSmoke: api ${API}  console ${APP}  marketing ${MKT}`);
-for (const r of results) {
-  const tag = r.skipped ? "○ skip" : r.ok ? "✓ pass" : "✗ FAIL";
-  console.log(`  ${tag}  ${r.name}${r.detail ? ` — ${r.detail}` : ""}`);
+if (import.meta.main) {
+  try {
+    const report = await runSmoke();
+    console.log(`\nSmoke (${report.mode} mode)`);
+    for (const result of report.results) {
+      const tag = result.skipped ? "○ skip" : result.ok ? "✓ pass" : "✗ FAIL";
+      console.log(`  ${tag}  ${result.name} — ${result.detail}`);
+    }
+    const failures = report.results.filter((result) => !result.ok).length;
+    console.log(failures ? `\n${failures} check(s) failed.` : `\nAll ${report.results.filter((result) => !result.skipped).length} checks passed.`);
+    process.exitCode = report.ok ? 0 : 1;
+  } catch (err) {
+    console.error(`Smoke configuration: ${err instanceof Error ? err.message : "invalid configuration"}`);
+    process.exitCode = 1;
+  }
 }
-if (failed.length) {
-  console.log(`\n${failed.length} check(s) failed.`);
-  process.exit(1);
-}
-console.log(`\nAll ${results.filter((r) => !r.skipped).length} checks passed.`);

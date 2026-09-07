@@ -165,8 +165,8 @@ jobs:
             done
           }
 
-          deployment="$(deploy counted-api)"
-          wait_for counted-api "$deployment"
+          api_deployment="$(deploy counted-api)"
+          wait_for counted-api "$api_deployment"
           # Build the remaining services together, then wait for every result.
           # A detached upload succeeding says nothing about its deployment.
           services=(counted-worker counted-mcp counted-web counted-docs)
@@ -180,4 +180,27 @@ jobs:
           for index in "${!services[@]}"; do
             wait_for "${services[$index]}" "${deployments[$index]}" "$deadline" || failed=1
           done
-          exit "$failed"
+          if [ "$failed" -ne 0 ]; then exit "$failed"; fi
+
+          # Workflow-run head_sha can name the workflow ref rather than the
+          # release we uploaded. Record the resolved release and the five IDs
+          # whose SUCCESS we verified; partial deployments produce no record.
+          jq -n --arg release "$RELEASE" \
+            --arg api "$api_deployment" \
+            --arg worker "${deployments[0]}" \
+            --arg mcp "${deployments[1]}" \
+            --arg web "${deployments[2]}" \
+            --arg docs "${deployments[3]}" \
+            '{release: $release, services: {
+              "counted-api": $api, "counted-worker": $worker,
+              "counted-mcp": $mcp, "counted-web": $web, "counted-docs": $docs
+            }}' > "$RUNNER_TEMP/counted-production-release.json"
+
+      - name: Record successful production release
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: counted-production-release
+          path: ${{ runner.temp }}/counted-production-release.json
+          if-no-files-found: error
+          retention-days: 90

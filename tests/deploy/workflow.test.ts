@@ -105,6 +105,7 @@ async function runStep(name: string, scenario: Scenario = {}) {
       env: {
         PATH: dir,
         FIXTURE_DIR: dir,
+        RUNNER_TEMP: dir,
         GITHUB_OUTPUT: join(dir, "output"),
         GITHUB_REPOSITORY: "example/counted",
         GH_TOKEN: "fixture-only",

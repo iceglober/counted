@@ -182,11 +182,44 @@ record of what went out.
 serving is `curl https://api.counted.dev/health`; the worker logs its release
 in the `worker.starting` line.
 
+## SDK publication
+
+Application CI and deployment never publish npm packages. A successful main CI
+run lets `.github/workflows/release-sdks.yml` prepare a Changesets version PR;
+nonempty changesets must be versioned and merged before publishing. After the
+versioned commit passes CI and reaches production, explicitly dispatch **Release
+npm SDKs** on `main` with its full SHA. The release gate requires successful CI,
+a successful Deploy artifact containing that resolved release and all five exact
+service deployment IDs, clean npm tarballs, and live API readiness with the same
+release. It then runs that commit's production smoke checks, including synthetic
+ingest and query, immediately before publishing. Missing/expired/incomplete
+artifacts, missing synthetic-project credentials or failed checks refuse the
+release. The workflow shares the production deployment lock, and a registry
+failure cannot fail CI or prevent the next application deploy. See [the Changesets
+guide](../.changeset/README.md) for versioning and post-publication verification.
+
 ## Failure reporting
 
 The `Deploy` Actions run records build and startup failures for every service.
 After a successful run, `Smoke` checks the public API, console, marketing,
 documentation and MCP endpoints. Smoke also runs every ten minutes and on demand.
+The standalone workflow reads the live API's full commit SHA, verifies that it
+belongs to `main`, and checks out that immutable revision. `SMOKE_EXPECTED_RELEASE`
+must match API readiness before any synthetic write; release mode requires this
+full SHA. A rollback therefore runs its own revision's probes, while a release
+change between selection and readiness fails the run.
+
+Release smoke requires repository secrets `SMOKE_CLIENT_KEY` (ingestion),
+`SMOKE_SERVICE_KEY` (with `queries:run`) and `SMOKE_PROJECT_ID`, all for the same
+dedicated synthetic project. Each run writes one `smoke_test` event with a fresh,
+nonidentifying `smoke_run` property and requires a count of exactly one for that
+marker. The committed event is read from the live tail without waiting for
+compaction. Missing credentials fail before any checks run. For explicit
+local checks, use `SMOKE_MODE=local bun scripts/smoke.ts` and override all five
+`SMOKE_*_URL` destinations; unconfigured ingestion and query checks are then
+reported as skipped. The served contract is checked at the docs site's
+`/openapi.json`; the signed-out console is checked at `/` → `/sign-in`.
+
 Enable GitHub Actions failure notifications for the account responsible for
 production; delivery depends on that account's notification settings. See
 [GitHub's workflow notification settings](https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs).

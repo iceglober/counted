@@ -36,12 +36,11 @@
  * because refusing to boot over the no-signup path would take the other
  * forty-one routes down with it.
  *
- * There is deliberately **no domain `workspaces` row**. The holding workspace
- * owns nothing, bills nobody and has no plan: an unclaimed project's ownership
- * stays `unclaimed` in the domain, and its events are metered against the
- * unclaimed allowance rather than a plan (`apps/api/src/ingest/quota.ts`).
- * Creating a workspace row would make it a tenant, and the reconciler would
- * then be right to think a customer exists.
+ * API bootstrap also creates the corresponding free-plan domain `workspaces`
+ * row so reconciliation sees a complete workspace. Unclaimed projects still
+ * have no workspace ownership: they consume no slots in the holding workspace,
+ * and their events use the unclaimed allowance rather than its plan
+ * (`apps/api/src/ingest/quota.ts`).
  */
 
 import { Instant, unbrand, type AccountId, type WorkspaceId } from "@counted/kernel";
