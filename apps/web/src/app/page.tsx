@@ -12,7 +12,8 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { SiteHome } from "../components/site-home";
-import { isSiteHost, siteOrigin } from "../lib/site";
+import { isSiteHost } from "../lib/site";
+import { publicSiteMetadata } from "../lib/site-metadata";
 import { attempt } from "../lib/client";
 import { clientForCaller } from "../lib/session";
 import { isUnauthenticated } from "../lib/failure";
@@ -21,7 +22,13 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = isSiteHost((await headers()).get("host"));
-  return site ? { title: "Counted — privacy-first product analytics", metadataBase: new URL(siteOrigin()), description: "Custom events, funnels, and dashboards you compose yourself. No tracking cookies or fingerprinting.", alternates: { canonical: "/", types: { "text/markdown": "/index.md" } } } : { robots: { index: false, follow: false } };
+  if (!site) return { robots: { index: false, follow: false } };
+  return {
+    ...publicSiteMetadata(),
+    title: "Counted — privacy-first product analytics",
+    description: "Custom events, funnels, and dashboards you compose yourself. No tracking cookies or fingerprinting.",
+    alternates: { canonical: "/", types: { "text/markdown": "/index.md" } },
+  };
 }
 const Home = async ({ searchParams }: { searchParams: Promise<{ mode?: string }> }) => {
   if (isSiteHost((await headers()).get("host"))) {

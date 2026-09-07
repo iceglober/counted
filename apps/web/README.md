@@ -16,3 +16,11 @@ legacy HTML paths redirect to the docs service; the old docs `llms.txt` paths
 remain readable. Public discovery includes `/llms.txt`, `/index.md`, `/auth.md`,
 `/pricing.md`, `/.well-known/api-catalog`, `/robots.txt`, and `/sitemap.xml`.
 Public pages do not call the account API or load an analytics tracker.
+
+Public link previews use `public/images/counted-dashboard.png`, a 1200 × 630
+capture of the real dashboard with seeded demonstration data. When replacing
+it, keep account details and customer data out of the capture, preserve those
+dimensions, and update the static alt text in `src/lib/site-metadata.ts` if the
+contents change. Open Graph and Twitter metadata are scoped to public pages;
+the image is not generated from the viewer's private dashboard. Its absolute
+URL uses the runtime `COUNTED_SITE_URL`.
