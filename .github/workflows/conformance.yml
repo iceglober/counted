@@ -44,6 +44,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # The harness resolves the package's published dist exports.
+      - name: Build the JavaScript SDK
+        run: bun run --cwd packages/sdk-js build
+
       # Pre-built so the first scenario doesn't race a cold compile and time
       # out. Via the package.json scripts rather than inline commands, so this
       # cannot drift from what a developer runs locally — it had: the Rust step
