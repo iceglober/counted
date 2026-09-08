@@ -16,6 +16,7 @@ function metadata() {
     project: { id: project, services: { edges: Object.entries(nativeServiceSettings).map(([name, settings]) => ({ node: {
       name, id: name + "-id", serviceInstances: { edges: [{ node: {
         serviceId: name + "-id", environmentId: environment, ...structuredClone(settings.build), ...structuredClone(settings.deploy),
+        builder: "RAILPACK",
       } }] },
     } })) } },
     environment: { id: environment, name: "production", config: {
@@ -37,6 +38,30 @@ describe("native Railway configuration release gate", () => {
     expect(names).toEqual(["counted-docs", "counted-mcp"]);
     for (const [name, expected] of Object.entries(nativeServiceSettings)) {
       expect(expected).toEqual(JSON.parse(await readFile(join(root, "deploy", name.replace("counted-", "") + ".railway.json"), "utf8")));
+    }
+  });
+
+  test("Dockerfile configuration takes precedence over the reported fallback buildpack", () => {
+    for (const builder of ["RAILPACK", "NIXPACKS"]) {
+      const data = metadata();
+      for (const name of names) effective(data, name).builder = builder;
+      expect(nativeSettingsProblems(data, project, environment)).toEqual([]);
+    }
+  });
+
+  test("a fallback buildpack never substitutes for explicit Dockerfile configuration", () => {
+    for (const builder of [undefined, null, "RAILPACK", "NIXPACKS"]) {
+      const data = metadata();
+      service(data).build.builder = builder;
+      expect(nativeSettingsProblems(data, project, environment)).toContain("counted-docs: build.builder differs from this release.");
+    }
+    for (const source of ["applied", "effective"] as const) {
+      for (const path of [undefined, null, "Dockerfile", "deploy/mcp.Dockerfile"]) {
+        const data = metadata();
+        const settings = source === "applied" ? service(data).build : effective(data);
+        settings.dockerfilePath = path;
+        expect(nativeSettingsProblems(data, project, environment)).toContain("counted-docs: build.dockerfilePath differs from this release.");
+      }
     }
   });
 
