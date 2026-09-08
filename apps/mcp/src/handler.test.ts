@@ -140,6 +140,19 @@ describe("the OAuth challenge", () => {
 });
 
 describe("routing", () => {
+  test("root discovery describes the same resource without opening the MCP transport", async () => {
+    const { fetch, api } = handlerOver(() => Response.json({}));
+    const root = "https://mcp.counted.dev/.well-known/oauth-protected-resource";
+    const response = await fetch(new Request(root));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(await (await fetch(new Request(`${root}/mcp`))).json());
+    const head = await fetch(new Request(root, { method: "HEAD" }));
+    expect(head.status).toBe(200);
+    expect(await head.text()).toBe("");
+    expect((await fetch(rpc(1, "initialize"))).status).toBe(401);
+    expect(api.seen).toHaveLength(0);
+  });
+
   test("the metadata document is served, unauthenticated, at the RFC 9728 path", async () => {
     const { fetch } = handlerOver(() => Response.json({}));
     const response = await fetch(

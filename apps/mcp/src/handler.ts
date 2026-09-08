@@ -91,8 +91,10 @@ export const createHandler = (options: HandlerOptions): {
   const fetch = async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
 
-    if (request.method === "GET" && url.pathname === metadataPath) {
-      return json(protectedResourceMetadata(options.identity));
+    if ((request.method === "GET" || request.method === "HEAD") &&
+      (url.pathname === metadataPath || url.pathname === "/.well-known/oauth-protected-resource")) {
+      const response = json(protectedResourceMetadata(options.identity));
+      return request.method === "HEAD" ? new Response(null, { headers: response.headers }) : response;
     }
 
     if (request.method === "GET" && url.pathname === HEALTH_PATH) {

@@ -22,6 +22,7 @@ import { HEALTH_PATH, READY_PATH } from "./health";
 import { TRACE_HEADER } from "./tracing";
 import { absent, countingIds, frozenClock, fixedGeo, testDependencies } from "./testing";
 import type { ApiDependencies } from "./deps";
+import { createTestIdentity } from "../../../packages/identity/adapter-better-auth/src/testing/harness";
 
 const AT = Instant.fromEpochMillis(1_700_000_000_000);
 const WS = "ws_1" as WorkspaceId;
@@ -211,6 +212,28 @@ describe("a contract route, through the whole stack", () => {
 });
 
 describe("the hand-written routes", () => {
+  test("standard issuer discovery reaches Better Auth and preserves its metadata", async () => {
+    const app = build({ identity: createTestIdentity() });
+    const standard = "http://localhost:3000/.well-known/oauth-authorization-server/api/auth";
+    const mounted = "http://localhost:3000/api/auth/.well-known/oauth-authorization-server";
+    const response = await app.request(standard);
+    expect(response.status).toBe(200);
+    const metadata = await response.json();
+    expect(metadata).toEqual(await (await app.request(mounted)).json());
+    expect(metadata).toMatchObject({
+      issuer: "http://localhost:3000/api/auth",
+      authorization_endpoint: "http://localhost:3000/api/auth/oauth2/authorize",
+      token_endpoint: "http://localhost:3000/api/auth/oauth2/token",
+      code_challenge_methods_supported: ["S256"],
+      scopes_supported: expect.arrayContaining(["queries:run", "projects:read"]),
+    });
+    const head = await app.request(standard, { method: "HEAD" });
+    expect(head.status).toBe(200);
+    expect(await head.text()).toBe("");
+    expect((await app.request(standard, { method: "POST" })).status).toBe(405);
+    expect((await app.request(`${standard}/unknown`)).status).toBe(404);
+  });
+
   test("the auth provider's own router is reachable", async () => {
     const response = await build().request("http://api.test/api/auth/session");
     expect(response.status).toBe(200);
