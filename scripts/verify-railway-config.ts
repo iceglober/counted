@@ -68,11 +68,16 @@ export function nativeSettingsProblems(response: unknown, expectedProject: strin
     if (!empty(source?.image)) problems.push(`${name}: source.image must be unset for source uploads.`);
 
     const build = record(service.build);
-    for (const field of ["builder", "dockerfilePath"] as const) {
-      if (effective[0]?.[field] !== expected.build[field] ||
-          (build?.[field] !== undefined && build[field] !== expected.build[field])) {
-        problems.push(`${name}: build.${field} differs from this release.`);
-      }
+    // ServiceInstance.builder is the fallback buildpack enum, which does not
+    // include DOCKERFILE. Railway uses the explicit Dockerfile configuration
+    // before that fallback; a new Dockerfile service still reports RAILPACK.
+    if (build?.builder !== expected.build.builder ||
+        (expected.build.builder !== "DOCKERFILE" && effective[0]?.builder !== expected.build.builder)) {
+      problems.push(`${name}: build.builder differs from this release.`);
+    }
+    if (build?.dockerfilePath !== expected.build.dockerfilePath ||
+        effective[0]?.dockerfilePath !== expected.build.dockerfilePath) {
+      problems.push(`${name}: build.dockerfilePath differs from this release.`);
     }
     if (!empty(build?.buildCommand)) problems.push(`${name}: build.buildCommand must be unset.`);
     if (build?.watchPatterns !== undefined && build.watchPatterns !== null &&

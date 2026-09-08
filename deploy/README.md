@@ -154,6 +154,13 @@ read runs immediately before each docs/MCP upload because API startup can take
 minutes. Keep provider settings unchanged throughout deployment: the GitHub
 deployment lock cannot prevent simultaneous edits in the Railway dashboard.
 
+For Dockerfile services, `ServiceInstance.builder` reports the fallback
+buildpack (such as `RAILPACK`); its GraphQL enum does not include `DOCKERFILE`.
+The preflight requires explicit `build.builder=DOCKERFILE` in applied
+configuration and the exact Dockerfile path in both applied configuration and
+the service instance. It does not confuse the fallback with the selected
+[Dockerfile build](https://docs.railway.com/builds/dockerfiles).
+
 Existing API, worker and web services retain their previously enabled
 configuration-file links for now. Move their settings to native configuration
 and extend the release preflight before the December 1 deadline; creating a new
