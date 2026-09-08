@@ -19,7 +19,7 @@ const run = {
   head_repository: { full_name: repository },
 };
 type Scenario = {
-  missingPackage?: string; requested?: string; checkout?: string; main?: string; ancestor?: boolean;
+  existingWarnings?: Record<string, string>; olderWarningMissing?: string; retirementMetadataFailure?: boolean; missingPackage?: string; requested?: string; checkout?: string; main?: string; ancestor?: boolean;
   ci?: unknown[]; deploy?: unknown[]; ghFailure?: boolean; healthFailure?: boolean;
   health?: unknown; malformedHealth?: boolean; manifest?: unknown; artifacts?: unknown[]; malformedArchive?: boolean; archiveName?: string; archiveFailure?: boolean; changesets?: Array<{ id: string; releases: unknown[] }>;
 };
@@ -63,7 +63,13 @@ if (command === "git") {
 } else if (command === "npm") {
   if (args[0] === "view") {
     if (args[1] === s.missingPackage) process.exit(1);
-    console.log(args[2] === "version" ? "2.0.0" : "^2.0.0");
+    if (args[2] === "deprecated") console.log(s.existingWarnings?.[args[1]] ?? "");
+    else if (args[2] === "--json") {
+      if (s.retirementMetadataFailure) process.exit(1);
+      const name = args[1].slice(0, -2);
+      output([{version:"0.1.0",deprecated:s.olderWarningMissing === name ? undefined : s.existingWarnings?.[name]},
+        {version:"2.0.0",deprecated:s.existingWarnings?.[name]}]);
+    } else console.log(args[2] === "version" ? "2.0.0" : "^2.0.0");
   } else if (args[0] !== "deprecate") process.exit(99);
 } else if (command === "bun") {
   if (args[0] === "run" && args[1] === "changeset" && args[2] === "status") {
@@ -264,4 +270,35 @@ describe("retired package replacement gate", () => {
       expect(result.code).not.toBe(0);
       expect(result.calls.filter(c => c.args[0] === "deprecate")).toEqual([]);
     });
+});
+
+
+describe("idempotent npm retirement", () => {
+  const warnings = {
+    "@counted/sdk@0.1.2": "This version targets the retired Counted API. Upgrade to @counted/sdk@2 or later and follow https://docs.counted.dev/getting-started.",
+    "@counted/agent": "Replaced by @counted/agent-telemetry. Update your package and imports; the counted-agent command is unchanged.",
+    "@counted/agent-core": "Merged into @counted/agent-telemetry. Import the shared tracking APIs from @counted/agent-telemetry.",
+    "@counted/migrate": "Discontinued. Counted no longer provides or maintains this migration utility.",
+  };
+  test("skips the SDK warning when it is already present", async () => {
+    const result = await step("Warn users of the retired SDK version", { existingWarnings: warnings });
+    expect(result.code).toBe(0);
+    expect(result.calls.filter(c => c.args[0] === "deprecate")).toEqual([]);
+    const missing = await step("Warn users of the retired SDK version");
+    expect(missing.code).toBe(0);
+    expect(missing.calls.filter(c => c.args[0] === "deprecate").map(c => c.args[1])).toEqual(["@counted/sdk@0.1.2"]);
+  });
+  test("skips legacy packages only when every version carries the warning", async () => {
+    const result = await step("Retire replaced and discontinued packages", { existingWarnings: warnings });
+    expect(result.code).toBe(0);
+    expect(result.calls.filter(c => c.args[0] === "deprecate")).toEqual([]);
+    const partial = await step("Retire replaced and discontinued packages", { existingWarnings: warnings, olderWarningMissing: "@counted/agent" });
+    expect(partial.code).toBe(0);
+    expect(partial.calls.filter(c => c.args[0] === "deprecate").map(c => c.args[1])).toEqual(["@counted/agent"]);
+  });
+  test("does not write when retirement metadata is unavailable", async () => {
+    const result = await step("Retire replaced and discontinued packages", { retirementMetadataFailure: true });
+    expect(result.code).not.toBe(0);
+    expect(result.calls.filter(c => c.args[0] === "deprecate")).toEqual([]);
+  });
 });
