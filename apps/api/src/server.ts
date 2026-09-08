@@ -38,6 +38,8 @@ import { handleStripeWebhook, type WebhookDeps } from "./billing/webhook";
 
 /** Where the auth provider's own routes live. Mirrored in `IdentityConfig.baseURL`. */
 export const AUTH_MOUNT = "/api/auth";
+/** RFC 8414 inserts the well-known component before the issuer's path. */
+export const AUTH_METADATA_PATH = `/.well-known/oauth-authorization-server${AUTH_MOUNT}`;
 export const EVENTS_PATH = "/v1/events";
 export const STRIPE_WEBHOOK_PATH = "/v1/webhooks/stripe";
 
@@ -48,6 +50,7 @@ export const HAND_WRITTEN_PATHS: readonly string[] = [
   EVENTS_PATH,
   STRIPE_WEBHOOK_PATH,
   `${AUTH_MOUNT}/*`,
+  AUTH_METADATA_PATH,
 ];
 
 /**
@@ -229,6 +232,11 @@ export const createServer = (server: ServerDeps): Hono<ApiEnv> => {
       {},
     ),
   );
+
+  // Better Auth owns this document, including its issuer, scopes and endpoints.
+  // Forward the standard discovery path unchanged so it reaches the provider's
+  // metadata handler even though it sits outside the ordinary auth mount.
+  app.all(AUTH_METADATA_PATH, (context) => deps.identity.http.handle(context.req.raw));
 
   app.all(`${AUTH_MOUNT}/*`, async (context) => {
     const path = new URL(context.req.url).pathname.slice(AUTH_MOUNT.length) || "/";

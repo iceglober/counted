@@ -53,6 +53,22 @@ The console supports email/password sign-in. Email-link sign-in requires configu
 
 For MCP, use the configured server’s OAuth authorization flow or an appropriately scoped service credential. The hosted MCP endpoint is https://mcp.counted.dev/mcp.
 
+### Discover OAuth endpoints
+
+An unauthenticated MCP request returns HTTP 401 with a WWW-Authenticate header pointing to [OAuth protected-resource metadata](https://mcp.counted.dev/.well-known/oauth-protected-resource/mcp). Read resource, authorization_servers, and scopes_supported from that document.
+
+The hosted issuer is ${publicApiOrigin()}/api/auth. Its [authorization-server metadata](${publicApiOrigin()}/.well-known/oauth-authorization-server/api/auth) supplies authorization_endpoint, token_endpoint, registration_endpoint, revocation_endpoint, and code_challenge_methods_supported. The [issuer-relative metadata URL](${publicApiOrigin()}/api/auth/.well-known/oauth-authorization-server) serves the same document.
+
+### Authorize and use an access token
+
+Register a public OAuth client at registration_endpoint with your exact redirect URI and token_endpoint_auth_method set to none. Start the authorization-code flow using the discovered authorization_endpoint, a random state, resource=https://mcp.counted.dev/mcp, a fresh PKCE verifier and its S256 challenge. Request only the permissions needed, for example queries:run and projects:read. The user signs in and approves the requested access; never collect their password in your integration.
+
+Verify state when the browser returns to your registered redirect URI. Exchange the code at token_endpoint with the same redirect URI, resource, and code_verifier. Send the resulting access token in Authorization: Bearer to the MCP endpoint. Request offline_access only when renewal is needed; keep any returned refresh token in a credential store.
+
+### Errors and revocation
+
+On HTTP 401, follow the WWW-Authenticate challenge to renew authorization. A permission denial requires the appropriate grant and workspace role. A temporary HTTP 503 is a service failure; retry with backoff instead of prompting the user to sign in again. Disconnect an integration in Account settings → Connected applications to revoke its consent and tokens, or use the discovered revocation_endpoint with the client’s registered authentication method.
+
 ## Provision and claim
 
 POST ${publicApiOrigin()}/v1/projects/provision needs no account and returns a project, an ingest key, and an expiring claim grant. It is subject to anonymous quotas and expiration. Claim at ${consoleOrigin()}/claim, or POST /v1/projects/{projectId}/claim with the grant and authority to create projects in the destination workspace. The grant does not replace workspace authorization.
