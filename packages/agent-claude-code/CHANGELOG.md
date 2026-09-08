@@ -1,5 +1,11 @@
 # @counted/claude-code
 
+## 2.0.1
+
+### Patch Changes
+
+- [`7a3547a`](https://github.com/iceglober/counted/commit/7a3547a730750be28ed6c87390afadbb2f97ae52) - Use the consolidated `@counted/agent-telemetry` package for shared tracking, host mapping, and hook handling. Update integration instructions to the current event vocabulary and configuration.
+
 ## 0.1.3
 
 ### Patch Changes

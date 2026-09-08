@@ -192,7 +192,7 @@
     },
     "packages/agent-claude-code": {
       "name": "@counted/claude-code",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "bin": {
         "counted-claude-code-hook": "bin/counted-hook.mjs",
       },
@@ -205,7 +205,7 @@
     },
     "packages/agent-opencode": {
       "name": "@counted/opencode",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "dependencies": {
         "@counted/agent-telemetry": "^2.0.0",
       },

@@ -1,7 +1,7 @@
 {
   "name": "@counted/claude-code",
-  "version": "2.0.0",
-  "description": "Counted analytics for Claude Code \u2014 privacy-safe agent session telemetry.",
+  "version": "2.0.1",
+  "description": "Counted analytics for Claude Code — privacy-safe agent session telemetry.",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
