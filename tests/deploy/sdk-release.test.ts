@@ -63,12 +63,16 @@ if (command === "git") {
 } else if (command === "npm") {
   if (args[0] === "view") {
     if (args[1] === s.missingPackage) process.exit(1);
-    if (args[2] === "deprecated") console.log(s.existingWarnings?.[args[1]] ?? "");
-    else if (args[2] === "--json") {
+    if (args[2] === "deprecated") {
+      const separator = args[1].lastIndexOf("@");
+      const name = args[1].slice(0, separator);
+      const version = args[1].slice(separator + 1);
+      const warning = s.olderWarningMissing === name && version === "0.1.0" ? "" :
+        (s.existingWarnings?.[args[1]] ?? s.existingWarnings?.[name] ?? "");
+      console.log(warning);
+    } else if (args[2] === "versions") {
       if (s.retirementMetadataFailure) process.exit(1);
-      const name = args[1].slice(0, -2);
-      output([{version:"0.1.0",deprecated:s.olderWarningMissing === name ? undefined : s.existingWarnings?.[name]},
-        {version:"2.0.0",deprecated:s.existingWarnings?.[name]}]);
+      output(["0.1.0", "2.0.0"]);
     } else console.log(args[2] === "version" ? "2.0.0" : "^2.0.0");
   } else if (args[0] !== "deprecate") process.exit(99);
 } else if (command === "bun") {
