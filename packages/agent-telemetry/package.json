@@ -1,8 +1,8 @@
 {
-  "name": "@counted/agent",
+  "name": "@counted/agent-telemetry",
   "version": "2.0.0",
   "type": "module",
-  "description": "Counted's agent telemetry hook: one binary for every host that speaks stdin.",
+  "description": "Agent telemetry library and hook CLI for Counted",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -31,12 +31,17 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/iceglober/counted.git",
-    "directory": "packages/agent-cli"
+    "directory": "packages/agent-telemetry"
   },
   "dependencies": {
-    "@counted/agent-core": "^2.0.0"
+    "@counted/sdk": "^2.0.0"
   },
   "devDependencies": {
     "tsup": "^8.0.0"
+  },
+  "homepage": "https://counted.dev/for/agents",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -127,11 +127,10 @@ For development setup, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 | [`@counted/react`](packages/react) | React provider + hook | ~1KB |
 | [`@counted/claude-code`](packages/agent-claude-code) | Claude Code plugin | ~2KB |
 | [`@counted/opencode`](packages/agent-opencode) | OpenCode plugin | ~2KB |
-| [`@counted/agent`](packages/agent-cli) | `counted-agent` hook for any host that speaks stdin | ~3KB |
+| [`@counted/agent-telemetry`](packages/agent-telemetry) | Agent telemetry library and `counted-agent` hook CLI | — |
 | [`counted`](packages/python) | Python SDK · `pip install counted` | — |
 | [`counted`](packages/go) | Go SDK · `go get github.com/iceglober/counted/packages/go/v2` | — |
 | [`counted-sdk`](packages/rust) | Rust SDK · `cargo add counted-sdk` | — |
-| [`@counted/migrate`](packages/migrate) | Aptabase migration CLI | — |
 
 ## Migrating from Aptabase
 

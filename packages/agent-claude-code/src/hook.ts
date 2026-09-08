@@ -5,7 +5,7 @@
  * `hooks/hooks.json`), so it is a process per event — which is why the setup
  * fingerprint is cached to a temp file and why nothing here batches.
  *
- * The whole body is `@counted/agent`, with the host fixed. This package exists
+ * The whole body is `@counted/agent-telemetry`, with the host fixed. This package exists
  * for what it *ships*, not what it computes: the plugin manifest, the hook
  * registrations, and a bundled binary that runs where there is no
  * `node_modules`. That is the test the design applies to a host package — a
@@ -13,7 +13,7 @@
  * `gemini-cli` failed.
  */
 
-import { main } from "@counted/agent";
+import { main } from "@counted/agent-telemetry";
 
 const killer = setTimeout(() => process.exit(0), 4_000);
 if (typeof killer.unref === "function") killer.unref();

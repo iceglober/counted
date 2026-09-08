@@ -37,8 +37,8 @@ const UNUSABLE_IN_A_NAME = /[\s\u0000-\u001f\u007f]/;
 /**
  * The envelope the agent tracker stamps on every event.
  *
- * `agent-core` sends `{ ...context, ...eventProperties }` on the wire
- * (`packages/agent-core/src/tracker.ts`), so by the time an event reaches
+ * `agent-telemetry` sends `{ ...context, ...eventProperties }` on the wire
+ * (`packages/agent-telemetry/src/tracker.ts`), so by the time an event reaches
  * admission the two are one flat object again. The generated validator refuses
  * unknown properties — correctly, since a typo that vanishes is a metric that
  * reads zero — which means validating the flat object against the event's own

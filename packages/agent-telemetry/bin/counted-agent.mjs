@@ -420,8 +420,7 @@ var Counted = class {
   }
 };
 
-// ../agent-core/dist/index.js
-import { createHash } from "crypto";
+// src/gen/vocabulary.ts
 var AGENT_EVENT_PREFIX = "agent_";
 var AGENT_HOSTS = ["claude-code", "opencode", "codex", "gemini", "generic"];
 var SETUP_SPEC = "counted.setup/1";
@@ -582,6 +581,9 @@ var validateAgentContext = (context) => {
   const problems = checkAgainst(AGENT_CONTEXT_FIELDS, context);
   return problems.length === 0 ? null : { event: "context", problems };
 };
+
+// src/fingerprint.ts
+import { createHash } from "crypto";
 var sha256 = (content) => createHash("sha256").update(content, "utf8").digest("hex");
 var canonicalize = (value) => {
   if (value === null) return "null";
@@ -619,6 +621,8 @@ var emptyProjection = (host) => ({
   tools: { allow: [], deny: [], mode: null },
   sampling: { temperature: null, topP: null, reasoningEffort: null }
 });
+
+// src/redaction.ts
 var LANGUAGES = {
   ts: "typescript",
   tsx: "typescript",
@@ -705,6 +709,8 @@ var scrubSecrets = (value) => {
   return out;
 };
 var truncate = (value, max) => value.length <= max ? value : `${value.slice(0, max - 1)}\u2026`;
+
+// src/tracker.ts
 var NOOP_PROMISE = async () => {
 };
 var disabled = {

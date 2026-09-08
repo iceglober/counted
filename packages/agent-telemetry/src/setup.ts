@@ -26,7 +26,7 @@ import {
   type Fingerprint,
   type PromptDigest,
   type SetupProjection,
-} from "@counted/agent-core";
+} from "./telemetry";
 
 const readSafe = (path: string): string | undefined => {
   try {

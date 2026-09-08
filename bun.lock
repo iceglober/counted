@@ -192,35 +192,12 @@
     },
     "packages/agent-claude-code": {
       "name": "@counted/claude-code",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "bin": {
         "counted-claude-code-hook": "bin/counted-hook.mjs",
       },
       "dependencies": {
-        "@counted/agent": "workspace:*",
-      },
-      "devDependencies": {
-        "tsup": "^8.0.0",
-      },
-    },
-    "packages/agent-cli": {
-      "name": "@counted/agent",
-      "version": "2.0.0",
-      "bin": {
-        "counted-agent": "bin/counted-agent.mjs",
-      },
-      "dependencies": {
-        "@counted/agent-core": "workspace:*",
-      },
-      "devDependencies": {
-        "tsup": "^8.0.0",
-      },
-    },
-    "packages/agent-core": {
-      "name": "@counted/agent-core",
-      "version": "2.0.0",
-      "dependencies": {
-        "@counted/sdk": "workspace:*",
+        "@counted/agent-telemetry": "^2.0.0",
       },
       "devDependencies": {
         "tsup": "^8.0.0",
@@ -228,10 +205,22 @@
     },
     "packages/agent-opencode": {
       "name": "@counted/opencode",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "dependencies": {
-        "@counted/agent": "workspace:*",
-        "@counted/agent-core": "workspace:*",
+        "@counted/agent-telemetry": "^2.0.0",
+      },
+      "devDependencies": {
+        "tsup": "^8.0.0",
+      },
+    },
+    "packages/agent-telemetry": {
+      "name": "@counted/agent-telemetry",
+      "version": "2.0.0",
+      "bin": {
+        "counted-agent": "bin/counted-agent.mjs",
+      },
+      "dependencies": {
+        "@counted/sdk": "^2.0.0",
       },
       "devDependencies": {
         "tsup": "^8.0.0",
@@ -370,21 +359,6 @@
     "packages/kernel": {
       "name": "@counted/kernel",
       "version": "0.0.0",
-    },
-    "packages/migrate": {
-      "name": "@counted/migrate",
-      "version": "2.0.0",
-      "bin": {
-        "counted-migrate": "dist/cli.js",
-      },
-      "dependencies": {
-        "csv-parse": "^6.2.1",
-      },
-      "devDependencies": {
-        "@changesets/changelog-github": "^0.7.0",
-        "@changesets/cli": "^2.31.0",
-        "tsup": "^8.0.0",
-      },
     },
     "packages/openapi": {
       "name": "@counted/openapi",
@@ -683,9 +657,7 @@
 
     "@counted/adapter-stripe": ["@counted/adapter-stripe@workspace:packages/adapters/stripe"],
 
-    "@counted/agent": ["@counted/agent@workspace:packages/agent-cli"],
-
-    "@counted/agent-core": ["@counted/agent-core@workspace:packages/agent-core"],
+    "@counted/agent-telemetry": ["@counted/agent-telemetry@workspace:packages/agent-telemetry"],
 
     "@counted/analytics-adapter-litics": ["@counted/analytics-adapter-litics@workspace:packages/analytics/adapter-litics"],
 
@@ -730,8 +702,6 @@
     "@counted/kernel": ["@counted/kernel@workspace:packages/kernel"],
 
     "@counted/mcp-server": ["@counted/mcp-server@workspace:apps/mcp"],
-
-    "@counted/migrate": ["@counted/migrate@workspace:packages/migrate"],
 
     "@counted/openapi": ["@counted/openapi@workspace:packages/openapi"],
 
@@ -1420,8 +1390,6 @@
     "cssesc": ["cssesc@3.0.0", "", { "bin": { "cssesc": "bin/cssesc" } }, "sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg=="],
 
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
-
-    "csv-parse": ["csv-parse@6.2.1", "", {}, "sha512-LRLMV+UCyfMokp8Wb411duBf1gaBKJfOfBWU9eHMJ+b+cJYZsNu3AFmjJf3+yPGd59Exz1TsMjaSFyxnYB9+IQ=="],
 
     "cva": ["cva@1.0.0-beta.4", "", { "dependencies": { "clsx": "^2.1.1" }, "peerDependencies": { "typescript": ">= 4.5.5" }, "optionalPeers": ["typescript"] }, "sha512-F/JS9hScapq4DBVQXcK85l9U91M6ePeXoBMSp7vypzShoefUBxjQTo3g3935PUHgQd+IW77DjbPRIxugy4/GCQ=="],
 

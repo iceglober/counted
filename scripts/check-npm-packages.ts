@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "..");
 const scratch = await mkdtemp(join(tmpdir(), "counted-npm-check-"));
-const names = ["sdk-js", "agent-core", "react", "agent-cli", "agent-claude-code", "agent-opencode", "migrate"];
+const names = ["sdk-js", "react", "agent-telemetry", "agent-claude-code", "agent-opencode"];
 async function run(cmd: string[], cwd: string) {
   const child = Bun.spawn(cmd, { cwd, stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
@@ -28,6 +28,7 @@ try {
   await writeFile(join(scratch, "check.mjs"), `
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { existsSync } from "node:fs";
 import { Counted } from "@counted/sdk";
 import { AnalyticsProvider, useAnalytics } from "@counted/react";
 import { createElement } from "react";
@@ -49,8 +50,16 @@ assert.equal(request.body.events[0].userId, undefined);
 assert.ok(request.body.events[0].visitId);
 function Consumer() { assert.equal(typeof useAnalytics().track, "function"); return createElement("span", null, "ready"); }
 assert.match(renderToString(createElement(AnalyticsProvider, { projectKey: "fixture_ingest_key" }, createElement(Consumer))), /ready/);
-await import("@counted/agent-core");
-await import("@counted/agent");
+const telemetry = await import("@counted/agent-telemetry");
+assert.equal(typeof telemetry.createAgentTracker, "function");
+assert.equal(typeof telemetry.handle, "function");
+assert.equal(typeof telemetry.openCodeProjection, "function");
+assert.equal(typeof require("@counted/agent-telemetry").createAgentTracker, "function");
+assert.equal(typeof (await import("@counted/claude-code")).handle, "function");
+assert.equal(typeof (await import("@counted/opencode")).CountedPlugin, "function");
+for (const retired of ["agent", "agent-core", "migrate"]) {
+  assert.equal(existsSync(new URL("./node_modules/@counted/" + retired, import.meta.url)), false);
+}
 console.log("Clean npm install: SDK ESM/CJS, default endpoint, wire event, React SSR and agent dependency graph passed.");
 `);
   console.log((await run(["node", "check.mjs"], scratch)).trim());

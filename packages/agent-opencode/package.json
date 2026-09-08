@@ -1,7 +1,7 @@
 {
   "name": "@counted/opencode",
-  "version": "2.0.0",
-  "description": "Counted analytics plugin for OpenCode \u2014 track AI agent actions privately",
+  "version": "2.0.1",
+  "description": "Counted analytics plugin for OpenCode — track AI agent actions privately",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -33,7 +33,7 @@
     "tsup": "^8.0.0"
   },
   "dependencies": {
-    "@counted/agent": "^2.0.0",
-    "@counted/agent-core": "^2.0.0"
-  }
+    "@counted/agent-telemetry": "^2.0.0"
+  },
+  "homepage": "https://counted.dev/for/agents"
 }

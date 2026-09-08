@@ -1,90 +1,41 @@
 # @counted/opencode
 
-Native [OpenCode](https://opencode.ai) plugin for [Counted](https://counted.dev) —
-privacy-first analytics for AI agent dev sessions. No code, content, or PII ever
-leaves the machine.
+Counted telemetry integration for OpenCode. This is an in-process plugin that receives OpenCode lifecycle and tool callbacks and uses `@counted/agent-telemetry` for tracking and configuration projection.
 
 ## Install
 
-Add it to your `opencode.json` `plugin` array (OpenCode auto-installs it):
+Add the package to `opencode.json`:
 
 ```json
-{
-  "plugin": ["@counted/opencode"]
-}
+{ "plugin": ["@counted/opencode"] }
 ```
 
-Or drop a re-export in `.opencode/plugins/counted.ts` (project) or
-`~/.config/opencode/plugins/counted.ts` (global):
+Set your Counted project's ingest key before starting OpenCode:
 
-```ts
-export { CountedPlugin } from "@counted/opencode";
+```sh
+export COUNTED_AGENT_KEY="YOUR_INGEST_KEY"
+# Optional full URL for self-hosted ingestion:
+export COUNTED_AGENT_ENDPOINT="https://analytics.example.com/v1/events"
 ```
 
-Then set your project's **client** key in the environment:
+Without a key, the plugin sends nothing. It flushes on idle and shutdown and flushes the previous tracker when switching host sessions.
 
-```bash
-export COUNTED_AGENT_KEY="ck_your_agent_project_client_key"
-# Optional — defaults to https://app.counted.dev
-export COUNTED_AGENT_HOST="https://app.counted.dev"
-```
+## Events
 
-The plugin is a **no-op until `COUNTED_AGENT_KEY` is set**. Create the project
-with the **agent** dashboard template so the pre-built insights line up.
+| OpenCode signal | Counted event |
+| --- | --- |
+| `session.created` | `agent_session_start` |
+| `session.deleted` | `agent_session_end` |
+| `tool.execute.after` | `agent_tool_use` with a success outcome |
+| Edit/write tool calls | `agent_file_edit` with relative path, action, and language |
+| Bash tool calls | `agent_command_run` with the binary name |
 
-## What it tracks
+Per-tool failure attribution is not implemented; the after-hook reports successful calls. Prompt text, file contents, diffs, command arguments, and output are not transmitted. Avoid personal data in paths, tool names, and labels.
 
-| OpenCode signal | Counted event | Props |
-| --- | --- | --- |
-| `session.created` | `session_start` | `mode` |
-| `tool.execute.after` (any) | `tool_use` | `tool`, `outcome` |
-| `tool.execute.after` (edit/write) | `file_edit` | `filePath` (repo-relative), `action`, `language` |
-| `tool.execute.after` (bash) | `command_run` | `command` (binary name only) |
-| `session.idle` / `dispose` | — (flush) | — |
+## Compare configurations
 
-Events run through a single long-lived `@counted/sdk` `Analytics` instance
-(batched, flushed on idle and on dispose).
+The configuration hook supplies the model, tool settings, agent names, and sampling settings used to calculate setup context. Events can carry `setupHash`, `setupSpec`, `setupHostSpec`, and an optional `COUNTED_SETUP_LABEL`. Create Insights over `agent_*` events and group by these properties to compare configurations.
 
-## Privacy
+## Custom integrations
 
-- File **paths** only (repo-relative; basename fallback), never contents or diffs.
-- Command **binary name** only (`git`, `bun`, …) — no arguments, no output.
-- No prompt text, no AI responses, no PII.
-
-OpenCode surfaces tool failures on the event stream rather than the after-hook,
-so per-tool `outcome` is currently always `success`; failures aren't attributed
-to a specific tool yet.
-
-## Compare agent setups
-
-Every event carries a **setup fingerprint** so you can break metrics down by
-agentic configuration:
-
-- `setupHash` — a stable digest of your `opencode.json` setup: model, agent/
-  prompt definitions, tools, permissions, and sampling params. Only the digest
-  is sent — prompt content never leaves the machine. `setupHashVersion` tracks
-  the scheme.
-- `model` — sent in the clear so breakdowns are readable.
-- `setupLabel` — optional human bucket; set `COUNTED_SETUP_LABEL="reviewer-v2"`.
-
-Add a breakdown insight grouped by `setupHash` (or `setupLabel`) over `tool_use`
-outcome, `command_run`, or `file_edit` to compare setups.
-
-## Advanced
-
-The package root exports **only** `CountedPlugin` — OpenCode's loader calls every
-function a plugin module exports as a plugin, so the helper API is shipped from a
-separate subpath. If you want to emit events from your own OpenCode plugin instead
-of using `CountedPlugin` directly, import the low-level helpers from
-`@counted/opencode/api`:
-
-```ts
-import { init, track, trackToolUse } from "@counted/opencode/api";
-
-init({ projectKey: "ck_...", sessionId: mySessionId });
-trackToolUse({ tool: "search", outcome: "success" });
-```
-
-## License
-
-MIT
+The package entry point exports `CountedPlugin` and its default export for the host loader. Build custom tracking with `createAgentTracker` from [`@counted/agent-telemetry`](../agent-telemetry). There is no `@counted/opencode/api` subpath.

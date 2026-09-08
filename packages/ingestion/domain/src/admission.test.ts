@@ -109,7 +109,7 @@ describe("names", () => {
   });
 
   test("the session context the tracker stamps on every event is not mistaken for a property", () => {
-    // agent-core sends `{ ...context, ...properties }` flat on the wire. Held
+    // agent-telemetry sends `{ ...context, ...properties }` flat on the wire. Held
     // to the event's own field list, every agent event ever sent would be
     // refused for carrying `setupHash`.
     const result = admitOne(

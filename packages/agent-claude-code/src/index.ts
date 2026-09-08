@@ -3,5 +3,5 @@
  * The plugin itself is `hooks/hooks.json` + `bin/counted-hook.mjs`.
  */
 
-export { handle, type RunDeps } from "@counted/agent";
-export { HOSTS } from "@counted/agent";
+export { handle, type RunDeps } from "@counted/agent-telemetry";
+export { HOSTS } from "@counted/agent-telemetry";

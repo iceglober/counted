@@ -1,5 +1,5 @@
 {
-  "_comment": "The agent telemetry vocabulary. One source; the generator emits an identical module into packages/agent-core (which validates before sending) and packages/domain (which validates at ingest). Neither hand-maintains a copy of this list.",
+  "_comment": "The agent telemetry vocabulary. One source; the generator emits an identical module into packages/agent-telemetry (which validates before sending) and packages/ingestion/domain (which validates at ingest). Neither hand-maintains a copy of this list.",
   "setupSpec": "counted.setup/1",
   "hosts": ["claude-code", "opencode", "codex", "gemini", "generic"],
   "prefix": "agent_",

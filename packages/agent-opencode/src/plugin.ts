@@ -15,8 +15,8 @@ import {
   createAgentTracker,
   type AgentTracker,
   type SetupProjection,
-} from "@counted/agent-core";
-import { openCodeProjection } from "@counted/agent";
+  openCodeProjection,
+} from "@counted/agent-telemetry";
 
 /** Structural only. The authoritative types live in `@opencode-ai/plugin`. */
 type Hooks = Record<string, (...args: never[]) => unknown>;

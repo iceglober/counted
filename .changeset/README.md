@@ -4,7 +4,7 @@ This directory is used by [changesets](https://github.com/changesets/changesets)
 
 ## Adding a changeset
 
-When you make a change to `@counted/sdk`, `@counted/react`, or `@counted/migrate`:
+When you make a change to a published SDK or agent integration package:
 
 ```bash
 npx @changesets/cli add

@@ -240,3 +240,17 @@ jobs:
           test "$(npm view @counted/sdk@2.0.0 version)" = "2.0.0"
           npm deprecate @counted/sdk@0.1.2 \
             "This version targets the retired Counted API. Upgrade to @counted/sdk@2 or later and follow https://docs.counted.dev/getting-started."
+      - name: Retire replaced and discontinued packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(npm view @counted/agent-telemetry@2.0.0 version)" = "2.0.0"
+          test "$(npm view @counted/claude-code@2.0.1 dependencies.@counted/agent-telemetry)" = "^2.0.0"
+          test "$(npm view @counted/opencode@2.0.1 dependencies.@counted/agent-telemetry)" = "^2.0.0"
+          npm deprecate @counted/agent \
+            "Replaced by @counted/agent-telemetry. Update your package and imports; the counted-agent command is unchanged."
+          npm deprecate @counted/agent-core \
+            "Merged into @counted/agent-telemetry. Import the shared tracking APIs from @counted/agent-telemetry."
+          npm deprecate @counted/migrate \
+            "Discontinued. Counted no longer provides or maintains this migration utility."
