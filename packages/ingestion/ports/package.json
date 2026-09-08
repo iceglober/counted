@@ -1,0 +1,19 @@
+{
+  "name": "@counted/ingestion-ports",
+  "version": "0.0.0",
+  "private": true,
+  "description": "EventSink, IngestQuota and GeoLocator — where admitted events go, what stops them, and where they came from.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@counted/ingestion-domain": "workspace:*",
+    "@counted/kernel": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test src"
+  }
+}

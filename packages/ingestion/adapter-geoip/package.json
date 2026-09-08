@@ -1,0 +1,20 @@
+{
+  "name": "@counted/ingestion-adapter-geoip",
+  "version": "0.0.0",
+  "private": true,
+  "description": "GeoLocator over a bundled registry-derived prefix table. The only package that reads an IP address.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@counted/ingestion-domain": "workspace:*",
+    "@counted/ingestion-ports": "workspace:*",
+    "@counted/kernel": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test src"
+  }
+}

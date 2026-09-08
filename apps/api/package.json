@@ -2,30 +2,40 @@
   "name": "@counted/api-server",
   "version": "0.0.0",
   "private": true,
+  "description": "The oRPC router, three hand-written routes, and better-auth's handler.",
   "type": "module",
-  "description": "The HTTP API. The only network door to the domain.",
-  "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts",
-    "build": "tsc --build",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit"
-  },
   "dependencies": {
-    "@counted/domain": "workspace:*",
-    "@counted/ports": "workspace:*",
-    "@counted/application": "workspace:*",
-    "@counted/adapter-postgres": "workspace:*",
-    "hono": "^4.6.0",
-    "pg": "^8.13.0",
     "@counted/adapter-crypto": "workspace:*",
-    "@counted/contracts": "workspace:*",
-    "@counted/adapter-stripe": "workspace:*",
     "@counted/adapter-notify": "workspace:*",
-    "zod": "^3.24.0",
-    "@counted/aptabase-compat": "workspace:*"
+    "@counted/adapter-postgres": "workspace:*",
+    "@counted/adapter-stripe": "workspace:*",
+    "@counted/analytics-adapter-litics": "workspace:*",
+    "@counted/analytics-app": "workspace:*",
+    "@counted/analytics-domain": "workspace:*",
+    "@counted/analytics-ports": "workspace:*",
+    "@counted/authorization": "workspace:*",
+    "@counted/contract": "workspace:*",
+    "@counted/dashboarding-app": "workspace:*",
+    "@counted/dashboarding-domain": "workspace:*",
+    "@counted/dashboarding-ports": "workspace:*",
+    "@counted/identity-adapter-better-auth": "workspace:*",
+    "@counted/identity-ports": "workspace:*",
+    "@counted/ingestion-adapter-geoip": "workspace:*",
+    "@counted/ingestion-app": "workspace:*",
+    "@counted/ingestion-domain": "workspace:*",
+    "@counted/ingestion-ports": "workspace:*",
+    "@counted/kernel": "workspace:*",
+    "@counted/persistence-ports": "workspace:*",
+    "@counted/projects-app": "workspace:*",
+    "@counted/projects-domain": "workspace:*",
+    "@counted/projects-ports": "workspace:*",
+    "@counted/tenancy-app": "workspace:*",
+    "@counted/tenancy-domain": "workspace:*",
+    "@counted/tenancy-ports": "workspace:*"
   },
-  "devDependencies": {
-    "@counted/sdk-js": "workspace:*"
+  "scripts": {
+    "test": "bun test src",
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts"
   }
 }

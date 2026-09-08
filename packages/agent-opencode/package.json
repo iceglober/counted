@@ -30,11 +30,10 @@
     "directory": "packages/agent-opencode"
   },
   "devDependencies": {
-    "@counted/sdk": "workspace:*",
     "tsup": "^8.0.0"
   },
   "dependencies": {
-    "@counted/agent": "workspace:*",
-    "@counted/agent-core": "workspace:*"
+    "@counted/agent": "^2.0.0",
+    "@counted/agent-core": "^2.0.0"
   }
 }

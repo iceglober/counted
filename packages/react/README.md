@@ -5,7 +5,7 @@ React hooks for [@counted/sdk](https://www.npmjs.com/package/@counted/sdk). Priv
 ## Install
 
 ```bash
-npm install @counted/react
+npm install @counted/react@^2 @counted/sdk@^2
 ```
 
 ## Usage

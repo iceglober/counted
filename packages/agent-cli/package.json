@@ -6,11 +6,21 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": { "counted-agent": "bin/counted-agent.mjs" },
-  "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "require": "./dist/index.cjs" }
+  "bin": {
+    "counted-agent": "bin/counted-agent.mjs"
   },
-  "files": ["dist", "bin", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup",
     "prepublishOnly": "bun run build",
@@ -18,6 +28,15 @@
     "typecheck": "tsc --noEmit"
   },
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/iceglober/counted.git", "directory": "packages/agent-cli" },
-  "dependencies": { "@counted/agent-core": "workspace:*" }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iceglober/counted.git",
+    "directory": "packages/agent-cli"
+  },
+  "dependencies": {
+    "@counted/agent-core": "^2.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0"
+  }
 }

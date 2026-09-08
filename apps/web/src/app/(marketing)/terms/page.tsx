@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalPage, H2, P, UL } from "../legal-page";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Counted",
+  title: "Terms of Service",
   description: "The terms governing use of Counted, a product of Iceglobe Enterprises LLC.",
   alternates: { canonical: "/terms" },
 };
@@ -33,7 +33,7 @@ export default function TermsPage() {
       <P>Paid plans are billed in advance through Stripe on the cadence you select (monthly or annually) and renew automatically until cancelled. You can cancel anytime; access continues through the end of the paid period. Fees are non-refundable except where required by law. We&apos;ll give reasonable notice of price changes.</P>
 
       <H2>Your data</H2>
-      <P>You own the data you send to Counted. You grant us the limited rights needed to host and process it to provide the service. Our handling of personal data is described in our <a href="/privacy" className="text-accent hover:text-accent-hover transition-colors">Privacy Policy</a>. You can export or delete your data as described there.</P>
+      <P>You own the data you send to Counted. You grant us the limited rights needed to host and process it to provide the service. Our handling of personal data is described in our <a href="/privacy" >Privacy Policy</a>. You can export or delete your data as described there.</P>
 
       <H2>Open source</H2>
       <P>Counted&apos;s source code is released under the MIT license and may be self-hosted under that license. These Terms govern the <em>hosted</em> service we operate; the &quot;Counted&quot; name and logo are our trademarks and are not licensed by the MIT grant.</P>
@@ -48,7 +48,7 @@ export default function TermsPage() {
       <P>These Terms are governed by the laws of the State of Washington, USA, without regard to its conflict-of-laws rules, and you agree to the exclusive jurisdiction of the state and federal courts located in King County, Washington.</P>
 
       <H2>Changes & contact</H2>
-      <P>We may update these Terms and will revise the date above; continued use means you accept the changes. Questions: <a href="mailto:privacy@counted.dev" className="text-accent hover:text-accent-hover transition-colors">privacy@counted.dev</a>.</P>
+      <P>We may update these Terms and will revise the date above; continued use means you accept the changes. Questions: <a href="mailto:privacy@counted.dev" >privacy@counted.dev</a>.</P>
     </LegalPage>
   );
 }

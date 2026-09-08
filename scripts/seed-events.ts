@@ -51,6 +51,38 @@ const PLANS = ["free", "pro"];
 const BROWSERS = ["Chrome", "Safari", "Firefox", "Edge"];
 const OSES = ["macOS", "Windows", "Linux", "iOS", "Android"];
 
+/**
+ * One address per visit, so the seeded project has a country breakdown.
+ *
+ * `country` is derived from the request address and the address is discarded
+ * (see `packages/ingestion/adapter-geoip`), so it cannot be seeded as a
+ * property — the only way to produce one is to send the header a proxy would.
+ * These are stable, long-delegated blocks in six registries; weighted so the
+ * chart has a shape rather than six equal bars.
+ *
+ * A visit's events are posted together, because the address is a property of a
+ * request and one request has one country.
+ */
+const ORIGINS: readonly (readonly [string, number])[] = [
+  ["8.8.8.8", 34],          // US
+  ["213.32.1.1", 18],       // FR
+  ["139.130.4.5", 12],      // AU
+  ["2a00:1450:4001::1", 12],// IE, and the IPv6 path
+  ["200.40.30.245", 8],     // UY
+  ["196.10.52.1", 6],       // ZA
+  ["10.0.0.1", 10],         // a private range: no country, which is a real answer
+];
+const ORIGIN_TOTAL = ORIGINS.reduce((sum, [, weight]) => sum + weight, 0);
+
+const anOrigin = (): string => {
+  let roll = rand() * ORIGIN_TOTAL;
+  for (const [address, weight] of ORIGINS) {
+    roll -= weight;
+    if (roll <= 0) return address;
+  }
+  return ORIGINS[0]![0];
+};
+
 type SeedEvent = {
   name: string;
   visitId: string;
@@ -59,12 +91,15 @@ type SeedEvent = {
   properties?: Record<string, unknown>;
 };
 
+/** A visit's events plus the address they are posted from. Never sent in a body. */
+type SeedVisit = { readonly address: string; readonly events: readonly SeedEvent[] };
+
 /**
  * A visit is a session of activity, not a person — which is the product's whole
  * identity model. Only visits that sign up get a `userId`, and it arrives on
  * the signup event onward, exactly as `identify()` would deliver it.
  */
-const visit = (index: number, now: number): SeedEvent[] => {
+const visit = (index: number, now: number): SeedVisit => {
   const id = crypto.randomUUID();
   // Weight recent days more heavily so the chart has a visible trend rather
   // than a flat band.
@@ -149,15 +184,23 @@ const visit = (index: number, now: number): SeedEvent[] => {
     }
   }
 
-  return events;
+  return { address: anOrigin(), events };
 };
 
-const post = async (path: string, body: unknown, key?: string): Promise<Response> =>
+const post = async (
+  path: string,
+  body: unknown,
+  key?: string,
+  from?: string,
+): Promise<Response> =>
   fetch(`${API}${path}`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       ...(key === undefined ? {} : { authorization: `Bearer ${key}` }),
+      // What a reverse proxy would append. The API derives a country from it
+      // and throws it away; there is no other way to seed geography.
+      ...(from === undefined ? {} : { "x-forwarded-for": from }),
     },
     body: JSON.stringify(body),
   });
@@ -176,21 +219,38 @@ const main = async (): Promise<void> => {
   }
 
   const now = Date.now();
-  const events: SeedEvent[] = [];
-  for (let i = 0; i < VISITS; i += 1) events.push(...visit(i, now));
-  // Oldest first, so the ingest order matches the occurrence order.
-  events.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+  const visits: SeedVisit[] = [];
+  for (let i = 0; i < VISITS; i += 1) visits.push(visit(i, now));
+
+  /**
+   * Batched by address rather than purely by time.
+   *
+   * A country belongs to a request, so a batch has exactly one. Within each
+   * address the events are still oldest-first, which is what the ordering was
+   * for; across addresses the interleaving does not matter, because every event
+   * carries its own `occurredAt` and nothing is stamped on arrival.
+   */
+  const byAddress = new Map<string, SeedEvent[]>();
+  for (const v of visits) {
+    const bucket = byAddress.get(v.address) ?? [];
+    bucket.push(...v.events);
+    byAddress.set(v.address, bucket);
+  }
+  const total = visits.reduce((sum, v) => sum + v.events.length, 0);
 
   let accepted = 0;
   let rejected = 0;
   const BATCH = 100;
-  for (let i = 0; i < events.length; i += BATCH) {
-    const res = await post("/v1/events", { events: events.slice(i, i + BATCH) }, key);
-    if (!res.ok) throw new Error(`ingest failed at ${i}: ${res.status} ${await res.text()}`);
-    const out = (await res.json()) as { accepted: number; rejected: number };
-    accepted += out.accepted;
-    rejected += out.rejected;
-    process.stdout.write(`\r  ${accepted}/${events.length} events`);
+  for (const [address, batch] of byAddress) {
+    batch.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+    for (let i = 0; i < batch.length; i += BATCH) {
+      const res = await post("/v1/events", { events: batch.slice(i, i + BATCH) }, key, address);
+      if (!res.ok) throw new Error(`ingest failed at ${i}: ${res.status} ${await res.text()}`);
+      const out = (await res.json()) as { accepted: number; rejected: number };
+      accepted += out.accepted;
+      rejected += out.rejected;
+      process.stdout.write(`\r  ${accepted}/${total} events`);
+    }
   }
 
   console.log(`\n\n${accepted} accepted, ${rejected} rejected over ${DAYS} days from ${VISITS} visits`);

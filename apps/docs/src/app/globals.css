@@ -1,0 +1,12 @@
+@import "@counted/ui/styles.css";
+@source "../../../../packages/ui/src";
+@source not "../../../../packages/ui/src/**/*.test.{ts,tsx}";
+
+html { scroll-padding-top: 6rem; }
+body { margin: 0; }
+.docs-header { position: relative; z-index: 40; background: var(--background); }
+#api-reference { min-width: 0; outline: none; }
+.scalar-app { min-width: 0; }
+@media (max-width: 639px) {
+  .scalar-app { --scalar-custom-header-height: 113px; }
+}

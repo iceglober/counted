@@ -7,22 +7,15 @@ Thanks for your interest in contributing. Here's how to get started.
 ```bash
 git clone https://github.com/iceglober/counted.git
 cd counted
-bun run setup
-```
-
-This starts TimescaleDB via Docker, installs dependencies, creates `.env.local`, builds SDKs, and seeds the database with 3 projects and ~1,400 realistic events across 30 days.
-
-Then start the dev server:
-
-```bash
+bun install
+cp .env.example .env.local
 bun run dev
 ```
 
-Login as `test@counted.dev` via magic link. To get the token without email:
-
-```bash
-docker compose exec db psql -U counted -c "SELECT identifier FROM verification ORDER BY created_at DESC LIMIT 1;"
-```
+`bun run dev` starts a stock Postgres 17 in Docker (nothing to install on it), the API on
+:8080 and the console on :3000. Sign in with any email: without a mail provider configured
+the magic link is printed to the API's log. `DEVELOPING.md` has the whole setup, the three
+schemas, and how to reset.
 
 ### Manual setup
 
@@ -71,14 +64,12 @@ a claim link at the end.
 
 ## SDK Development
 
-SDK packages live in `packages/`. Each has its own `tsup.config.ts` and builds independently:
-
-```bash
-cd packages/sdk && bun run build
-cd packages/react && bun run build
-```
-
-The app depends on `@counted/sdk` as a workspace package — build the SDK before running the app if you change it.
+SDKs live in `packages/sdk-js`, `packages/react`, `packages/python`, `packages/go` and
+`packages/rust`. Their request and response types are generated from the contract in
+`packages/contract` — never edit a `gen/` directory by hand; change the contract and run
+`bun run contract:check`, which regenerates every SDK's artefacts and fails CI on drift.
+`bun run typecheck` and `bun run test` cover the TypeScript SDKs; each other language has
+its own test command in its package.
 
 ## Questions?
 

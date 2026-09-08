@@ -1,13 +1,20 @@
 name: Smoke
 
-# Production smoke test. Railway has no clean post-deploy hook, so we run on a
-# schedule (catches a bad deploy within the interval) plus on demand. Exercises
-# the real data path that /api/health can't — see scripts/smoke.ts.
+# Production smoke test. Run after each successful Deploy, on a schedule
+# (catches failures between deployments), and on demand. Exercises
+# the real data path that /health can't — see scripts/smoke.ts.
 
 on:
   schedule:
     - cron: "*/10 * * * *" # every 10 minutes
   workflow_dispatch:
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
 
 concurrency:
   group: smoke
@@ -18,20 +25,52 @@ jobs:
     name: Production smoke
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: >-
+      (github.event_name != 'workflow_run' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select the live production release
+        id: release
+        env:
+          SMOKE_API_URL: https://api.counted.dev
+        run: |
+          set -euo pipefail
+          body="$(curl --fail --silent --show-error --max-time 15 "${SMOKE_API_URL}/health/ready")"
+          release="$(jq -er 'select(.status == "ready") | .release | select(type == "string" and length == 40)' <<< "$body")"
+          if [[ ! "$release" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Readiness must identify a full commit SHA." >&2
+            exit 1
+          fi
+          git cat-file -e "${release}^{commit}"
+          if ! git merge-base --is-ancestor "$release" origin/main; then
+            echo "The live API release is not on main." >&2
+            exit 1
+          fi
+          git checkout --detach "$release"
+          [[ "$(git rev-parse HEAD)" == "$release" ]]
+          echo "sha=$release" >> "$GITHUB_OUTPUT"
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
       - name: Run smoke checks
         run: bun scripts/smoke.ts
         env:
+          SMOKE_MODE: release
+          SMOKE_EXPECTED_RELEASE: ${{ steps.release.outputs.sha }}
           # The API is its own deployable in v2. Pointing these checks at the
           # console is how the canary spent its time reporting 404s.
           SMOKE_API_URL: https://api.counted.dev
           SMOKE_APP_URL: https://app.counted.dev
           SMOKE_MARKETING_URL: https://counted.dev
-          # Optional — set as repo secrets to unlock the ingestion + authenticated checks:
+          SMOKE_DOCS_URL: https://docs.counted.dev
+          SMOKE_MCP_URL: https://mcp.counted.dev
+          # Required: credentials for the same dedicated synthetic project.
           SMOKE_CLIENT_KEY: ${{ secrets.SMOKE_CLIENT_KEY }}
           SMOKE_SERVICE_KEY: ${{ secrets.SMOKE_SERVICE_KEY }}
           SMOKE_PROJECT_ID: ${{ secrets.SMOKE_PROJECT_ID }}

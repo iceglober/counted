@@ -22,7 +22,7 @@
  * Three scenarios failed for that reason and none of them was an SDK bug.
  */
 
-import { Counted } from "@counted/sdk-js";
+import { Counted } from "@counted/sdk";
 import type { CapturedRequest, Harness } from "./runner";
 
 type Answer = { status: number; headers?: Record<string, string>; body?: unknown } | "network-error";
@@ -58,7 +58,7 @@ export const createJsHarness = (options: Record<string, unknown> = {}): Harness 
           resolve(
             new Response(answer.body === undefined ? "" : JSON.stringify(answer.body), {
               status: answer.status,
-              headers: answer.headers,
+              headers: answer.headers ?? {},
             }),
           );
         },

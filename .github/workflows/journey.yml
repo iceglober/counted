@@ -1,0 +1,76 @@
+name: Journey
+
+# The end-to-end suite: one customer, start to finish, against a real API
+# process and a real Postgres. It is separate from `bun test` on purpose —
+# `bun test` runs over in-memory doubles and cannot see the class of defect
+# this catches (a derived register, a tenancy row nothing writes, a contract
+# namespace nobody mounted). See `tests/journey/`.
+#
+# It needs one repository and a stock Postgres. `@litics/core` and
+# `@litics/compactor` are vendored under `vendor/` (see
+# `scripts/vendor-litics.ts`), and litics runs on a database with nothing
+# installed — the suite asserts that `pg_extension` holds one row.
+
+on:
+  push:
+    branches: [main, "v3/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: journey-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  journey:
+    name: End-to-end journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out Counted
+        uses: actions/checkout@v4
+        with:
+          path: counted
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('counted/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        working-directory: counted
+        run: bun install --frozen-lockfile
+
+      - name: Start the database
+        working-directory: counted
+        run: |
+          docker compose up -d db
+          for _ in $(seq 1 60); do
+            state="$(docker inspect --format '{{.State.Health.Status}}' counted-db-1 2>/dev/null || echo missing)"
+            [ "$state" = healthy ] && break
+            sleep 2
+          done
+          [ "$state" = healthy ] || { docker compose logs db; exit 1; }
+
+      # The suite starts its own API on a port of its own, applies all three
+      # schemas at boot, and stubs only the payment provider. Nothing else here
+      # needs configuring.
+      - name: Run the journey
+        working-directory: counted
+        env:
+          COUNTED_JOURNEY_DATABASE_URL: postgres://counted:counted@127.0.0.1:5434/counted
+          COUNTED_AUTH_SECRET: journey-ci-secret-0123456789abcdef0123456789abcd
+        run: bun run journey
+
+      - name: Database logs on failure
+        if: failure()
+        working-directory: counted
+        run: docker compose logs db

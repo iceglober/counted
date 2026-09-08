@@ -1,81 +1,110 @@
 /**
- * Transactional email, via Resend.
+ * Transactional email over Resend.
  *
- * No SDK: one POST, and hand-rolling it keeps the request visible. The failure
- * mode being guarded against is an alert that silently never arrives, so the
- * response is checked and a non-2xx throws rather than being ignored.
+ * Two things about this file are decisions rather than plumbing.
+ *
+ * **The body goes out as plain text, never as HTML.** `Notification` hands
+ * over one `body: string` with no content type, and the strings that reach it
+ * are assembled from customer-controlled data — a workspace name, a monitor
+ * name, a project name. Rendering that as HTML means a workspace called
+ * `<img onerror=…>` becomes markup in somebody's inbox. Text is not a
+ * limitation we are working around; it is the only reading of an untyped
+ * string that is safe by construction.
+ *
+ * **Resend does not throw.** `emails.send` resolves with `{ data, error }` and
+ * a failed send is a resolved promise with `data: null`. Awaiting it and
+ * moving on — which is what the obvious three-line adapter does — reports
+ * success for every rejected recipient, every exhausted quota and every
+ * revoked API key. The whole point of this wrapper is the `if (result.error)`.
  */
 
-import type { Notification } from "@counted/ports";
+import type { CreateEmailOptions, CreateEmailResponse, CreateEmailRequestOptions } from "resend";
+import { isRetryableStatus, NotificationDeliveryError } from "./errors";
 
-export type EmailConfig = {
-  readonly apiKey: string;
-  /** A verified sending domain. Counted's is auth.counted.dev. */
-  readonly from: string;
-  readonly apiBase?: string;
-  readonly fetch?: typeof fetch;
-  readonly timeoutMs?: number;
+export type EmailMessage = {
+  readonly id?: string;
+  readonly to: string;
+  readonly subject: string;
+  readonly body: string;
 };
 
-export class EmailDeliveryError extends Error {
-  constructor(
-    readonly status: number,
-    detail: string,
-  ) {
-    super(`email provider returned ${status}: ${detail}`);
-    this.name = "EmailDeliveryError";
-  }
+export interface EmailSender {
+  send(message: EmailMessage): Promise<void>;
 }
 
 /**
- * Thrown when no mail provider is configured, instead of sending a request that
- * can only fail.
+ * The slice of the Resend client this adapter uses.
  *
- * Distinct from `EmailDeliveryError` so a caller can tell "nobody is set up to
- * send this" from "sending it failed" — the first is a development
- * environment, the second is an incident.
+ * Narrow on purpose: a test supplies four lines rather than a mock of a class
+ * with twenty methods, and the compiler still checks the payload against the
+ * vendor's own type, so a renamed field is caught here rather than at runtime.
  */
-export class EmailNotConfiguredError extends Error {
-  constructor() {
-    super("No mail provider is configured (RESEND_API_KEY is unset).");
-    this.name = "EmailNotConfiguredError";
-  }
+export interface ResendLike {
+  readonly emails: {
+    send(payload: CreateEmailOptions, options?: CreateEmailRequestOptions): Promise<CreateEmailResponse>;
+  };
 }
 
-export const deliverEmail = async (
-  notification: Extract<Notification, { channel: "email" }>,
-  config: EmailConfig,
-): Promise<void> => {
-  // Refuse early rather than POST with an empty bearer token and take a 401.
-  // A comment here used to claim sign-in was testable locally without a mail
-  // provider "because the link is in the log" — it was not, and nothing logged
-  // it. This is the half that makes that true; auth.ts is the other half.
-  if (config.apiKey === "") throw new EmailNotConfiguredError();
-
-  const http = config.fetch ?? fetch;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs ?? 10_000);
-
-  try {
-    const response = await http(`${config.apiBase ?? "https://api.resend.com"}/emails`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${config.apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        from: config.from,
-        to: [notification.to],
-        subject: notification.subject,
-        // Plain text. An alert is not a newsletter, and HTML mail is one more
-        // thing that can render wrongly in the client someone actually uses.
-        text: notification.body,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      throw new EmailDeliveryError(response.status, detail.slice(0, 200));
-    }
-  } finally {
-    clearTimeout(timeout);
-  }
+export type ResendEmailConfig = {
+  readonly client: ResendLike;
+  /** `"Counted <alerts@counted.dev>"`. Must be a verified sender on the account. */
+  readonly from: string;
+  readonly replyTo?: string;
 };
+
+/**
+ * Resend's `error.name` values that mean "this will never work".
+ *
+ * Kept as a set rather than inferred from `statusCode`, because Resend reports
+ * several of these with a null status — there is no HTTP response to read a
+ * code from when the client rejected the request before sending it.
+ */
+const PERMANENT_ERRORS: ReadonlySet<string> = new Set([
+  "invalid_api_key",
+  "missing_api_key",
+  "restricted_api_key",
+  "validation_error",
+  "invalid_from_address",
+  "invalid_parameter",
+  "invalid_attachment",
+  "missing_required_field",
+  "not_found",
+  "method_not_allowed",
+]);
+
+export const resendEmailSender = (config: ResendEmailConfig): EmailSender => ({
+  async send(message: EmailMessage): Promise<void> {
+    const payload: CreateEmailOptions = {
+      from: config.from,
+      to: message.to,
+      subject: message.subject,
+      text: message.body,
+      ...(config.replyTo === undefined ? {} : { replyTo: config.replyTo }),
+    };
+
+    let response: CreateEmailResponse;
+    try {
+      response = await config.client.emails.send(payload, message.id === undefined ? undefined : { idempotencyKey: message.id });
+    } catch (cause) {
+      // A thrown error from the SDK is a transport failure — DNS, TLS, a
+      // socket reset. Those are worth another attempt.
+      throw new NotificationDeliveryError("email", `Email transport failed: ${describe(cause)}`, {
+        retryable: true,
+        cause,
+      });
+    }
+
+    if (response.error !== null) {
+      const { name, message: detail, statusCode } = response.error;
+      throw new NotificationDeliveryError("email", `Resend refused the message: ${detail}`, {
+        status: statusCode,
+        retryable:
+          !PERMANENT_ERRORS.has(name) &&
+          (statusCode === null || isRetryableStatus(statusCode)),
+      });
+    }
+  },
+});
+
+const describe = (cause: unknown): string =>
+  cause instanceof Error ? cause.message : String(cause);

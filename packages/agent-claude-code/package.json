@@ -35,13 +35,12 @@
     "directory": "packages/agent-claude-code"
   },
   "devDependencies": {
-    "@counted/sdk": "workspace:*",
     "tsup": "^8.0.0"
   },
   "bin": {
     "counted-claude-code-hook": "bin/counted-hook.mjs"
   },
   "dependencies": {
-    "@counted/agent": "workspace:*"
+    "@counted/agent": "^2.0.0"
   }
 }

@@ -1,8 +1,9 @@
-# Self-Hosting Counted
+# Self-hosting Counted
 
-Run Counted on your own infrastructure with Docker Compose.
+Run Counted on your own infrastructure with Docker Compose: the API, the
+console, worker, documentation, MCP server, and a stock Postgres.
 
-## Quick Start
+## Quick start
 
 ```bash
 git clone https://github.com/iceglober/counted.git
@@ -11,126 +12,112 @@ cp .env.example .env
 ```
 
 Edit `.env`:
+
 ```bash
-BETTER_AUTH_SECRET=$(openssl rand -base64 32)
-BASE_URL=https://analytics.yourcompany.com
+COUNTED_AUTH_SECRET=$(openssl rand -hex 32)
+BASE_URL=https://analytics.example.com      # the console
+API_URL=https://api.analytics.example.com   # the API, reachable from browsers
+DOCS_URL=https://docs.analytics.example.com # the documentation
+MCP_URL=https://mcp.analytics.example.com/mcp
 POSTGRES_PASSWORD=a-strong-password
 ```
 
 Start:
+
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
-Counted is now running at `http://localhost:3000`.
+The console is at `http://localhost:3000` and the API at
+`http://localhost:8080`; documentation is at `http://localhost:3001` and MCP at
+`http://localhost:3002/mcp`. The API applies the whole schema on its first boot —
+no manual `psql`, and nothing to install on Postgres. The worker packs
+analytics events into segments, evaluates monitors, enforces retention and
+reconciles workspaces; it starts once the API reports ready.
 
-> **First start builds locally.** If the prebuilt image (`ghcr.io/iceglober/counted`)
-> isn't available yet, Compose runs a full Next.js build on your machine — budget
-> **~2GB RAM to build** (1GB is enough to run once built). Once an image is
-> published, `docker compose pull` grabs it and skips the local build.
+The command builds the checked-out source so all services use the same version.
+The console forwards browser requests through its same-origin API proxy; its
+upstream API and public console origins are runtime settings. Put HTTPS reverse
+proxies in front of the public services and set the URLs in `.env` accordingly.
+`DOCS_URL` controls the console's documentation links and the docs site's canonical
+URLs and sitemap. Docs Explorer/claim links use `BASE_URL`; its request examples
+and downloadable OpenAPI server use `API_URL`. These destinations are read at
+runtime, so changing them requires restarting services, not rebuilding images.
+The private `http://api:8080` upstream is never published in docs. The docs service
+receives only public URLs, with no database connection or credentials.
 
-The database schema (including the TimescaleDB hypertable) is created
-automatically on boot by the container's migration step — no manual `psql` needed.
+## Bring your own Postgres
 
-## Sign In
+Point `DATABASE_URL` in `docker-compose.yml` at any Postgres 14 or later —
+Neon, Supabase, RDS — and drop the `db` service. Nothing needs to be
+installed on it. On a provider that hands out a pooled URL, also set
+`COUNTED_DATABASE_DIRECT_URL` on `api` and `worker` to the direct host: reads
+are faster there and the worker's `LISTEN` only works over a direct
+connection (it falls back to a timer otherwise).
 
-Go to `http://localhost:3000/login` and enter your email.
+## Sign in
 
-**Without Resend configured:** The magic link is printed to the container logs. Open it:
-```bash
-docker compose logs app | grep "Magic link" -A1
-```
-Copy the printed URL into your browser to sign in.
+Open `BASE_URL`, choose Create account, and use email/password. Create a workspace.
 
-**With Resend configured:** The magic link arrives in your email.
+Password sign-up and sign-in work without a mail provider. Configure both
+`RESEND_API_KEY` and `COUNTED_MAIL_FROM` to enable sign-in links, recovery,
+verification, and workspace invitations. Without mail, those actions are
+unavailable; the application does not claim a message was sent.
 
-<sub>Fallback: if you can't read the logs, the token is also in the DB —
-`docker compose exec db psql -U counted -c "SELECT identifier FROM verification ORDER BY created_at DESC LIMIT 1;"`
-then visit `http://localhost:3000/api/auth/magic-link/verify?token=<TOKEN>&callbackURL=/dashboards`.</sub>
+Google and GitHub appear only when both values for that provider are configured.
+Register the callback `${BASE_URL}/api/auth/callback/google` or
+`${BASE_URL}/api/auth/callback/github` with the provider. Keep the auth secret
+stable across restarts and identical on API and worker.
+
+Billing is disabled in this Compose setup. Workspaces use the built-in Free
+allowances; self-hosting does not implicitly grant Pro or change retention.
+The Plan page explains when billing is unavailable. See the deployment guide
+for optional Stripe configuration.
 
 ## Send your first event
 
-By default the SDK ships events to the Counted cloud (`https://app.counted.dev`).
-To point it at your self-hosted instance, set `host`:
-
-```ts
-import { Analytics } from "@counted/sdk";
-
-const counted = new Analytics({
-  projectKey: "ck_your_client_key",   // from Settings → Projects in your instance
-  host: "https://analytics.yourcompany.com",
-});
-
-counted.track("page_view");
-```
-
-Or send one directly with curl:
+Create a project in the console, issue an ingest key from setup, and choose the
+HTTP or JavaScript example. Keep its one-time reveal. For a direct request:
 
 ```bash
-curl -X POST https://analytics.yourcompany.com/api/v0/event \
+COUNTED_VISIT_ID=$(openssl rand -hex 16)
+curl -X POST "$API_URL/v1/events" \
+  -H "Authorization: Bearer ck_your_key" \
   -H "Content-Type: application/json" \
-  -H "Project-Key: ck_your_client_key" \
-  -d '{"eventName":"page_view","sessionId":"test-session"}'
+  -d "{\"events\":[{\"name\":\"app_started\",\"visitId\":\"$COUNTED_VISIT_ID\",\"properties\":{}}]}"
 ```
 
-The same `host` option exists on `@counted/react` (`<AnalyticsProvider projectKey="…" host="…">`).
-The agent plugins read it from the `COUNTED_AGENT_HOST` environment variable.
+A query on the project answers immediately; the worker packs the event into a
+segment within seconds. Use an SDK for batching, retries, and ephemeral visits.
+The project setup page confirms when an event is received. Create an Insight
+from the observed events and properties.
 
-## Production Checklist
-
-- [ ] Set a strong `BETTER_AUTH_SECRET` and `POSTGRES_PASSWORD`
-- [ ] Set `BASE_URL` to your public URL
-- [ ] Configure Resend for email delivery
-- [ ] Set `CRON_SECRET` (`openssl rand -hex 32`) to enable the alerts scheduler — without it the `cron` service is a harmless no-op and alerts never fire
-- [ ] Put behind a reverse proxy (nginx, Caddy, Traefik) with TLS
-- [ ] Set up database backups
-- [ ] Optionally set `TRUSTED_ORIGINS` to your domain
-
-## Reverse Proxy (Caddy example)
-
-```
-analytics.yourcompany.com {
-    reverse_proxy localhost:3000
-}
-```
-
-## Updating
+## Upgrading
 
 ```bash
-cd counted/self-host
-git pull
-docker compose build
-docker compose up -d
+git pull --ff-only
+docker compose up -d --build
 ```
 
-## Data
+The API migrates on boot under a lock. If a release changes the analytics
+schema in a way the old data cannot follow, the release notes say so; there is
+no automatic rewrite of packed segments.
 
-All data is stored in the `pgdata` Docker volume. To back up:
+## Backup and restore
+
+Back up before upgrading, using the same PostgreSQL major version for the
+dump/restore tools. The database includes authentication, dashboard definitions,
+event data, and retry receipts; protect backups as private data.
+
 ```bash
-docker compose exec db pg_dump -U counted counted > backup.sql
+umask 077
+docker compose exec -T db pg_dump -U counted -d counted -Fc > counted.dump
+docker compose exec -T db createdb -U counted counted_restore
+docker compose exec -T db pg_restore -U counted -d counted_restore --exit-on-error < counted.dump
 ```
 
-To restore:
-```bash
-cat backup.sql | docker compose exec -T db psql -U counted counted
-```
-
-## Troubleshooting
-
-Check container health and status:
-```bash
-docker compose ps
-```
-The `app` service reports `healthy` once `/api/health` responds (it waits for the
-database and runs migrations first). If it stays `starting` or `unhealthy`, view
-logs with `docker compose logs app`.
-
-## Resource Requirements
-
-- **Minimum:** 1 vCPU, 1GB RAM
-- **Recommended:** 2 vCPU, 2GB RAM
-- **Storage:** ~600 bytes per event (with indexes). 1M events ≈ 600MB.
-
-## License
-
-MIT — same as the cloud version. No feature restrictions.
+Restore into a separate database first. Verify tables, account access, Insights,
+and ingestion before changing the service connection strings. Stop API and
+worker writes during a final cutover, retain the previous database for rollback,
+and test your provider's scheduled backups independently of this manual example.
+Never restore over the active database as a rehearsal.

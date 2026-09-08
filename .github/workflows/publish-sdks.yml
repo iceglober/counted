@@ -1,6 +1,6 @@
 name: Publish SDKs (PyPI / crates.io / Go)
 
-# Parallel to the npm release (changesets in ci.yml). Every job is idempotent and
+# Separate from the manual npm release (release-sdks.yml). Every job is idempotent and
 # self-gating:
 #   - skips if the registry already has that version, and
 #   - skips (cleanly, not a failure) if the required secret isn't configured yet.

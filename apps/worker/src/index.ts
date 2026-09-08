@@ -1,63 +1,95 @@
 /**
- * The worker process.
+ * @counted/worker — monitor evaluation, retention enforcement, the analytics
+ * compactor, maintenance checks, outbox dispatch, and workspace reconciliation.
  *
- * Starts the loop, and stops it cleanly on SIGTERM: the current tick finishes
- * and its jobs are settled before the process exits. A job interrupted halfway
- * is what the lease exists to recover, but a deploy should not need that
- * recovery for work that was nearly done.
+ * Runs on the private network and is never reachable from the internet. Read
+ * `main.ts` for the wiring and `worker.ts` for the schedule; each job in
+ * `jobs/` is a plain function of its ports and an `Instant`, so the whole
+ * schedule can be exercised with no database, no engine and no network.
+ *
+ * Exported so `main.ts` and the tests agree on one surface. Nothing outside
+ * this app imports it — `apps-are-independent` forbids it, and there is nothing
+ * here another deployable would want.
  */
 
-import { compose, configFromEnv } from "./composition";
-import { WorkerRuntime } from "./runtime";
-import { buildHandlers } from "./handlers";
+export { readConfig, describeProblems, type ConfigProblem, type Env, type WorkerConfig } from "./config";
+export { consoleLogger, recordingLogger, silentLogger, describeError } from "./logging";
+export {
+  analysisCodec,
+  parseAnalysis,
+  UnreadableAnalysisError,
+} from "./analysis-codec";
+export {
+  engineObserver,
+  fromEngineFailure,
+  stepFor,
+  type EngineObserverDeps,
+  type Observation,
+  type ScalarObserver,
+} from "./observe";
+export {
+  scheduler,
+  type Job,
+  type JobReport,
+  type Scheduler,
+  type SchedulerDeps,
+  type TickOutcome,
+} from "./scheduler";
+export {
+  createWorker,
+  workerJobs,
+  MAINTENANCE_CHECK,
+  MONITOR_SWEEP,
+  OUTBOX_DISPATCH,
+  RECONCILE,
+  RETENTION_SWEEP,
+  type WorkerDeps,
+} from "./worker";
 
-const log = {
-  write: (level: string, event: string, fields: Record<string, unknown> = {}) => {
-    process.stdout.write(
-      `${JSON.stringify({ level, event, ts: new Date().toISOString(), service: "worker", ...fields })}\n`,
-    );
-  },
-  info: (event: string, fields?: Record<string, unknown>) => log.write("info", event, fields),
-  warn: (event: string, fields?: Record<string, unknown>) => log.write("warn", event, fields),
-  error: (event: string, fields?: Record<string, unknown>) => log.write("error", event, fields),
-};
+export { notificationsFor, sweepMonitors, type MonitorSweepDeps, type MonitorSweepReport } from "./jobs/monitors";
+export {
+  dispatchOutbox,
+  type EnvelopeDispatcher,
+  type OutboxDispatchDeps,
+  type OutboxDispatchReport,
+} from "./jobs/outbox";
+export {
+  enforceRetention,
+  purgeFor,
+  type RetentionSweepDeps,
+  type RetentionSweepReport,
+} from "./jobs/retention";
+export {
+  checkMaintenance,
+  longestStoreRetentionDays,
+  packFindings,
+  retentionFindings,
+  schemaFindings,
+  shortestPlanRetentionDays,
+  type Finding,
+  type FindingKind,
+  type MaintenanceDeps,
+  type MaintenanceQueries,
+  type MaintenanceReport,
+} from "./jobs/maintenance";
+export {
+  reconcileWorkspaces,
+  type ReconcileDeps,
+  type ReconcileReport,
+} from "./jobs/reconcile";
 
-const config = configFromEnv(process.env);
-const deps = await compose(config, log, buildHandlers);
+export { postgresRetentionTargets, type RetentionQueryable } from "./adapters/retention-targets";
 
-const runtime = new WorkerRuntime({
-  queue: deps.queue,
-  clock: deps.clock,
-  log,
-  handlers: deps.handlers,
-  worker: config.workerId,
-  ...(config.shard === null ? {} : { shard: config.shard }),
-});
-
-log.info("worker.started", {
-  release: config.release,
-  workerId: config.workerId,
-  intervalMs: config.intervalMs,
-  shard: config.shard,
-  jobs: Object.keys(deps.handlers),
-});
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-let shuttingDown = false;
-const shutdown = async (signal: string): Promise<void> => {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  log.info("worker.stopping", { signal });
-  runtime.stop();
-  // Give the current tick a moment to settle its jobs before the pool closes.
-  while (runtime.isRunning()) await sleep(50);
-  await deps.shutdown();
-  log.info("worker.stopped", {});
-  process.exit(0);
-};
-
-process.on("SIGTERM", () => void shutdown("SIGTERM"));
-process.on("SIGINT", () => void shutdown("SIGINT"));
-
-await runtime.start(config.intervalMs, sleep);
+export type {
+  CompactorStatusSource,
+  EventRetention,
+  LogFields,
+  Logger,
+  OrganizationDirectory,
+  OrganizationRecord,
+  PurgeFailure,
+  PurgeRequest,
+  RetentionPage,
+  RetentionTarget,
+  RetentionTargets,
+} from "./ports";

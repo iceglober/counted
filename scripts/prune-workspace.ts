@@ -39,18 +39,27 @@ const read = (dir: string): Manifest | null => {
 
 const root = read(".")!;
 
+// Expand one workspace glob. Only a whole-segment star is supported, at any
+// depth (packages/star, packages/star/star, vendor/star) — every form the root
+// manifest uses. A segment that is not a star is taken literally. Written as
+// line comments because the glob spelling contains the sequence that ends a
+// block comment.
+const expand = (segments: readonly string[], at: string): string[] => {
+  const [head, ...rest] = segments;
+  if (head === undefined) return [at];
+  if (head !== "*") return expand(rest, at === "" ? head : `${at}/${head}`);
+  const parent = join(ROOT, at);
+  if (!existsSync(parent)) return [];
+  return readdirSync(parent, { withFileTypes: true })
+    .filter((child) => child.isDirectory())
+    .flatMap((child) => expand(rest, at === "" ? child.name : `${at}/${child.name}`));
+};
+
 /** Every workspace directory, expanded from the globs the root declares. */
 const directories = (): readonly string[] => {
   const found: string[] = [];
   for (const pattern of root.workspaces ?? []) {
-    if (!pattern.endsWith("/*")) {
-      if (read(pattern) !== null) found.push(pattern);
-      continue;
-    }
-    const parent = pattern.slice(0, -2);
-    for (const child of readdirSync(join(ROOT, parent), { withFileTypes: true })) {
-      if (!child.isDirectory()) continue;
-      const dir = `${parent}/${child.name}`;
+    for (const dir of expand(pattern.split("/"), "")) {
       if (read(dir) !== null) found.push(dir);
     }
   }

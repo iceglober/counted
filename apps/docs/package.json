@@ -1,0 +1,22 @@
+{
+  "name": "@counted/docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The public OpenAPI reference for docs.counted.dev.",
+  "dependencies": {
+    "@counted/openapi": "workspace:*",
+    "@counted/ui": "workspace:*",
+    "@scalar/api-reference-react": "0.9.66"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "tailwindcss": "4.3.3",
+    "@counted/contract": "workspace:*"
+  },
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "bun ../../scripts/generate-openapi.ts && next build",
+    "start": "next start --port 3001"
+  }
+}

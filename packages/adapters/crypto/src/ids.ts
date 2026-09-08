@@ -1,93 +1,110 @@
 /**
- * Identifier generation.
+ * Id generation.
  *
- * UUIDv7 rather than v4: the first 48 bits are a millisecond timestamp, so ids
- * sort by creation time. That matters because these become primary keys, and a
- * random key scatters inserts across the whole btree while a time-ordered one
- * appends — which is the difference between a healthy index and a fragmented
- * one on a table taking events continuously.
+ * v3 mints UUIDv7 rather than v4. Both are 128 bits and neither is guessable,
+ * but a v7 embeds its creation time in the leading 48 bits, so ids sort in
+ * creation order. That matters at the storage layer: a v4 primary key scatters
+ * inserts across the whole B-tree and every page is a random write, while a v7
+ * appends. It also means `ORDER BY id` is `ORDER BY created_at` for free,
+ * which is the ordering nearly every list in this product wants.
  *
- * They remain opaque on the wire. The embedded timestamp reveals when a row
- * was created, which is not sensitive for a workspace or a project id, and no
- * identifier here is ever derived from anything about a person.
+ * A v7 is NOT a secret and must never be used as one. It leaks the time it was
+ * made and it is sequential; share tokens and key secrets come from
+ * `randomToken`.
  */
 
-import { randomBytes } from "node:crypto";
+import { Instant } from "@counted/kernel";
+import type { Clock, IdGenerator } from "@counted/kernel/ports";
+import { randomBytes, randomInt } from "./random";
+import { systemClock } from "./clock";
 
-export const uuidv7 = (): string => {
-  const bytes = randomBytes(16);
-  const millis = Date.now();
+const VERSION_7 = 0x70;
+const VARIANT_RFC = 0x80;
+/** `rand_a` is 12 bits, so the within-millisecond counter tops out here. */
+const MAX_COUNTER = 0xfff;
 
-  // 48-bit big-endian timestamp.
-  bytes[0] = (millis / 2 ** 40) & 0xff;
-  bytes[1] = (millis / 2 ** 32) & 0xff;
-  bytes[2] = (millis / 2 ** 24) & 0xff;
-  bytes[3] = (millis / 2 ** 16) & 0xff;
-  bytes[4] = (millis / 2 ** 8) & 0xff;
-  bytes[5] = millis & 0xff;
-
-  // Version 7, RFC 9562 variant.
-  bytes[6] = (bytes[6]! & 0x0f) | 0x70;
-  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
-
-  const hex = bytes.toString("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+const hex = (bytes: Uint8Array): string => {
+  const s = Buffer.from(bytes).toString("hex");
+  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20)}`;
 };
 
-export const idGenerator = { next: uuidv7 } as const;
-
 /**
- * The kinds of grant, and how each announces itself.
+ * A UUIDv7 generator with a monotonic counter.
  *
- * Prefixed like a credential, because the API resolves them the same way: the
- * prefix routes the lookup before any database read, and a token that turns up
- * in a log or a bug report says what it is.
- */
-export const GRANT_PREFIXES = {
-  /** A share link. Read-only, one dashboard, expiring. */
-  share: "st",
-  /** Single-use adoption of an unclaimed project. */
-  claim: "ct",
-} as const;
-
-export type GrantKind = keyof typeof GRANT_PREFIXES;
-
-/**
- * A claim or share token. Longer than a credential secret because it travels
- * in a URL, where it may be logged, pasted or shoulder-surfed — and unlike a
- * credential it cannot be scoped down.
- */
-export const issueGrantToken = (kind: GrantKind = "share"): string =>
-  `${GRANT_PREFIXES[kind]}_${randomBytes(32).toString("base64url")}`;
-
-/**
- * A request id: `req_` and a ULID.
+ * Two ids minted in the same millisecond must still sort in the order they
+ * were minted, or the sortability that is the entire reason for choosing v7
+ * evaporates at exactly the moment it matters — a burst. RFC 9562's
+ * "monotonic random" method covers it: seed the 12-bit `rand_a` field with a
+ * random value in the bottom half when the millisecond advances, then
+ * increment it for each id inside that millisecond.
  *
- * ULID rather than a bare uuid because this one is meant to be *read* — quoted
- * in a support message, pasted from a screenshot, typed out over a call.
- * Crockford base32 has no `I`, `L`, `O` or `U`, so the characters people
- * confuse are not in the alphabet, and 26 characters beats 36 with hyphens.
+ * Two edge cases, both handled rather than assumed away:
  *
- * Time-ordered for the same reason as the uuids above: sorting log lines by
- * request id sorts them by when the request arrived.
+ * - **Counter exhaustion.** More than ~2048 ids in one millisecond overflows
+ *   `rand_a`. Borrowing a millisecond from the future keeps the sequence
+ *   strictly increasing; the alternative — wrapping — silently emits an id
+ *   that sorts *before* the one issued a microsecond earlier.
+ * - **The clock going backwards.** NTP steps, VM migrations and leap-second
+ *   smearing all do it. Reusing the last observed millisecond means the ids
+ *   stay ordered even though the wall clock did not.
  */
-const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+export const uuidV7Generator = (clock: Clock = systemClock): IdGenerator => {
+  let lastMillis = -1;
+  // Seeded in the bottom half so there is always headroom to count upward.
+  let counter = 0;
 
-export const ulid = (millis: number = Date.now()): string => {
-  let time = "";
-  let remaining = millis;
-  for (let i = 0; i < 10; i++) {
-    time = CROCKFORD[remaining % 32]! + time;
-    remaining = Math.floor(remaining / 32);
-  }
+  return {
+    next(): string {
+      const observed = Instant.toEpochMillis(clock.now());
 
-  // 16 characters of randomness ≈ 80 bits. Two requests in the same
-  // millisecond collide with probability that never matters.
-  const bytes = randomBytes(16);
-  let random = "";
-  for (let i = 0; i < 16; i++) random += CROCKFORD[bytes[i]! % 32]!;
+      if (observed > lastMillis) {
+        lastMillis = observed;
+        counter = randomInt(MAX_COUNTER >> 1);
+      } else {
+        counter += 1;
+        if (counter > MAX_COUNTER) {
+          lastMillis += 1;
+          counter = randomInt(MAX_COUNTER >> 1);
+        }
+      }
 
-  return time + random;
+      const bytes = randomBytes(16);
+      const millis = lastMillis;
+
+      // 48-bit big-endian timestamp. Written in two halves because a 48-bit
+      // integer does not fit a bitwise operation in JavaScript, which coerces
+      // to 32 bits and would silently truncate the top 16.
+      bytes.writeUIntBE(Math.floor(millis / 0x100000000), 0, 2);
+      bytes.writeUInt32BE(millis >>> 0, 2);
+
+      bytes[6] = VERSION_7 | (counter >> 8);
+      bytes[7] = counter & 0xff;
+      bytes[8] = ((bytes[8] ?? 0) & 0x3f) | VARIANT_RFC;
+
+      return hex(bytes);
+    },
+  };
 };
 
-export const requestId = (millis?: number): string => `req_${ulid(millis)}`;
+/**
+ * Ids that are `<prefix>1`, `<prefix>2`, … — for tests, and only for tests.
+ *
+ * A test that asserts on a generated id needs to know what it will be. Naming
+ * it "sequential" rather than "fake" is deliberate: it is not a stub of the
+ * real thing, it is a different, predictable strategy, and using it in
+ * production would make every id guessable.
+ */
+export const sequentialIdGenerator = (prefix = "id-"): IdGenerator => {
+  let n = 0;
+  return {
+    next: () => {
+      n += 1;
+      return `${prefix}${n}`;
+    },
+  };
+};
+
+/** Prefix every id a generator mints. Useful for reading a log at a glance. */
+export const prefixed = (generator: IdGenerator, prefix: string): IdGenerator => ({
+  next: () => `${prefix}${generator.next()}`,
+});

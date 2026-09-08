@@ -1,111 +1,12 @@
 import type { Metadata } from "next";
-import { SiteNav, SiteFooter, CodeBlock } from "../../site-chrome";
-import { TrackedCTA } from "../../track";
+import { SiteArticle, CodeBlock } from "../../../../components/site-chrome";
+export const metadata: Metadata = { title: "Analytics for AI coding agents", alternates: { canonical: "/for/agents" }, description: "Track tool usage, file edits, commands, and outcomes without sending prompts or code contents." };
+export default function Agents() { return <SiteArticle eyebrow="Counted for agents" title="See what your agents actually do"><p>Capture tool calls, file edits, commands, and outcomes with the same event model you use for your app.</p><h2>Shape, never content</h2><ul><li><strong>Tool usage:</strong> tool names and reported outcomes.</li><li><strong>File edits:</strong> repo-relative paths, actions, and language. Never contents or diffs.</li><li><strong>Commands:</strong> binary names, without arguments or output.</li><li><strong>Session boundaries:</strong> starts and ends reported by your host.</li></ul><p>Inspect the properties your integration sends and avoid personal data in paths or labels. Available events and outcomes depend on the host’s hooks.</p><h2>Connect a host</h2><p>Use <code>@counted/claude-code</code> or <code>@counted/opencode</code> for native integrations. The <code>@counted/agent</code> CLI accepts host events over standard input.</p><CodeBlock>{`npm install -g @counted/agent
+export COUNTED_AGENT_KEY="YOUR_INGEST_KEY"
 
-export const metadata: Metadata = {
-  title: "Agent analytics & eval — Counted for AI coding agents",
-  description:
-    "Track what your AI agents do: tool calls, file edits, commands, outcomes — privacy-safe, in a pre-built eval dashboard. Native plugins for Claude Code and OpenCode.",
-  alternates: { canonical: "/for/agents" },
-  openGraph: {
-    title: "Counted for agents — privacy-first agent analytics",
-    description:
-      "Agent eval dashboards in minutes. Native Claude Code & OpenCode plugins, polyglot SDKs, privacy-safe by default.",
-    url: "/for/agents",
-    type: "article",
-    images: ["/og?title=Analytics%20for%20AI%20agents&eyebrow=For%20agents"],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Counted for agents — privacy-first agent analytics",
-    description: "Agent eval dashboards in minutes. Native Claude Code & OpenCode plugins, privacy-safe by default.",
-    images: ["/og?title=Analytics%20for%20AI%20agents&eyebrow=For%20agents"],
-  },
-};
+# Configure your host to pipe hook events to this command:
+counted-agent --host codex`}</CodeBlock><p>See the <a href="https://github.com/iceglober/counted/tree/main/packages/agent-cli">CLI instructions</a> and the <a href="https://github.com/iceglober/counted/tree/main/packages/agent-claude-code">Claude Code</a> and <a href="https://github.com/iceglober/counted/tree/main/packages/agent-opencode">OpenCode</a> integrations for host-specific setup.</p><h2>Instrument your own harness</h2><CodeBlock>{`import { Counted } from "@counted/sdk";
 
-export default function ForAgentsPage() {
-  return (
-    <div>
-      <SiteNav />
-
-      <div className="page">
-        <h1>See what your agents actually do</h1>
-        <p>
-          Native plugins for AI coding tools. Capture tool calls, file edits, commands, and
-          outcomes in a pre-built eval dashboard. No PII, no code contents.
-        </p>
-        <p>
-          <TrackedCTA href="/sign-in" location="for_agents" label="start_free">
-            Start free
-          </TrackedCTA>{" "}
-          &nbsp;or&nbsp; <a href="/docs">read the docs</a>
-        </p>
-
-        <h2>What gets captured</h2>
-        <ul>
-          <li>
-            <b>Tool usage.</b>{" "}Which tools the agent reaches for, how often, and in what order.
-          </li>
-          <li>
-            <b>File edits.</b>{" "}Files touched per session — repo-relative paths only, never
-            contents.
-          </li>
-          <li>
-            <b>Commands.</b>{" "}Commands run, recorded by binary name — no arguments, no secrets.
-          </li>
-          <li>
-            <b>Outcomes.</b>{" "}Session starts and ends, and the results you choose to
-            tag.
-          </li>
-        </ul>
-
-        <h2>Install the Claude Code plugin</h2>
-        <p>
-          Add the marketplace, install, set a key. Every session streams privacy-safe events
-          into your eval dashboard.
-        </p>
-        <CodeBlock>{`/plugin marketplace add iceglober/counted
-/plugin install claude-code@counted
-
-# then expose a client key to your sessions
-export COUNTED_AGENT_KEY="ck_your_project_key"`}</CodeBlock>
-        <p className="small muted">
-          Prefer OpenCode?{" "}
-          <a href="https://www.npmjs.com/package/@counted/opencode" target="_blank" rel="noopener" className="ext">
-            <code>@counted/opencode</code> ships a native plugin too
-          </a>
-          . Other tools can use the zero-dependency core SDK directly.
-        </p>
-
-        <h2>Or instrument it yourself</h2>
-        <p>
-          Building your own harness? The core SDK is zero-dependency and agent-aware — explicit
-          session IDs, configurable session timeout, and an exit handler that flushes before
-          short-lived processes die.
-        </p>
-        <CodeBlock>{`import { Analytics } from "@counted/sdk";
-
-const counted = new Analytics({ projectKey: "ck_...", sessionId: runId });
-counted.track("tool_use", { tool: "search", outcome: "hit" });
-counted.track("session_end", { duration_ms: elapsed });`}</CodeBlock>
-        <p className="small muted">
-          Non-JS harness? The HTTP API is one POST per event — Python, Go, and Rust SDKs are
-          coming soon (+1 yours in the <a href="/docs#more-sdks">docs</a>).
-        </p>
-
-        <h2>Start from the eval template</h2>
-        <p>
-          New projects can start from the agent-eval dashboard template — tool usage, outcomes,
-          file edits, and commands. Compose your own insights on top.
-        </p>
-        <p>
-          <TrackedCTA href="/sign-in" location="for_agents" label="get_eval_dashboard">
-            Get your eval dashboard
-          </TrackedCTA>
-        </p>
-      </div>
-
-      <SiteFooter />
-    </div>
-  );
-}
+const counted = new Counted({ key: "YOUR_INGEST_KEY" });
+counted.track("tool_use", { tool: "search", outcome: "success" });
+await counted.shutdown();`}</CodeBlock><p>Create a dashboard and add Insights for tool counts, trends, or breakdowns by tool and outcome. For automated setup and queries, use the <a href="/docs">API</a> or <a href="/llms.txt">agent discovery guide</a>.</p></SiteArticle>; }

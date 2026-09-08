@@ -1,29 +1,20 @@
-# Dev database only — for self-hosting Counted see self-host/ (full app + db + cron).
+# The development database. `bun run dev` starts it before anything else.
+#
+# Stock Postgres, deliberately. litics — the analytics engine — needs nothing
+# installed: its whole schema is plain SQL and plpgsql, and the journey suite
+# asserts that `pg_extension` holds one row. Development runs the same image
+# a managed provider would give you, so "works locally" means something.
+#
+# For self-hosting Counted see self-host/ (full app + db).
 services:
   db:
-    # Stock Postgres, deliberately.
-    #
-    # ARCHITECTURE.md makes plain PostgreSQL the baseline and TimescaleDB
-    # supported-but-never-required, CI runs the suite on `postgres:17-alpine`,
-    # and production is Railway's stock Postgres. This image was the only place
-    # still running the extension, so local development was the one environment
-    # testing an engine nothing deploys.
-    #
-    # It was not a theoretical mismatch. TimescaleDB starts a background worker
-    # **per database**, and the live suites create a database per file — so a
-    # run held a dozen workers on top of its own pools, against a default
-    # `max_connections` of 25. Leftover databases from an interrupted run kept
-    # theirs forever. The symptom was never "out of connections": it was live
-    # tests failing on five-second `beforeEach` timeouts, which reads like a
-    # slow machine.
     image: postgres:17
-    command:
-      - postgres
-      # The live suites run concurrently, each with its own database and pool.
-      # 25 is the built-in default and leaves no room for that.
-      - -c
-      - max_connections=200
+    # The live suites run concurrently, each with its own database and pool.
+    # 100 is the built-in default and leaves no room for that.
+    command: ["postgres", "-c", "max_connections=200"]
     ports:
+      # 5434, not 5432, so this never collides with a Postgres someone already
+      # runs. scripts/dev.sh defaults DATABASE_URL to the same port.
       - "5434:5432"
     environment:
       POSTGRES_USER: counted
@@ -31,19 +22,18 @@ services:
       POSTGRES_DB: counted
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      # A new volume, because a data directory initialised by the TimescaleDB
-      # image carries `shared_preload_libraries = 'timescaledb'` and stock
-      # Postgres refuses to start against it. The old `pgdata` volume is left
-      # on disk rather than deleted; `bun run seed` refills a fresh one.
-      - pgdata-stock:/var/lib/postgresql/data
+      # A volume of its own. A data directory initialised by a different major
+      # version makes the image refuse to start with an error about version
+      # mismatch that reads like a corrupt volume. Counted has no users, so
+      # nothing in the older `pgdata-litics` volume is worth keeping;
+      # `docker volume rm counted_pgdata-litics` when you are ready to reclaim
+      # the disk.
+      - pgdata-17:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U counted"]
+      test: ["CMD-SHELL", "pg_isready -U counted -d counted"]
       interval: 2s
       timeout: 5s
-      retries: 10
+      retries: 30
 
 volumes:
-  pgdata-stock:
-  # The pre-cutover TimescaleDB volume. Kept so nothing local is lost by the
-  # image change; remove it once you are sure you want it gone.
-  pgdata:
+  pgdata-17:

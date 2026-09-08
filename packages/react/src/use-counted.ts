@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useMemo, useRef } from "react";
-import { Counted, type CountedOptions, type PropertyValue } from "@counted/sdk-js";
+import { Counted, type CountedOptions, type PropertyValue } from "@counted/sdk";
 
 export type { PropertyValue };
 

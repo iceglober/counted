@@ -23,7 +23,7 @@ if (!key) {
   process.exit(1);
 }
 
-const stripe = new Stripe(key, { apiVersion: "2026-05-27.dahlia" });
+const stripe = new Stripe(key, { apiVersion: "2026-08-26.dahlia" });
 const mode = key.startsWith("sk_test_") ? "TEST (sandbox)" : "LIVE";
 
 const PRODUCT_NAME = "Counted Pro";

@@ -5,5 +5,5 @@
   "type": "module",
   "description": "The cross-language SDK contract: numbered behaviour, scripted scenarios, one runner per language.",
   "scripts": { "test": "bun test" },
-  "dependencies": { "@counted/sdk-js": "workspace:*" }
+  "dependencies": { "@counted/sdk": "workspace:*" }
 }

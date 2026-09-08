@@ -1,0 +1,17 @@
+{
+  "name": "@counted/mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MCP tools projected from the contract. No MCP-specific authorization path.",
+  "type": "module",
+  "dependencies": {
+    "@counted/contract": "workspace:*",
+    "@counted/kernel": "workspace:*",
+    "@modelcontextprotocol/server": "2.0.0"
+  },
+  "scripts": {
+    "test": "bun test src",
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts"
+  }
+}

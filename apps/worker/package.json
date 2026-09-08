@@ -2,21 +2,32 @@
   "name": "@counted/worker",
   "version": "0.0.0",
   "private": true,
+  "description": "Monitor evaluation, retention enforcement, cube-maintenance checks, outbox dispatch, workspace reconciliation.",
   "type": "module",
-  "description": "Scheduled and queued background work. Retention, partitions, rollups, alerts, outbox.",
-  "scripts": {
-    "build": "tsc --build",
-    "start": "bun src/index.ts",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit"
-  },
   "dependencies": {
-    "@counted/domain": "workspace:*",
-    "@counted/ports": "workspace:*",
-    "@counted/application": "workspace:*",
-    "@counted/adapter-postgres": "workspace:*",
     "@counted/adapter-crypto": "workspace:*",
-    "pg": "^8.13.1",
-    "@counted/adapter-notify": "workspace:*"
+    "@counted/adapter-notify": "workspace:*",
+    "@counted/adapter-postgres": "workspace:*",
+    "@counted/analytics-adapter-litics": "workspace:*",
+    "@counted/analytics-domain": "workspace:*",
+    "@counted/analytics-ports": "workspace:*",
+    "@counted/authorization": "workspace:*",
+    "@counted/dashboarding-app": "workspace:*",
+    "@counted/dashboarding-domain": "workspace:*",
+    "@counted/dashboarding-ports": "workspace:*",
+    "@counted/identity-adapter-better-auth": "workspace:*",
+    "@counted/identity-ports": "workspace:*",
+    "@counted/kernel": "workspace:*",
+    "@counted/persistence-ports": "workspace:*",
+    "@counted/projects-app": "workspace:*",
+    "@counted/projects-domain": "workspace:*",
+    "@counted/projects-ports": "workspace:*",
+    "@counted/tenancy-app": "workspace:*",
+    "@counted/tenancy-domain": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test src",
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts"
   }
 }

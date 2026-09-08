@@ -1,52 +1,33 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
     "lib": [
-      "dom",
-      "dom.iterable",
-      "ES2022"
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
     ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
     "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@counted/sdk": [
-        "./packages/sdk/src/index.ts"
-      ],
-      "@counted/api": [
-        "./packages/api/src/index.ts"
-      ]
-    }
+    "types": [
+      "bun",
+      "node"
+    ]
   },
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "packages/**/src/**/*.ts",
+    "packages/**/src/**/*.tsx",
+    "apps/**/src/**/*.ts",
+    "apps/**/src/**/*.tsx",
+    "scripts/**/*.ts",
+    "tests/**/*.ts",
+    "contract/conformance/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "packages/**",
-    "tests/**",
-    "apps/**",
-    "scripts/**",
-    "contract/**"
+    "**/node_modules",
+    "**/dist",
+    "packages/go",
+    "packages/python",
+    "packages/rust",
+    "vendor"
   ]
 }

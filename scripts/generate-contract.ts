@@ -287,4 +287,4 @@ export const validateAgentContext = (
 // The same bytes in both places, so "they agree" is checkable by comparison
 // rather than by reading.
 write("packages/agent-core/src/gen/vocabulary.ts", agentVocabulary(agentSource));
-write("packages/domain/src/ingest/gen/vocabulary.ts", agentVocabulary(agentSource));
+write("packages/ingestion/domain/src/gen/vocabulary.ts", agentVocabulary(agentSource));

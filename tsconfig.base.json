@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "ignoreDeprecations": "6.0",
     "lib": ["ES2022"],
     "module": "Preserve",
     "moduleResolution": "bundler",
@@ -10,10 +11,10 @@
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": true,
+    "isolatedModules": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "types": ["bun"],
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "noEmit": true
   }
 }

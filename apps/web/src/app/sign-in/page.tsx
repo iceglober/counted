@@ -1,74 +1,107 @@
-"use client";
+import { CenteredPage } from "../../components/layout";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardDescription,
+} from "@counted/ui/components/card";
+import { Alert, AlertDescription } from "@counted/ui/components/alert";
+/**
+ * The sign-in page. The console holds no session of its own — this hands off to
+ * the provider through the proxy and the cookie it sets is the only thing that
+ * makes the rest of the console work.
+ */
 
-import { useEffect, useState } from "react";
-import { ApiError, browserApi } from "@/lib/api";
+import { SignInForm } from "../../components/sign-in-form";
+import { apiOrigin } from "../../lib/env";
+import { safeNext } from "../../lib/auth-navigation";
+import { emailAvailable } from "../../lib/auth-capabilities";
+
+export const dynamic = "force-dynamic";
 
 /**
- * Sign in.
+ * Read on the server so the page arrives with its buttons already on it: a
+ * list fetched from the browser would flash a sign-in form that grows a
+ * "Continue with GitHub" a moment later.
  *
- * The form always reports the same thing, because the API always answers the
- * same thing: whether an address has an account is not something a signed-out
- * caller may learn. There is no "no account with that email", and no separate
- * sign-up — requesting a link for an unknown address creates one.
+ * An unreachable API means no social buttons rather than no page — email and
+ * password still work, and a sign-in page that 500s because a list could not
+ * be read would be a worse answer than a shorter one.
  */
-export default function SignIn() {
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "invalid" | "failed">("idle");
-
-  // Remember where they were going, so the emailed link can return them there.
-  //
-  // A short-lived, same-site cookie rather than a query parameter carried
-  // through the API: the API builds the mail link from APP_URL, so routing a
-  // caller-supplied destination through it would put an open-redirect target
-  // on a service boundary. This never leaves the web app.
-  useEffect(() => {
-    const next = new URLSearchParams(window.location.search).get("next");
-    // Same-origin absolute paths only. `//evil.example` is protocol-relative
-    // and would leave the site, which is the whole open-redirect trick.
-    if (next !== null && next.startsWith("/") && !next.startsWith("//")) {
-      document.cookie = `counted_next=${encodeURIComponent(next)}; Max-Age=900; Path=/; SameSite=Lax`;
-    }
-  }, []);
-
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const email = new FormData(event.currentTarget).get("email");
-    setState("sending");
-    try {
-      await browserApi()("requestSignInLink", { body: { email: String(email ?? "") } });
-      setState("sent");
-    } catch (error) {
-      // Only a 400 is a statement about the address. This used to catch
-      // everything and say "that does not look like an email address" — so a
-      // valid address, a sent link and a 202 still produced that message,
-      // because the client threw parsing an empty body. Blaming the input for
-      // every failure sends people to fix the one thing that was correct.
-      setState(error instanceof ApiError && error.status === 400 ? "invalid" : "failed");
-    }
-  };
-
-  if (state === "sent") {
-    return (
-      <main>
-        <h1>Check your mail</h1>
-        <p>If that address can receive mail, a sign-in link is on its way. It works once, and expires in 15 minutes.</p>
-      </main>
-    );
+const socialProviders = async (): Promise<readonly string[]> => {
+  try {
+    const response = await fetch(`${apiOrigin()}/api/auth/providers`, {
+      cache: "no-store",
+    });
+    if (!response.ok) return [];
+    const body: unknown = await response.json();
+    const listed = (body as { providers?: unknown }).providers;
+    return Array.isArray(listed)
+      ? listed.filter((one): one is string => typeof one === "string")
+      : [];
+  } catch {
+    return [];
   }
+};
 
+/**
+ * What a failed sign-in link says when it lands back here. The provider's
+ * codes are an internal vocabulary; the person clicked something that used to
+ * work, and needs to know only that it is time to ask for another one.
+ */
+const LINK_PROBLEMS: Readonly<Record<string, string>> = {
+  INVALID_TOKEN:
+    "That sign-in link has expired or was already used. Request a new one below.",
+  EXPIRED_TOKEN: "That sign-in link has expired. Request a new one below.",
+};
+
+type SignInProps = {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+const SignIn = async ({ searchParams }: SignInProps) => {
+  const [query, providers, emailEnabled] = await Promise.all([
+    searchParams,
+    socialProviders(),
+    emailAvailable(),
+  ]);
+  const { error } = query;
+  const oauth = typeof query.sig === "string" && typeof query.client_id === "string";
+  const oauthQuery = new URLSearchParams();
+  if (oauth) for (const [key, value] of Object.entries(query)) {
+    if (Array.isArray(value)) value.forEach((one) => oauthQuery.append(key, one));
+    else if (value !== undefined) oauthQuery.set(key, value);
+  }
+  const next = oauth ? `/oauth/continue?${oauthQuery}` : safeNext(query.next);
+  const code = Array.isArray(error) ? error[0] : error;
+  const problem =
+    code === undefined
+      ? null
+      : (LINK_PROBLEMS[code] ??
+        "That sign-in link did not work. Request a new one below.");
   return (
-    <main>
-      <h1>Sign in to Counted</h1>
-      <form onSubmit={submit}>
-        <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" required autoComplete="email" />
-        <button type="submit" disabled={state === "sending"}>
-          {state === "sending" ? "Sending…" : "Email me a link"}
-        </button>
-      </form>
-      {state === "invalid" && <p role="alert">That does not look like an email address.</p>}
-      {state === "failed" && (
-        <p role="alert">Something went wrong sending the link. Try again in a moment.</p>
-      )}
-    </main>
+    <CenteredPage>
+      <Card>
+        <CardHeader>
+          <h1 className="font-heading text-xl">Sign in to Counted</h1>
+          <CardDescription>
+            Your projects, dashboards, and a clearer picture.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {problem && (
+            <Alert variant="destructive">
+              <AlertDescription>{problem}</AlertDescription>
+            </Alert>
+          )}
+          <SignInForm providers={providers} next={next} emailEnabled={emailEnabled} />
+        </CardContent>
+      </Card>
+      <p className="text-center text-xs text-muted-foreground">
+        Privacy-first analytics. No tracking cookies.
+      </p>
+    </CenteredPage>
   );
-}
+};
+
+export default SignIn;
