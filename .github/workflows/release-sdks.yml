@@ -230,3 +230,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Keep the old version installable, but warn that its default endpoint
+      # belongs to the retired API. Reapplying this exact message is idempotent.
+      - name: Warn users of the retired SDK version
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(npm view @counted/sdk@2.0.0 version)" = "2.0.0"
+          npm deprecate @counted/sdk@0.1.2 \
+            "This version targets the retired Counted API. Upgrade to @counted/sdk@2 or later and follow https://docs.counted.dev/getting-started."
