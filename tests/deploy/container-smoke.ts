@@ -5,6 +5,15 @@
  * loopback-only test URLs in containers with no network or published ports.
  */
 import { readFileSync } from "node:fs";
+import webConfiguration from "../../deploy/web.railway.json";
+import docsConfiguration from "../../deploy/docs.railway.json";
+import mcpConfiguration from "../../deploy/mcp.railway.json";
+
+const healthcheckPaths = {
+  web: webConfiguration.deploy.healthcheckPath,
+  docs: docsConfiguration.deploy.healthcheckPath,
+  mcp: mcpConfiguration.deploy.healthcheckPath,
+};
 
 const services = ["api", "worker", "mcp", "web", "docs"] as const;
 type Service = (typeof services)[number];
@@ -37,11 +46,11 @@ const anonymousApi = service === "web" ? Bun.serve({
   },
 }) : null;
 try {
-const readyPath = service === "mcp" ? "/health/ready" : service === "docs" ? "/openapi.json" : "/sign-in";
+const readyPath = ${JSON.stringify(healthcheckPaths)}[service];
 let ready = false;
 for (let attempt = 0; attempt < 60; attempt++) {
   try {
-    const response = await fetch(origin + readyPath, { signal: AbortSignal.timeout(1000) });
+    const response = await fetch(origin + readyPath, { redirect: "manual", signal: AbortSignal.timeout(1000) });
     if (response.status === 200) { ready = true; break; }
   } catch {}
   await Bun.sleep(250);

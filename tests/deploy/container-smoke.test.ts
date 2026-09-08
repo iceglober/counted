@@ -4,6 +4,7 @@ import { attempt, contractClient } from "../../apps/web/src/lib/client";
 
 type Scenario = {
   unavailable?: boolean;
+  redirectsHealthcheck?: boolean;
   missingAsset?: boolean;
   missingIngestion?: boolean;
   wrongIssuer?: boolean;
@@ -40,6 +41,11 @@ const run = (service: "web" | "docs" | "mcp", scenario: Scenario = {}) => {
       const path = new URL(input).pathname;
       const headers = new Headers(init?.headers);
       if (scenario.unavailable) return new Response("Unavailable", { status: 503 });
+      if (scenario.redirectsHealthcheck && !headers.has("Host") && ["/sign-in", "/openapi.json", "/health/ready"].includes(path)) {
+        return init?.redirect === "manual"
+          ? new Response(null, { status: 307, headers: { location: "/ready" } })
+          : new Response("Redirect destination", { status: 200 });
+      }
       if (path === "/health/ready") return Response.json({ ready: true });
       if (path === "/.well-known/oauth-protected-resource/mcp") {
         return Response.json({
@@ -108,6 +114,11 @@ const run = (service: "web" | "docs" | "mcp", scenario: Scenario = {}) => {
 };
 
 describe("production container HTTP probe", () => {
+  test("requires a direct 200 from the configured healthcheck without following redirects", async () => {
+    for (const service of ["web", "docs", "mcp"] as const) {
+      await expect(run(service, { redirectsHealthcheck: true })).rejects.toThrow("Production server did not become ready");
+    }
+  });
   test("accepts complete standalone pages, public discovery, host routing and generated reference", async () => {
     await run("web");
     await run("docs");
