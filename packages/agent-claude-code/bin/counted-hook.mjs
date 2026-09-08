@@ -420,8 +420,11 @@ var Counted = class {
   }
 };
 
-// ../agent-core/dist/index.js
+// ../agent-telemetry/dist/index.js
 import { createHash } from "crypto";
+import { readdirSync, readFileSync, writeFileSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 var AGENT_EVENT_PREFIX = "agent_";
 var AGENT_HOSTS = ["claude-code", "opencode", "codex", "gemini", "generic"];
 var SETUP_SPEC = "counted.setup/1";
@@ -799,11 +802,6 @@ var createAgentTracker = (options) => {
     shutdown: () => client.shutdown()
   };
 };
-
-// ../agent-cli/dist/index.js
-import { readdirSync, readFileSync, writeFileSync } from "fs";
-import { join } from "path";
-import { tmpdir } from "os";
 var str = (value) => typeof value === "string" && value.length > 0 ? value : void 0;
 var num = (value) => typeof value === "number" && Number.isFinite(value) ? value : void 0;
 var obj = (value) => typeof value === "object" && value !== null ? value : {};

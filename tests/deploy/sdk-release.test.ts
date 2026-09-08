@@ -19,7 +19,7 @@ const run = {
   head_repository: { full_name: repository },
 };
 type Scenario = {
-  requested?: string; checkout?: string; main?: string; ancestor?: boolean;
+  missingPackage?: string; requested?: string; checkout?: string; main?: string; ancestor?: boolean;
   ci?: unknown[]; deploy?: unknown[]; ghFailure?: boolean; healthFailure?: boolean;
   health?: unknown; malformedHealth?: boolean; manifest?: unknown; artifacts?: unknown[]; malformedArchive?: boolean; archiveName?: string; archiveFailure?: boolean; changesets?: Array<{ id: string; releases: unknown[] }>;
 };
@@ -60,6 +60,11 @@ if (command === "git") {
   if (s.healthFailure) process.exit(22);
   if (args.at(-1) !== "https://api.counted.dev/health/ready") process.exit(93);
   if (s.malformedHealth) console.log("not JSON"); else output(s.health);
+} else if (command === "npm") {
+  if (args[0] === "view") {
+    if (args[1] === s.missingPackage) process.exit(1);
+    console.log(args[2] === "version" ? "2.0.0" : "^2.0.0");
+  } else if (args[0] !== "deprecate") process.exit(99);
 } else if (command === "bun") {
   if (args[0] === "run" && args[1] === "changeset" && args[2] === "status") {
     writeFileSync(args[args.indexOf("--output") + 1], JSON.stringify({changesets:s.changesets}));
@@ -94,7 +99,7 @@ async function step(name: string, overrides: Scenario = {}) {
       if (/^[a-zA-Z0-9_-]+$/.test(change.id)) await writeFile(join(dir, ".changeset", `${change.id}.md`),
         `---\n${change.releases.length ? '"@counted/sdk": patch\n' : ""}---\nRelease fixture.\n`);
     }
-    for (const command of ["git", "gh", "curl", "bun"]) {
+    for (const command of ["git", "gh", "curl", "bun", "npm"]) {
       const path = join(dir, command);
       await writeFile(path, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(join(dir, "stub.js"))} ${quote(command)} "$@"\n`);
       await chmod(path, 0o700);
@@ -242,4 +247,21 @@ describe("SDK production gate", () => {
   ] as const) test(`refuses ${label}`, async () => {
     expect((await step("Verify production release", scenario as Scenario)).code).not.toBe(0);
   });
+});
+
+
+describe("retired package replacement gate", () => {
+  test("retires legacy names only after all replacements are published", async () => {
+    const result = await step("Retire replaced and discontinued packages");
+    expect(result.code).toBe(0);
+    expect(result.calls.filter(c => c.command === "npm" && c.args[0] === "deprecate").map(c => c.args[1]))
+      .toEqual(["@counted/agent", "@counted/agent-core", "@counted/migrate"]);
+  });
+
+  for (const missingPackage of ["@counted/agent-telemetry@2.0.0", "@counted/claude-code@2.0.1", "@counted/opencode@2.0.1"])
+    test(`leaves existing packages alone if ${missingPackage} is unavailable`, async () => {
+      const result = await step("Retire replaced and discontinued packages", { missingPackage });
+      expect(result.code).not.toBe(0);
+      expect(result.calls.filter(c => c.args[0] === "deprecate")).toEqual([]);
+    });
 });

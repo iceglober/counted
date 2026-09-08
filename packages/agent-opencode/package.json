@@ -33,7 +33,7 @@
     "tsup": "^8.0.0"
   },
   "dependencies": {
-    "@counted/agent": "^2.0.0",
-    "@counted/agent-core": "^2.0.0"
-  }
+    "@counted/agent-telemetry": "^2.0.0"
+  },
+  "homepage": "https://counted.dev/for/agents"
 }

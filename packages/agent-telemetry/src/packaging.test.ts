@@ -36,16 +36,16 @@ const sourceFiles = (dir: string): readonly string[] => {
 describe("the redaction rules exist once", () => {
   /**
    * They were pasted into four packages, so a fix to one left the others
-   * leaking. Now `agent-core/src/redaction.ts` is the only declaration and
+   * leaking. Now `agent-telemetry/src/redaction.ts` is the only declaration and
    * every adapter imports it — which is only true for as long as something
    * checks.
    */
   const REDACTORS = ["relPath", "cmdName", "langOf", "scrubSecrets"];
 
-  test("no package outside agent-core declares one", () => {
+  test("no package outside agent-telemetry declares one", () => {
     const declarations: { file: string; name: string }[] = [];
     for (const dir of packageDirs()) {
-      if (dir === "packages/agent-core") continue;
+      if (dir === "packages/agent-telemetry") continue;
       for (const file of sourceFiles(dir)) {
         const source = readFileSync(file, "utf8");
         for (const name of REDACTORS) {
@@ -59,8 +59,8 @@ describe("the redaction rules exist once", () => {
     expect(declarations).toEqual([]);
   });
 
-  test("agent-core does declare them, so the check is not vacuous", () => {
-    const source = readFileSync(join(ROOT, "packages/agent-core/src/redaction.ts"), "utf8");
+  test("agent-telemetry does declare them, so the check is not vacuous", () => {
+    const source = readFileSync(join(ROOT, "packages/agent-telemetry/src/redaction.ts"), "utf8");
     for (const name of REDACTORS) expect(source).toContain(`const ${name}`);
   });
 });
@@ -208,7 +208,7 @@ describe("the hook binaries actually run", () => {
    * A hook is a process. The only honest test of one is to start it.
    */
   const BINARIES = [
-    "packages/agent-cli/bin/counted-agent.mjs",
+    "packages/agent-telemetry/bin/counted-agent.mjs",
     "packages/agent-claude-code/bin/counted-hook.mjs",
   ];
 

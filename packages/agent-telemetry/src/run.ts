@@ -11,14 +11,14 @@
  * 2. **No key means do nothing.** Not an error, not a warning on every event.
  *    Said once, on the first event of a session, so the silence is diagnosable
  *    without being noise.
- * 3. **Nothing but shape leaves.** Enforced in `@counted/agent-core`, not here.
+ * 3. **Nothing but shape leaves.** Enforced by the shared telemetry layer.
  */
 
 import {
   createAgentTracker,
   type AgentHost,
   AGENT_HOSTS,
-} from "@counted/agent-core";
+} from "./telemetry";
 import { HOSTS, type Action, type HostEvent } from "./hosts";
 import { resolveSetup } from "./setup";
 

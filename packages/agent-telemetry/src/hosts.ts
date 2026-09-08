@@ -11,7 +11,7 @@
  * event payload.
  */
 
-import { emptyProjection, type AgentHost, type SetupProjection } from "@counted/agent-core";
+import { emptyProjection, type AgentHost, type SetupProjection } from "./telemetry";
 
 /** A tracker call, described rather than made. */
 export type Action =

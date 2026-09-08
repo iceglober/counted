@@ -1,11 +1,4 @@
-/**
- * `@counted/agent-core` — the port every agent integration is built on.
- *
- * Not user-facing: install `@counted/claude-code`, `@counted/opencode`, or the
- * generic `@counted/agent` binary. This is where the parts they share live, so
- * that they cannot disagree about the vocabulary, the redaction rules, or what
- * a setup fingerprint means.
- */
+/** Shared tracking, validation, redaction, and setup vocabulary for agent telemetry. */
 
 export { createAgentTracker, type AgentTracker, type AgentTrackerOptions } from "./tracker";
 export {

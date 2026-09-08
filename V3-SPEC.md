@@ -56,7 +56,7 @@ there is no build step for internal packages.
 | `apps/worker` | `@counted/worker` | Outbox dispatch, monitor evaluation, retention purge. |
 
 Surviving from v2, untouched: `packages/sdk-js`, `packages/react`, `packages/python`,
-`packages/go`, `packages/rust`, `packages/agent-*`, `packages/migrate`,
+`packages/go`, `packages/rust`, `packages/agent-*`,
 `packages/aptabase-compat`, `contract/`.
 
 ### Where third-party dependencies are declared

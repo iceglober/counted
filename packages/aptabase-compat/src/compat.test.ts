@@ -210,13 +210,6 @@ describe("their vocabulary stops at this package", () => {
       // the v2 tree; it goes at cutover.
       // v1 packages, which go at cutover and are not part of the v2 tree.
       .filter((file) => !/^packages\/(sdk|react|api)\//.test(file))
-      // The migration tool reads Aptabase's *export* format, which is its
-      // entire purpose. It is the second legitimate boundary, and it is
-      // equally sealed: nothing downstream of it speaks their vocabulary.
-      // The whole package, because its tests assert the words are *absent*
-      // from what it sends — and a check that flagged that assertion would be
-      // punishing the thing it wants.
-      .filter((file) => !file.startsWith("packages/migrate/"))
       // The OpenAPI document *describes* this endpoint, which means naming the
       // fields it accepts. Describing a foreign shape is not adopting it — and
       // an endpoint documented without saying what it takes would be worse.

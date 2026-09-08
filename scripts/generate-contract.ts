@@ -138,7 +138,7 @@ write("packages/rust/src/contract.rs", rust(source));
  * The agent telemetry vocabulary.
  *
  * Two packages have to agree about it and neither may depend on the
- * other: `agent-core` runs on a developer's machine and validates
+ * other: `agent-telemetry` runs on a developer's machine and validates
  * before sending, so a wrong event fails where it was written; the
  * domain validates at ingest, because a client that skips the check —
  * an old version, a curl, someone's own script — must still be refused.
@@ -286,5 +286,5 @@ export const validateAgentContext = (
 
 // The same bytes in both places, so "they agree" is checkable by comparison
 // rather than by reading.
-write("packages/agent-core/src/gen/vocabulary.ts", agentVocabulary(agentSource));
+write("packages/agent-telemetry/src/gen/vocabulary.ts", agentVocabulary(agentSource));
 write("packages/ingestion/domain/src/gen/vocabulary.ts", agentVocabulary(agentSource));

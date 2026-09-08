@@ -41,6 +41,7 @@
     "counted-claude-code-hook": "bin/counted-hook.mjs"
   },
   "dependencies": {
-    "@counted/agent": "^2.0.0"
-  }
+    "@counted/agent-telemetry": "^2.0.0"
+  },
+  "homepage": "https://counted.dev/for/agents"
 }

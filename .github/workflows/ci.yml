@@ -58,7 +58,7 @@ jobs:
 
       - name: Verify plugin hook bin is committed in sync
         run: |
-          git diff --exit-code -- packages/agent-claude-code/bin packages/agent-cli/bin \
+          git diff --exit-code -- packages/agent-claude-code/bin packages/agent-telemetry/bin \
             || { echo "::error::a hook bin is stale — run 'bun run agents:build' and commit"; exit 1; }
 
       - name: Verify clean npm consumer installation
