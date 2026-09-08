@@ -252,14 +252,19 @@ jobs:
           test "$(npm view @counted/claude-code@2.0.1 dependencies.@counted/agent-telemetry)" = "^2.0.0"
           test "$(npm view @counted/opencode@2.0.1 dependencies.@counted/agent-telemetry)" = "^2.0.0"
           retire() {
-            local package="$1" message="$2" metadata complete
-            metadata="$(npm view "${package}@*" --json)"
-            complete="$(jq -r --arg message "$message" '
-              (if type == "array" then . else [.] end)
-              | if length == 0 or any(.[]; (.version | type) != "string")
-                then error("Expected published version metadata")
-                else all(.[]; .deprecated == $message) end
-            ' <<< "$metadata")"
+            local package="$1" message="$2" versions version current complete=true
+            versions="$(npm view "$package" versions --json)"
+            versions="$(jq -er '
+              if type == "array" and length > 0 and all(.[]; type == "string" and length > 0)
+              then .[] else error("Expected published versions") end
+            ' <<< "$versions")"
+            while IFS= read -r version; do
+              current="$(npm view "${package}@${version}" deprecated)"
+              if [[ "$current" != "$message" ]]; then
+                complete=false
+                break
+              fi
+            done <<< "$versions"
             if [[ "$complete" != "true" ]]; then
               npm deprecate "$package" "$message"
             fi
