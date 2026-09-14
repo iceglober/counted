@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@coun
 import { SiteChrome, SiteLinkButton, CodeBlock } from "./site-chrome";
 import { consoleOrigin } from "../lib/env";
 import { docsOrigin } from "../lib/site";
+import { agentPrompt } from "../lib/agent-prompt";
+import { CopyAgentPrompt } from "./copy-agent-prompt";
 export function SiteHome() {
   return <SiteChrome>
     <section className="grid items-start gap-12 pb-16 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-24">
@@ -11,7 +13,7 @@ export function SiteHome() {
         <Badge variant="outline">Open source · self-hostable</Badge>
         <h1 className="max-w-2xl font-heading text-5xl leading-[1.08] tracking-tight sm:text-6xl">Privacy-first<br/><span className="text-muted-foreground">product analytics.</span></h1>
         <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">Custom events, funnels, and dashboards you compose yourself. No tracking cookies. No fingerprinting.</p>
-        <div className="flex flex-wrap gap-3"><SiteLinkButton href={`${consoleOrigin()}/sign-in`}>Start free</SiteLinkButton><SiteLinkButton href={`${docsOrigin()}/getting-started`} variant="outline">Read the docs</SiteLinkButton></div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap"><SiteLinkButton href={`${consoleOrigin()}/sign-in`}>Start free</SiteLinkButton><SiteLinkButton href={`${docsOrigin()}/getting-started`} variant="outline">Read the docs</SiteLinkButton><CopyAgentPrompt prompt={agentPrompt()} /></div>
         <p className="text-xs text-muted-foreground">100,000 events a month. No credit card.</p>
       </div>
       <Card className="mt-1"><CardHeader><CardTitle>One event. More answers.</CardTitle><CardDescription>Use the properties you already send.</CardDescription></CardHeader><CardContent className="space-y-6">
