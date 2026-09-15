@@ -77,7 +77,7 @@ if (service === "mcp") {
 } else {
   const publicRoutes = ["/", "/pricing", "/about", "/contact", "/privacy", "/terms", "/blog", "/for/agents", "/vs", "/vs/aptabase", "/vs/counter", "/vs/plausible", "/vs/posthog"];
   const routes = service === "docs"
-    ? ["/", "/getting-started", "/openapi.json"]
+    ? ["/", "/getting-started", "/api-guide", "/openapi.json"]
     : [...publicRoutes, "/sign-in", "/design", "/design/aggregates", "/design/primitives/chart"];
   const assets = new Map();
   const siteRequest = (route, host = "counted.dev", extraHeaders = {}) => fetch(origin + route, {
@@ -100,7 +100,9 @@ if (service === "mcp") {
         const canonical = body.match(/<link\b[^>]*rel="canonical"[^>]*href="([^"]+)"/)?.[1];
         if (!canonical || new URL(canonical).href !== new URL(route, "https://reference.example.test").href ||
             !body.includes('href="https://console.example.test/api-explorer"') ||
-            (route === "/getting-started" && (!body.includes('href="https://console.example.test/claim"') ||
+            (route === "/getting-started" && (!body.includes('href="https://console.example.test"') ||
+              !body.includes("https://events.example.test/v1/events"))) ||
+            (route === "/api-guide" && (!body.includes('href="https://console.example.test/claim"') ||
               !body.includes("curl https://events.example.test/v1/events")))) {
           throw new Error(route + ": documentation ignored its runtime public destinations");
         }
