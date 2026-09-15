@@ -11,7 +11,7 @@ import { attempt } from "../../../../../lib/client";
 import { clientForCaller } from "../../../../../lib/session";
 import { requireAccount } from "../../../../../lib/guard";
 import { failureFromQuery } from "../../../../../lib/failure";
-import { apiOrigin } from "../../../../../lib/env";
+import { ingestOrigin } from "../../../../../lib/env";
 import { Disclosure, KeyValues } from "../../../../../components/layout";
 import { FailureNotice } from "../../../../../components/notice";
 import { instant } from "../../../../../lib/format";
@@ -54,7 +54,7 @@ const Project = async ({
     >
       <FailureNotice failure={failureFromQuery(query)} />
 
-      <ProjectSetup key={projectId} projectId={projectId} workspaceId={workspaceId} endpoint={apiOrigin()} canWrite={can(account, workspaceId, "credentials:write")} archived={one.archived} />
+      <ProjectSetup key={projectId} projectId={projectId} workspaceId={workspaceId} endpoint={ingestOrigin()} canWrite={can(account, workspaceId, "credentials:write")} archived={one.archived} />
 
       <Disclosure summary="Project details">
         <KeyValues

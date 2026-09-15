@@ -30,6 +30,10 @@ const origin = (raw: string): string => {
 export const apiOrigin = (env: NodeJS.ProcessEnv = process.env): string =>
   origin(env.COUNTED_API_URL ?? "http://localhost:8080");
 
+/** SDK examples must be reachable by customers, even with a private API connection. */
+export const ingestOrigin = (env: NodeJS.ProcessEnv = process.env): string =>
+  origin(env.COUNTED_PUBLIC_API_URL ?? apiOrigin(env));
+
 /**
  * Where this console answers, used to build the absolute URLs a hosted
  * checkout session has to return to. Stripe will not accept a relative one.
