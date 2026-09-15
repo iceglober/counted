@@ -102,7 +102,7 @@ const run = (service: "web" | "docs" | "mcp", scenario: Scenario = {}) => {
           return new Response(null, { status: 308, headers: { location: scenario.wrongDocsRedirect ? "/docs" : "https://docs.counted.dev" + (path === "/docs/getting-started" ? "/getting-started" : "") } });
         }
       }
-      const docsMarkup = service === "docs" ? `<link rel="canonical" href="https://${scenario.docsIgnoreRuntimeLinks ? "docs.counted.dev" : "reference.example.test"}${path}"><a href="https://console.example.test/api-explorer">Explorer</a><a href="https://console.example.test/claim">Claim</a><code>curl https://events.example.test/v1/events</code>` : "";
+      const docsMarkup = service === "docs" ? `<link rel="canonical" href="https://${scenario.docsIgnoreRuntimeLinks ? "docs.counted.dev" : "reference.example.test"}${path}"><a href="https://console.example.test">App</a><a href="https://console.example.test/api-explorer">Explorer</a><a href="https://console.example.test/claim">Claim</a><code>curl https://events.example.test/v1/events</code>` : "";
       return new Response('<html><head><title>' + (scenario.wrongMarketing ? "Console" : "Counted — privacy-first product analytics") + '</title><link href="/_next/static/main.css"><script src="/_next/static/main.js"></script>' + docsMarkup + '</head></html>');
     },
     { sleep: async () => {}, serve: (options: { fetch: (request: Request) => Response }) => {

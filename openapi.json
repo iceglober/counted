@@ -2197,6 +2197,7 @@
       "post": {
         "operationId": "projects.create",
         "summary": "Create a project",
+        "description": "Returns the project and its initial ingest key. Copy credential.secret now; it is returned only once. This key can send events to this project, not read analytics or manage resources.",
         "tags": [
           "projects"
         ],
@@ -2243,10 +2244,14 @@
                   "properties": {
                     "project": {
                       "$ref": "#/components/schemas/Project"
+                    },
+                    "credential": {
+                      "$ref": "#/components/schemas/IssuedCredential"
                     }
                   },
                   "required": [
-                    "project"
+                    "project",
+                    "credential"
                   ],
                   "additionalProperties": false
                 }
@@ -13909,41 +13914,6 @@
         ],
         "description": "How long this project's events are kept."
       },
-      "RetentionPolicyInput": {
-        "oneOf": [
-          {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string",
-                "const": "inherit"
-              }
-            },
-            "required": [
-              "kind"
-            ]
-          },
-          {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string",
-                "const": "days"
-              },
-              "days": {
-                "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 3650
-              }
-            },
-            "required": [
-              "kind",
-              "days"
-            ]
-          }
-        ],
-        "description": "How long this project's events are kept."
-      },
       "IssuedCredential": {
         "type": "object",
         "properties": {
@@ -14106,6 +14076,41 @@
         ],
         "additionalProperties": false,
         "description": "An API key, without its secret."
+      },
+      "RetentionPolicyInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "inherit"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "days"
+              },
+              "days": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 3650
+              }
+            },
+            "required": [
+              "kind",
+              "days"
+            ]
+          }
+        ],
+        "description": "How long this project's events are kept."
       },
       "ClaimGrant": {
         "type": "object",
@@ -18768,13 +18773,33 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Declared numeric measures available for sum. A numeric event property is not automatically a measure."
+          },
+          "capabilities": {
+            "type": "object",
+            "properties": {
+              "personAnalytics": {
+                "type": "boolean",
+                "description": "Whether distinct-person counts and person-based funnels can execute. Accepting identify() does not imply query support."
+              },
+              "numericPropertyAggregations": {
+                "type": "boolean",
+                "description": "Whether arbitrary numeric event properties can be summed. Otherwise sum accepts only names in measures."
+              }
+            },
+            "required": [
+              "personAnalytics",
+              "numericPropertyAggregations"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
           "events",
           "dimensions",
-          "measures"
+          "measures",
+          "capabilities"
         ],
         "additionalProperties": false,
         "description": "The vocabulary a project's events carry."

@@ -5,6 +5,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const urls = publicUrls();
   return [
     { url: urls.docs, changeFrequency: "weekly", priority: 1 },
+    { url: `${urls.docs}/api-guide`, changeFrequency: "monthly", priority: 0.6 },
     {
       url: `${urls.docs}/getting-started`,
       changeFrequency: "monthly",

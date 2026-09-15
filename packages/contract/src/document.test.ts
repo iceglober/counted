@@ -374,6 +374,7 @@ describe("secrets", () => {
       "credentials.issueForWorkspace",
       "credentials.rotate",
       "credentials.rotateForWorkspace",
+      "projects.create",
       "projects.provision",
     ]);
   });

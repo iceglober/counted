@@ -1,6 +1,8 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSetupKey } from "./setup-key";
 import { Input } from "@counted/ui/components/input";
 import { CreationDialog, CreationForm } from "./creation-dialog";
 import { Field } from "./form";
@@ -26,11 +28,19 @@ function NamedDraft({
   returnTo,
 }: Props & { kind: "dashboard" | "project" }) {
   const id = useId();
+  const router = useRouter();
+  const { prepare } = useSetupKey();
+  async function create(form: FormData) {
+    if (kind === "dashboard") return createDashboard(form);
+    const result = await createProject(form);
+    if (!result.ok) return result.failure;
+    const path = `/w/${workspaceId}/projects/${result.value.project.id}`;
+    prepare(path, result.value.credential.secret);
+    router.push(`${path}?setup=1`);
+    return null;
+  }
   return (
-    <CreationForm
-      action={kind === "dashboard" ? createDashboard : createProject}
-      submitLabel={`Create ${kind}`}
-    >
+    <CreationForm action={create} submitLabel={`Create ${kind}`}>
       <input type="hidden" name="workspaceId" value={workspaceId} />
       <input type="hidden" name="returnTo" value={returnTo} />
       <Field label="Name" htmlFor={id}>

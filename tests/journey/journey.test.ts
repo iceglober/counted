@@ -207,6 +207,11 @@ describe("3 · project", () => {
     });
     expect(created.status).toBe(201);
     state.projectA = str(created.body, "project", "id");
+    expect(str(created.body, "credential", "secret")).toMatch(/^ck_/);
+    expect(at(created.body, "credential", "credential", "permissions")).toEqual(["events:write"]);
+    expect(at(created.body, "credential", "credential", "project")).toBe(state.projectA);
+    const read = await call(api, owner, "GET", `/v1/projects/${state.projectA}`);
+    expect(JSON.stringify(read.body)).not.toContain(str(created.body, "credential", "secret"));
     expect(str(created.body, "project", "workspace")).toBe(state.workspace);
 
     const usage = await call(api, owner, "GET", `/v1/workspaces/${state.workspace}/usage`);
@@ -408,6 +413,14 @@ describe("5 · query", () => {
   test("the schema catalog reports the event names this project actually sent", async () => {
     const schema = await call(api, owner, "GET", `/v1/projects/${state.projectA}/schema`);
     expect(at(schema.body, "schema", "events")).toEqual(["page_view", "purchase", "signup"]);
+    expect(at(schema.body, "schema", "capabilities")).toEqual({ personAnalytics: false, numericPropertyAggregations: false });
+    expect(at(schema.body, "schema", "measures")).toEqual([]);
+    for (const measure of [{ kind: "unique", basis: "person" }, { kind: "sum", name: "active_seconds" }]) {
+      const refused = await call(api, owner, "POST", `/v1/projects/${state.projectA}/queries`, {
+        analysis: { shape: "scalar", measure, summary: "total", window },
+      });
+      expect(refused.status).toBe(422);
+    }
   });
 
   test("an SDK dimension filters — every event carried os_name=macos", async () => {

@@ -4,11 +4,56 @@ import { setupExample } from "./setup-example";
 test("the copied HTTP example retains a pasted key as one literal header", async () => {
   const key = "key' $(printf unexpected) \" spaced";
   const endpoint = "https://api.example.test/path's";
-  const command = `curl() { printf '%s\\0' "$@"; }\n${setupExample("http", endpoint, key)}`;
-  const child = Bun.spawn(["sh", "-c", command], {stdout:"pipe",stderr:"pipe"});
+  const command = `curl() { printf '%s\\0' "$@"; }\n${setupExample(
+    "http",
+    endpoint,
+    key
+  )}`;
+  const child = Bun.spawn(["sh", "-c", command], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
   const args = (await new Response(child.stdout).text()).split("\0");
   expect(await child.exited).toBe(0);
   expect(args[0]).toBe(endpoint + "/v1/events");
   expect(args[2]).toBe("authorization: Bearer " + key);
-  expect(JSON.parse(args[6]!)).toMatchObject({events:[{name:"page_view",properties:{path:"/welcome"}}]});
+  expect(JSON.parse(args[6]!)).toMatchObject({
+    events: [{ name: "page_view", properties: { path: "/welcome" } }],
+  });
+});
+
+test("hosted browser setup uses the SDK defaults; server scripts shut down", () => {
+  const browser = setupExample("js", "https://api.counted.dev/", "ck_demo");
+  expect(browser).toContain('new Counted({ key: "ck_demo" })');
+  expect(browser).not.toContain("endpoint:");
+  expect(browser).not.toContain("flush()");
+  expect(setupExample("node", "https://api.counted.dev", "ck_demo")).toContain(
+    "await counted.shutdown()"
+  );
+  expect(setupExample("js", "https://self.test/", "ck_demo")).toContain(
+    'endpoint: "https://self.test/v1/events"'
+  );
+});
+
+test("separate HTTP examples create separate temporary visits", async () => {
+  async function visit() {
+    const child = Bun.spawn(
+      [
+        "sh",
+        "-c",
+        `curl() { printf '%s\\0' "$@"; }\n${setupExample(
+          "http",
+          "https://api.test",
+          "ck_test"
+        )}`,
+      ],
+      { stdout: "pipe", stderr: "pipe" }
+    );
+    const args = (await new Response(child.stdout).text()).split("\0");
+    expect(await child.exited).toBe(0);
+    return JSON.parse(args[6]!).events[0].visitId;
+  }
+  const first = await visit();
+  expect(first).toMatch(/^[a-f0-9-]{36}$/i);
+  expect(await visit()).not.toBe(first);
 });

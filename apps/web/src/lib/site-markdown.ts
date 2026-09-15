@@ -10,14 +10,17 @@ The SDK holds an ephemeral visit id in memory, without tracking cookies or finge
 
 ## Get started
 
-Install @counted/sdk version 2. Create an ingest key in your project, then:
+Install @counted/sdk version 2. Create a project in the app; its initial ingest key is already in the setup code. Then:
 
 \`\`\`ts
 import { Counted } from "@counted/sdk";
 const counted = new Counted({ key: "YOUR_INGEST_KEY" });
 counted.track("page_view", { path: "/pricing" });
-await counted.flush();
 \`\`\`
+
+The SDK sends queued events automatically in the browser. Before a short-lived process exits, await counted.shutdown(). Open the project Overview to see incoming event counts update automatically.
+
+Distinct-person/account analytics, cross-visit retention, and sums of arbitrary numeric properties are not available yet. Do not collect IDs solely for unavailable queries. GET /v1/projects/{projectId}/schema exposes capabilities and declared measures; sum accepts only listed measures.
 
 For anonymous provisioning, POST ${publicApiOrigin()}/v1/projects/provision with an optional name. Keep the returned claim token private; paste it and the project ID at ${consoleOrigin()}/claim when you are ready to adopt the project into a workspace.
 

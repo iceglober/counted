@@ -11,8 +11,8 @@ import { attempt } from "../../../../../lib/client";
 import { clientForCaller } from "../../../../../lib/session";
 import { requireAccount } from "../../../../../lib/guard";
 import { failureFromQuery } from "../../../../../lib/failure";
-import { apiOrigin } from "../../../../../lib/env";
-import { KeyValues, Region } from "../../../../../components/layout";
+import { ingestOrigin } from "../../../../../lib/env";
+import { Disclosure, KeyValues } from "../../../../../components/layout";
 import { FailureNotice } from "../../../../../components/notice";
 import { instant } from "../../../../../lib/format";
 import { ProjectFrame, ProjectMissing } from "./frame";
@@ -54,9 +54,9 @@ const Project = async ({
     >
       <FailureNotice failure={failureFromQuery(query)} />
 
-      <ProjectSetup projectId={projectId} workspaceId={workspaceId} endpoint={apiOrigin()} canWrite={can(account, workspaceId, "credentials:write")} archived={one.archived} />
+      <ProjectSetup key={projectId} projectId={projectId} workspaceId={workspaceId} endpoint={ingestOrigin()} canWrite={can(account, workspaceId, "credentials:write")} archived={one.archived} />
 
-      <Region title="Details">
+      <Disclosure summary="Project details">
         <KeyValues
           rows={[
             { label: "Identifier", value: <code>{one.id}</code> },
@@ -84,7 +84,7 @@ const Project = async ({
             },
           ]}
         />
-      </Region>
+      </Disclosure>
 
 
     </ProjectFrame>

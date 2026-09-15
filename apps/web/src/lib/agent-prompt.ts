@@ -2,43 +2,35 @@ import { consoleOrigin } from "./env";
 import { docsOrigin, siteOrigin } from "./site";
 
 export function agentPrompt(): string {
-  return `Help me evaluate and integrate Counted into this app.
+  return `Help me choose useful questions and add Counted to this product with the smallest working integration.
 
-Counted is open-source, self-hostable, privacy-first product analytics. Custom events and properties become counts, time series, breakdowns, and ordered visit funnels. Dashboards are composed of Insights. Counted also has an API, API Explorer, and MCP interface.
+Counted is open-source, self-hostable, privacy-first product analytics. Today it answers event counts, unique visits, trends, property breakdowns, and ordered visit funnels. Dashboards contain Insights. Distinct-person/account queries, cross-visit retention, and sums of arbitrary numeric properties are NOT currently available. Accepting identify() or numeric properties does not mean those analyses work. Do not propose them as supported or collect IDs for queries we cannot answer.
 
-First, establish which product we are discussing. If you can access a repository in the current working directory, read its instructions and inspect just enough of its overview, routes, and existing analytics to understand the product and its main user journeys. Avoid an exhaustive codebase audit before your first recommendation.
+First, read the current repository's instructions and inspect just enough of the product, routes, and existing analytics to understand its main journeys. If there is no recognizable repository/product in the current directory, or you cannot access files, ask for a repository path, product URL, or short description. Do not search unrelated directories or invent a product. If only a URL/description is available, label assumptions and defer code changes until source access is available.
 
-If the current directory contains no recognizable product or repository, or you cannot access local files, say so and ask for the repository path, a product URL, or a short product description and its audience. Do not search unrelated directories or assume the current folder is the product. With only a URL or description, you can still propose questions, but label assumptions and defer code-specific setup until source access is available. If multiple products are plausible and the context does not identify one, ask which to focus on.
+Your first response should briefly describe the product, then propose 3–5 plain-language, human-readable questions Counted can answer about it. Avoid API vocabulary and event catalogs. For each question, mark its identity mode:
+- [Anonymous visits]: uses events and temporary visits, with optional non-identifying categories. Visits are not distinct people. Login counts, feature-use counts, and visit funnels can use this mode.
+- [Identified users]: needs an opaque customer-supplied identity across visits. Person-based analytics are currently unavailable: if I ask for such a question, mark it unavailable and explain why rather than recommending identity collection. Never force an identified-user question into the list.
 
-Your first substantive response should briefly describe the product as you understand it, then propose 3–5 plain-language questions Counted can answer about it. Use language a product owner would use, not event names, API vocabulary, or a technical implementation plan. Ground each question in the product and verify any uncertain capability against current Counted documentation. Do not invent a product just to fill this list.
+Ask me to accept, remove, rewrite, or add questions and wait for feedback before installing packages, creating resources, or changing code. If I already approved questions, continue from them.
 
-Mark every question with exactly one identity mode, choosing the least identifying mode that answers it:
-- [Anonymous visits]: answerable from events and ephemeral visits, optionally grouped by non-identifying categories such as organization type, plan, or role. This does not count unique people or recognize someone across visits. A successful login count, actions within a visit, and estimated active time do not inherently require a person ID.
-- [Identified users]: requires recognizing the same person across visits using an opaque identifier explicitly supplied by the customer through identify(). Explain in one short sentence why the question needs it. This is pseudonymous personal data when the customer can link the ID to a person; Counted does not anonymize that ID. This mode does not by itself make an unsupported analysis available.
+After agreement, choose the minimum events and bounded properties needed. State exactly when each event fires: an attempt, an accepted request, or a completed outcome. Avoid duplicate client/server tracking. Start with ONE real app action and prove it works before adding the rest.
 
-Tailor questions like “Which types of organizations use the app most?”, “What do people do during a visit?”, or “How many people come back on another day?” to the actual product, specifying visits, logins, or distinct people. An organization-type breakdown does not require identity. A raw organization ID needs a separate purpose and privacy assessment; it is not automatically anonymous.
-
-End that response by asking me to accept, remove, rewrite, or add questions, and wait for my feedback. Do not install packages, create resources, change code, or produce a detailed event catalog before we agree on the questions. If I already supplied or approved questions, refine and label those instead of restarting discovery. Do not force identified-user questions into a product that only needs anonymous measurement.
-
-After we agree on the questions, map each to the necessary events, properties, identity mode, and supported Insight. Give precise firing conditions and actual code locations. Distinguish attempts, accepted requests, and completed outcomes; avoid duplicate client/server events. Prefer route templates and bounded properties. State measurement limitations, and do not promise retention or other unsupported analyses merely because identity is available.
-
-Use current documentation before choosing packages or writing API calls:
+Use current Counted documentation:
+- Quickstart: ${docsOrigin()}/getting-started
 - Overview: ${siteOrigin()}/llms.txt
-- Getting started: ${docsOrigin()}/getting-started
-- Generated OpenAPI: ${docsOrigin()}/openapi.json
-- Authentication and MCP: ${siteOrigin()}/auth.md
+- OpenAPI: ${docsOrigin()}/openapi.json
+- Advanced API/auth: ${siteOrigin()}/auth.md
 - App: ${consoleOrigin()}
-- Source and SDKs: https://github.com/iceglober/counted
+- SDKs: https://github.com/iceglober/counted#packages
 
-Once the measurement plan is agreed, use the smallest suitable integration: the JavaScript SDK (@counted/sdk), optionally its React integration (@counted/react), or the documented SDK/HTTP API for another stack. Reuse a suitable project or guide project/key creation using current docs. For self-hosting, follow the setup guide and verify service URLs. Keep product analytics separate from coding-agent telemetry.
+For JavaScript, the default path is: create or reuse a project, copy its ingest key, install @counted/sdk, create one Counted({ key }) client, and call track(event, properties). Use @counted/react only when it helps the existing app. The SDK handles batching, retries, duplicate protection, and ephemeral visits. Do not build wrappers, management clients, OAuth flows, or service-key setup just to send events. Other stacks should use their documented SDK. Respect the app's lifecycle; await shutdown() before a short-lived process exits.
 
-Keep the integration privacy-first: no analytics cookies, fingerprinting, or SDK-invented persistent user/device identifiers. Do not send emails, names, IP addresses, tokens, sensitive domain data, free-form user content, raw query strings, or secrets as event properties. Properties are not automatically scrubbed for personal data. SDK visits are ephemeral and held in memory; stored events still follow the project's retention policy. Never derive a person's identity. Only use identify() with an opaque customer-supplied ID when we explicitly choose identified-user measurement, and reset on sign-out or a change of user. An ingest key is project-scoped and embeddable; service credentials and claim tokens must stay private and out of browser bundles, URLs, logs, and commits.
+Open the project's Overview and confirm the real action appears in Live events. Then verify an Insight answers the approved question. Query automation is optional: when needed, use a narrowly scoped service credential or existing agent authorization and read GET /v1/projects/{projectId}/schema first. Its capabilities and measures describe executable support. An OpenAPI enum alone is not proof a query works. Sum accepts only declared measures, never an arbitrary numeric property name. If a capability is unavailable, report the gap and revise the question with me.
 
-Keep login events, visits, and people distinct. Where needed, the SDK's initial visitId option can correlate a controlled first-party server-to-browser handoff without a durable person ID. Use a fresh ephemeral value, never an authentication session ID or one-time ticket, and validate the actual handoff rather than assuming every sign-in provider behaves alike. Do not create cross-site tracking identifiers or treat a URL fragment as secret. For active-time questions, measure visible, recently interactive elapsed time, handle idle/background transitions, and describe the result as an estimate rather than attention.
+Privacy rules: no analytics cookies, fingerprinting, inferred identities, or persistent SDK-generated user/device identifiers. No emails, names, IPs, tokens, secrets, free-form user content, or personal data in properties; properties are not automatically scrubbed. Prefer route templates over full URLs. Visit IDs stay ephemeral and in memory. Raw account/organization IDs are not automatically anonymous. Only use identify() with a customer-supplied opaque ID for an explicitly approved, supported purpose; reset on logout/user changes. Ingest keys are embeddable and project-scoped. Keep service keys and claim tokens out of browser bundles, URLs, logs, and commits.
 
-Follow existing configuration and lifecycle conventions. Analytics must not break the user's action. Handle SPA navigation, duplicate effects, retries, and flushing before short-lived processes exit. Preserve event identifiers and timestamps across HTTP retries; inspect accepted, deduplicated, rejected, and per-event outcomes rather than treating every 202 as success.
+Analytics must not break the app. Check duplicate effects, missing configuration, and the actual ingestion receipt, including rejected events. Keep event IDs and timestamps unchanged across manual HTTP retries. Report what was changed and what was verified with real events; never claim success from mocks or accepted schemas alone.
 
-Verify an actual app action end to end: safe properties, ingestion receipt, query, and an Insight answering the agreed question. Test duplicate prevention and missing configuration. Report changes, verified behavior, and remaining setup separately. Never claim integration success from mocks alone.
-
-Begin with the 3–5 human-readable questions and their identity modes, or the missing-product clarification when there is not enough context. Ask only for product context or access you cannot determine from the app.`;
+Begin with the questions and identity modes, or the missing-product clarification.`;
 }
