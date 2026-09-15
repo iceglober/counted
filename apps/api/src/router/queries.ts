@@ -23,7 +23,7 @@ import {
   dimensionSpec,
   isDimensionName,
 } from "@counted/analytics-domain";
-import { ask, readProjectSchema, type AskDeps } from "../analysis/ask";
+import { ask, readProjectSchema, QUERY_CAPABILITIES, type AskDeps } from "../analysis/ask";
 import { toAnalysis } from "../analysis/wire";
 import { fromEngineFailure, raise } from "../faults";
 import type { HandlerDeps } from "./deps";
@@ -122,6 +122,7 @@ export const queryRoutes = ({ deps, guarded }: HandlerDeps) => {
             source: "dimension" as const,
           })), ...properties.map((name) => ({ name, label: name, status: "scanned" as const, source: "property" as const }))],
           measures: [...measures],
+          capabilities: QUERY_CAPABILITIES,
         },
       };
     }),

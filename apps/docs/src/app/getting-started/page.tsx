@@ -8,6 +8,11 @@ export const metadata: Metadata = {
 };
 export default function GetStarted() {
   const urls = publicUrls();
+  const options = `key: "YOUR_INGEST_KEY"${
+    urls.api === "https://api.counted.dev"
+      ? ""
+      : `, endpoint: "${urls.api}/v1/events"`
+  }`;
   return (
     <>
       <SiteHeader />
@@ -16,175 +21,130 @@ export default function GetStarted() {
           <p className="text-xs text-muted-foreground">
             Counted for developers
           </p>
-          <h1 className="font-heading text-4xl">One API, your tools.</h1>
+          <h1 className="font-heading text-4xl">
+            Your first event in a few lines.
+          </h1>
           <p className="text-base text-muted-foreground">
-            Collect events, ask questions, and manage your workspace from code
-            or the API Explorer.
+            Create a project, track an action, and see it arrive.
           </p>
         </header>
         <section className="space-y-4">
-          <h2 className="font-heading text-2xl">Start without an account</h2>
-          <p>Send <code>POST /v1/projects/provision</code> with an optional project name. The response contains a working ingest key, a project ID, and an expiring claim token. Keep the claim token private.</p>
-          <p>When you are ready to keep the project, <a className="text-primary-ink underline underline-offset-4" href={`${urls.console}/claim`}>claim it in the app</a>. Sign in or create an account, choose a workspace, and paste the project ID and claim token. You need permission to create projects in that workspace and an available project slot. Existing events and the ingest key are retained.</p>
-          <p className="text-muted-foreground">Automation can use <code>POST /v1/projects/{"{projectId}"}/claim</code> with a service key authorized for the destination workspace. The claim token proves ownership of the unclaimed project; it does not replace workspace authorization.</p>
-        </section>
-        <section className="space-y-4">
-          <h2 className="font-heading text-2xl">Make your first request</h2>
+          <h2 className="font-heading text-2xl">1. Create a project</h2>
           <p>
-            Open{" "}
             <a
               className="text-primary-ink underline underline-offset-4"
-              href={`${urls.console}/api-explorer`}
+              href={urls.console}
             >
-              API Explorer
+              Open the app
             </a>{" "}
-            in the Counted app. Choose an operation and send a request using
-            your signed-in session. Workspace fields start with your current
-            workspace; you can edit every input.
+            and choose <strong>Projects → New project</strong>. Name it. Your
+            project opens with its first ingest key already in the setup code.
           </p>
-          <p>
-            For access across projects, open Settings → Workspace → Workspace keys
-            → New service key. Select the permissions and expiry, then copy the
-            secret before closing. Owners and admins can inspect, rotate, and revoke
-            keys from that table. For access to one project, use its Keys page.
-            Send your service key as a bearer token to{" "}
-            <code>{urls.api}</code>.
-          </p>
-          <pre
-            tabIndex={0}
-            className="overflow-x-auto border bg-muted/30 p-5 font-mono text-xs leading-6"
-          >
-            <code>
-              {
-                `curl ${urls.api}/v1/me \\\n  -H "Authorization: Bearer $COUNTED_SERVICE_KEY"`
-              }
-            </code>
-          </pre>
           <p className="text-muted-foreground">
-            A service key’s access is limited by its permissions, project or
-            workspace scope, and the issuing member’s role.
+            Copy the code before leaving: keys are shown only once. An ingest
+            key is safe to embed in your app and can only send events to that
+            project. For an existing project, use a saved ingest key or create
+            one from its Overview or Keys page.
           </p>
         </section>
         <section className="space-y-4">
-          <h2 className="font-heading text-2xl">Collect events</h2>
+          <h2 className="font-heading text-2xl">2. Track an action</h2>
+          <pre className="whitespace-pre-wrap break-all border bg-muted/30 p-5 font-mono text-xs leading-6">
+            <code>npm install @counted/sdk</code>
+          </pre>
+          <pre className="whitespace-pre-wrap break-all border bg-muted/30 p-5 font-mono text-xs leading-6">
+            <code>{`import { Counted } from "@counted/sdk";\n\nconst counted = new Counted({ ${options} });\ncounted.track("page_view", { path: "/welcome" });`}</code>
+          </pre>
           <p>
-            Use a project’s ingest key with a{" "}
+            Create one client per app. Call <code>track()</code> when an action
+            happens. The SDK handles batching, retries, duplicate protection,
+            and temporary visits in memory. In the browser, it sends queued
+            events automatically.
+          </p>
+          <p>
+            In a short-lived Node.js or Bun script, finish with{" "}
+            <code>await counted.shutdown()</code> to flush queued events before
+            exiting. In serverless handlers, create the client within the
+            invocation and await shutdown before returning.
+          </p>
+          <p className="text-muted-foreground">
+            Use stable event names and bounded properties such as a route
+            template, feature name, or plan. Do not send emails, names, tokens,
+            user-written text, or URLs containing personal data. No analytics
+            cookies or persistent device identifiers are created.
+          </p>
+        </section>
+        <section className="space-y-4">
+          <h2 className="font-heading text-2xl">3. See it arrive</h2>
+          <p>
+            Trigger the action in your app with the project Overview open.{" "}
+            <strong>Live events</strong> updates automatically with event names
+            and counts for the last 24 hours. Allow a few seconds for batching
+            and the next refresh.
+          </p>
+          <p>
+            Once events appear, create a dashboard and add an Insight. Start
+            with an event count, a trend, or a breakdown by one of your
+            properties.
+          </p>
+          <p className="text-muted-foreground">
+            If nothing arrives, check the ingest key, project status, and
+            outgoing request to <code>{urls.api}/v1/events</code>. A receipt
+            reports accepted, deduplicated, and rejected events. Network
+            blockers and exhausted workspace quotas can prevent collection.
+          </p>
+        </section>
+        <section className="space-y-4">
+          <h2 className="font-heading text-2xl">What you can measure today</h2>
+          <p>
+            Event counts, unique visits, trends, property breakdowns, and
+            ordered visit funnels. Visits group temporary activity; they do not
+            count distinct people.
+          </p>
+          <p>
+            Distinct-person or account analytics, cross-visit retention, and
+            sums of arbitrary numeric properties are not available yet. Sending
+            an ID or a number does not enable those analyses. Do not collect an
+            identifier solely for an unavailable query.
+          </p>
+          <p>
+            For API integrations,{" "}
+            <code>GET /v1/projects/{"{projectId}"}/schema</code> lists observed
+            events, dimensions, declared measures, and executable capabilities.
+            Only listed measures can be summed; an empty measures list means no
+            numeric sums are available.
+          </p>
+        </section>
+        <section className="space-y-4 border-t pt-6">
+          <h2 className="font-heading text-2xl">Go further when you need to</h2>
+          <p>
             <a
               className="text-primary-ink underline underline-offset-4"
               href="https://github.com/iceglober/counted#packages"
             >
-              Counted SDK
-            </a>
-            . The SDK handles batching, retries, and ephemeral visits. An ingest
-            key can write events to one project; it cannot read analytics or
-            manage your workspace.
-          </p>
-          <p>
-            Direct ingestion uses <code>POST /v1/events</code> with a JSON body
-            containing an <code>events</code> array and an{" "}
-            <code>Authorization: Bearer</code> header. A <code>202</code>{" "}
-            response acknowledges a durable write and reports accepted,
-            deduplicated, and rejected events. Inspect any per-event outcomes; a
-            successful batch can still contain rejected events.
-          </p>
-          <pre tabIndex={0} className="overflow-x-auto border bg-muted/30 p-5 font-mono text-xs leading-6">
-            <code>{String.raw`COUNTED_VISIT_ID=$(uuidgen)
-curl ${urls.api}/v1/events \
-  -H "Authorization: Bearer $COUNTED_INGEST_KEY" \
-  -H "Content-Type: application/json" \
-  --data "{\"events\":[{\"name\":\"page_view\",\"visitId\":\"$COUNTED_VISIT_ID\",\"properties\":{\"url\":\"/pricing\"}}]}"`}</code>
-          </pre>
-          <p>
-            This one-off request uses a fresh visit id and the server’s receipt
-            time. In an application, let the SDK keep visits in memory and
-            supply an <code>occurredAt</code> timestamp and unique
-            <code> idempotencyKey</code> for every event. Keep both unchanged
-            when retrying an event so it can be deduplicated. Never store a
-            visit id in a cookie or local storage.
-          </p>
-          <p>
-            In API Explorer, choose <strong>Events → Ingest events</strong>.
-            Enter the project’s ingest key, edit the generated event fields or
-            JSON, and send. The sample contains a fresh visit, timestamp, and
-            event key. A signed-in session cannot ingest; the project is
-            determined entirely by the key.
-          </p>
-          <p>
-            Custom properties are flat strings, numbers, booleans, or null. For
-            example, <code>{`{"url":"/pricing","campaign":"launch"}`}</code>
-            can become filters or breakdown dimensions in an Insight. Omit
-            personal data. Geography comes from the request at the edge; the IP
-            address is discarded and client-supplied country values are ignored.
-          </p>
-          <p className="text-muted-foreground">
-            The reference includes ingestion schemas from the same wire contract
-            as the dedicated group-commit handler. Authentication remains under
-            the provider’s <code>/api/auth/</code> routes, which the Explorer’s
-            Custom request tab can call through the app’s API proxy.
-          </p>
-        </section>
-        <section className="space-y-4">
-          <h2 className="font-heading text-2xl">Read the receipt before retrying</h2>
-          <pre tabIndex={0} className="overflow-x-auto border bg-muted/30 p-5 font-mono text-xs leading-6">
-            <code>{JSON.stringify({ accepted: 1, deduplicated: 0, rejected: 1, outcomes: [{ index: 1, accepted: false, reason: "MalformedEvent" }] }, null, 2)}</code>
-          </pre>
-          <p>
-            Here the first event is stored and the second is rejected.
-            <code> outcomes</code> uses zero-based indexes from your submitted
-            array and lists only rejected events. Fix those events before
-            submitting them again. A deduplicated event is already stored;
-            nothing more is required. With no rejections, <code>outcomes</code>
-            is omitted.
-          </p>
-          <table className="w-full border-collapse text-left">
-            <thead><tr className="border-b"><th className="py-3 pr-4 font-medium">Status</th><th className="py-3 font-medium">Next step</th></tr></thead>
-            <tbody>
-              {[
-                ["202", "Inspect accepted, deduplicated, rejected, and any per-event outcomes."],
-                ["400 / 413", "Correct the JSON or split the batch. Defaults allow 250 events and 1 MiB."],
-                ["401 / 403 / 404", "Check the key, its project, and events:write permission. Do not retry unchanged."],
-                ["402", "Resolve the workspace quota or wait for its next usage period."],
-                ["429", "Wait at least Retry-After seconds, then retry with the same event keys and timestamps."],
-                ["503", "Back off and retry with the same event keys and timestamps."],
-              ].map(([status, action]) => <tr key={status} className="border-b"><td className="whitespace-nowrap py-3 pr-4 align-top font-mono text-xs">{status}</td><td className="py-3">{action}</td></tr>)}
-            </tbody>
-          </table>
-          <p className="text-muted-foreground">
-            Whole-batch failures include <code>code</code>, <code>detail</code>,
-            and <code>retryable</code>. Limits may differ on a self-hosted
-            deployment. The full reference describes every field and response.
-          </p>
-        </section>
-        <section className="space-y-4">
-          <h2 className="font-heading text-2xl">Build with the contract</h2>
-          <p>
-            The{" "}
+              React, Python, Go, and Rust SDKs
+            </a>{" "}
+            ·{" "}
+            <a
+              className="text-primary-ink underline underline-offset-4"
+              href="/api-guide"
+            >
+              HTTP, service keys, and anonymous provisioning
+            </a>{" "}
+            ·{" "}
             <a
               className="text-primary-ink underline underline-offset-4"
               href="/"
             >
               API reference
-            </a>{" "}
-            includes request fields, response schemas, errors, and examples for
-            every oRPC operation. Download the{" "}
-            <a
-              className="text-primary-ink underline underline-offset-4"
-              href="/openapi.json"
-            >
-              OpenAPI 3.1 document
-            </a>{" "}
-            to generate a client or import it into your API tools.
+            </a>
           </p>
-          <p>
-            In the Explorer, switch between generated forms and JSON for complex
-            requests. Choose a service or ingest key to test its exact
-            permissions, or use a share token for a shared dashboard. Entered
-            keys and request contents stay in memory while you use the page.
+          <p className="text-muted-foreground">
+            Service keys and OAuth are for querying and managing Counted from
+            other tools. Sending events with an SDK needs only the project’s
+            ingest key.
           </p>
         </section>
-        <footer className="border-t pt-6 text-xs text-muted-foreground">
-          Counted · Privacy-focused app analytics
-        </footer>
       </main>
     </>
   );

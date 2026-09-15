@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { Counted } from "../../packages/sdk-js/src/client";
+import { browserSettings } from "./settings";
 import { account, addMember, canceledSubscription, dashboardWithInsights, invitation, noHorizontalOverflow, post, projectWithEvents, uniqueName } from "./fixtures";
 
 test("password sign-in returns to the requested workspace page", async ({ page }) => {
@@ -17,7 +19,7 @@ test("password sign-in returns to the requested workspace page", async ({ page }
   await noHorizontalOverflow(page);
 });
 
-test("new project uses a contained modal and opens its installation flow", async ({ page }) => {
+test("new project uses a contained modal and opens its installation flow", async ({ page }, testInfo) => {
   const fixture = await account(page);
   await page.goto(`/w/${fixture.workspaceId}/projects`);
   await page.getByRole("button", { name: "New project", exact: true }).click();
@@ -30,7 +32,39 @@ test("new project uses a contained modal and opens its installation flow", async
   await expect(page).toHaveURL(/\/projects\/[^/?]+\?setup=1$/);
   await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Connect your app", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "New ingest key", exact: true })).toBeVisible();
+  const code = await page.getByTestId("setup-code").innerText();
+  const secret = JSON.parse(code.match(/key: ("[^"\n]+")/)![1]!);
+  expect(secret).toMatch(/^ck_/);
+  expect(code).not.toContain("YOUR_INGEST_KEY");
+  await expect(page.getByRole("button", { name: "Copy code", exact: true })).toBeEnabled();
+  await expect(page.getByText("Waiting for your first event.", { exact: false })).toBeVisible();
+  const projectPath = new URL(page.url()).pathname;
+  const projectId = projectPath.split("/").at(-1)!;
+  const credentials = await page.request.get(`/api/v1/projects/${projectId}/credentials`);
+  const keys = await credentials.json();
+  expect(keys.items).toHaveLength(1);
+  expect(keys.items[0]).toMatchObject({ kind: "ingest", permissions: ["events:write"] });
+  expect(JSON.stringify(keys)).not.toContain(secret);
+  expect(page.url()).not.toContain(secret);
+  expect(await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }))).not.toContain(secret);
+
+  // The actual SDK and its normal automatic flush, not a manually crafted event.
+  const counted = new Counted({ key: secret, endpoint: `${browserSettings().apiUrl}/v1/events` });
+  try {
+    counted.track("page_view", { path: "/welcome" });
+    await expect(page.getByText("Connected. Events are arriving from your app.", { exact: true })).toBeVisible({ timeout: 25000 });
+    const row = page.getByRole("row").filter({ hasText: "page_view" });
+    await expect(row.getByRole("cell", { name: "1", exact: true })).toBeVisible();
+  } finally { await counted.shutdown(); }
+  await page.screenshot({ path: `/tmp/counted-dx-${testInfo.project.name}.png`, fullPage: true });
+  await noHorizontalOverflow(page);
+  await page.reload();
+  await expect(page.getByTestId("setup-code")).toContainText("YOUR_INGEST_KEY");
+  await expect(page.getByTestId("setup-code")).not.toContainText(secret);
+  // Pasting a saved key must not dismiss the input after its first character.
+  await page.getByLabel("Ingest key", { exact: true }).pressSequentially(secret);
+  await expect(page.getByLabel("Ingest key", { exact: true })).toHaveValue(secret);
+  await expect(page.getByTestId("setup-code")).toContainText(secret);
   await noHorizontalOverflow(page);
 });
 

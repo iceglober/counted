@@ -86,6 +86,12 @@ import { fromFunnelResult } from "./wire";
  * to a mutable one. Making the port's type match the wire's is cheaper than a
  * spread at every call site that would quietly copy an array per tile.
  */
+/** Executable capabilities, also exposed by the project schema endpoint. */
+export const QUERY_CAPABILITIES = {
+  personAnalytics: false,
+  numericPropertyAggregations: false,
+};
+
 export type ReadoutValue =
   | { shape: "scalar"; value: number }
   | {
@@ -277,7 +283,9 @@ export const ask = async (
   if (!checked.ok) return failed(fromAnalysisError(checked.error));
 
   const analysis = checked.value;
-  if (Analysis.requiresPerson(analysis)) return invalid("Person-based analytics are not available yet. Choose unique visits or a visit funnel.");
+  if (!QUERY_CAPABILITIES.personAnalytics && Analysis.requiresPerson(analysis)) {
+    return invalid("Person-based analytics are not available yet. Choose unique visits or a visit funnel.");
+  }
   if (analysis.shape === "funnel")
     return askFunnel(deps, question, analysis.funnel);
 

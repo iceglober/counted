@@ -14,21 +14,18 @@
  */
 
 import { attempt } from "../lib/client";
-import type { Failure } from "../lib/failure";
 import { clientForCaller } from "../lib/session";
 import { finish, finishAt, finishCreation } from "../lib/act";
 import { integer, returnTo, text } from "../lib/form";
-import { redirect } from "next/navigation";
 
-export const createProject = async (
-  form: FormData,
-): Promise<Failure | null> => {
+export const createProject = async (form: FormData) => {
   const workspaceId = text(form, "workspaceId");
   const client = await clientForCaller();
-  const outcome = await attempt(client.projects.create({ workspaceId, name: text(form, "name") }));
-  const failure = finishCreation(returnTo(form, `/w/${workspaceId}/projects`), outcome);
-  if (!outcome.ok) return failure;
-  redirect(`/w/${workspaceId}/projects/${outcome.value.project.id}?setup=1`);
+  const outcome = await attempt(
+    client.projects.create({ workspaceId, name: text(form, "name") })
+  );
+  finishCreation(returnTo(form, `/w/${workspaceId}/projects`), outcome);
+  return outcome;
 };
 
 export const renameProject = async (form: FormData): Promise<void> => {
@@ -39,8 +36,8 @@ export const renameProject = async (form: FormData): Promise<void> => {
       client.projects.rename({
         projectId: text(form, "projectId"),
         name: text(form, "name"),
-      }),
-    ),
+      })
+    )
   );
 };
 
@@ -49,8 +46,8 @@ export const archiveProject = async (form: FormData): Promise<void> => {
   finish(
     returnTo(form, "/"),
     await attempt(
-      client.projects.archive({ projectId: text(form, "projectId") }),
-    ),
+      client.projects.archive({ projectId: text(form, "projectId") })
+    )
   );
 };
 
@@ -59,8 +56,8 @@ export const restoreProject = async (form: FormData): Promise<void> => {
   finish(
     returnTo(form, "/"),
     await attempt(
-      client.projects.restore({ projectId: text(form, "projectId") }),
-    ),
+      client.projects.restore({ projectId: text(form, "projectId") })
+    )
   );
 };
 
@@ -71,8 +68,8 @@ export const deleteProject = async (form: FormData): Promise<void> => {
     returnTo(form, `/w/${workspaceId}/projects`),
     `/w/${workspaceId}/projects`,
     await attempt(
-      client.projects.delete({ projectId: text(form, "projectId") }),
-    ),
+      client.projects.delete({ projectId: text(form, "projectId") })
+    )
   );
 };
 
@@ -109,7 +106,7 @@ export const setRetention = async (form: FormData): Promise<void> => {
           kind === "days" && days !== null
             ? { kind: "days", days }
             : { kind: "inherit" },
-      }),
-    ),
+      })
+    )
   );
 };

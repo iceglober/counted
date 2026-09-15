@@ -69,6 +69,7 @@ export const create = oc
       method: "POST",
       path: "/v1/workspaces/{workspaceId}/projects",
       summary: "Create a project",
+      description: "Returns the project and its initial ingest key. Copy credential.secret now; it is returned only once. This key can send events to this project, not read analytics or manage resources.",
       tags: TAGS,
       authorize: {
         kind: "resource",
@@ -81,7 +82,7 @@ export const create = oc
   )
   .errors(PROJECT_ERRORS)
   .input(z.object({ workspaceId: WorkspaceIdSchema, name: NameSchema }))
-  .output(z.object({ project: ProjectSchema }));
+  .output(z.object({ project: ProjectSchema, credential: IssuedCredentialSchema }));
 
 export const get = oc
   .meta(

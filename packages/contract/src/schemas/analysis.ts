@@ -290,7 +290,11 @@ export const ProjectSchemaSchema = z
         source: z.enum(["dimension", "property"]).optional(),
       }),
     ),
-    measures: z.array(z.string()),
+    measures: z.array(z.string()).describe("Declared numeric measures available for sum. A numeric event property is not automatically a measure."),
+    capabilities: z.object({
+      personAnalytics: z.boolean().describe("Whether distinct-person counts and person-based funnels can execute. Accepting identify() does not imply query support."),
+      numericPropertyAggregations: z.boolean().describe("Whether arbitrary numeric event properties can be summed. Otherwise sum accepts only names in measures."),
+    }),
   })
   .meta({
     id: "ProjectSchema",

@@ -142,7 +142,10 @@ export const projectRoutes = ({ deps, guarded }: HandlerDeps) => {
         }),
       );
 
-      return { project: await rendered(provisioned.project) };
+      return {
+        project: await rendered(provisioned.project),
+        credential: serialize.issuedCredential(provisioned.credential, context.at),
+      };
     }),
 
     get: guarded.projects.get.handler(async ({ context }) => {

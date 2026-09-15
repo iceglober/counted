@@ -16,6 +16,8 @@
 
 ## Quick Start
 
+[Create a project](https://app.counted.dev) under **Projects → New project**. Its setup code includes your first ingest key.
+
 ```bash
 npm install @counted/sdk@^2
 ```
@@ -25,8 +27,9 @@ import { Counted } from "@counted/sdk";
 
 const counted = new Counted({ key: "YOUR_INGEST_KEY" });
 counted.track("page_view", { path: "/" });
-await counted.flush();
 ```
+
+The SDK sends events automatically. Open the project **Overview → Live events** to see them arrive. In a short-lived script, finish with `await counted.shutdown()` before exiting. [Full quickstart](https://docs.counted.dev/getting-started).
 
 ### React
 
@@ -58,6 +61,8 @@ function SignupButton() {
 - **Privacy by design** — no analytics cookies, no IP storage, no fingerprinting
 - **Geography without tracking** — country is worked out from the request address at ingest and the address is discarded in the same breath; nothing finer than a country is ever derived or stored
 - **JavaScript SDK** — no runtime dependencies
+
+Current query limits: distinct-person/account analytics, cross-visit retention, and sums of arbitrary numeric properties are not available. Use event counts and unique visits; query the project schema for executable capabilities and declared measures.
 
 ## What Counted Analytics Does NOT Do
 
