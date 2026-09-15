@@ -325,6 +325,7 @@ export type IssueWorkspaceCredentialCommand = {
   readonly issuedBy: AccountId;
   /** The issuer's expanded permission set, resolved in `apps/*` from their role. */
   readonly held: readonly Permission[];
+  readonly requested?: readonly Permission[];
   readonly expiresIn: Duration | null;
 };
 
@@ -338,6 +339,8 @@ export const issueWorkspaceCredential = async (
   // fail on the escalation, not on a name clash it also happens to have.
   const grantable = grantableTo("service", command.held);
   if (!grantable.ok) return grantable;
+  const narrowed = withinGrant(command.requested ?? grantable.value, grantable.value);
+  if (!narrowed.ok) return narrowed;
 
   const existing = await deps.credentials.list({
     level: "workspace",
@@ -356,7 +359,7 @@ export const issueWorkspaceCredential = async (
       workspace: command.workspace,
       project: null,
       issuedBy: command.issuedBy,
-      permissionCeiling: grantable.value,
+      permissionCeiling: narrowed.value,
       expiresIn: command.expiresIn,
     },
     at,
@@ -366,7 +369,7 @@ export const issueWorkspaceCredential = async (
   // A superset is privilege escalation and the key already exists, so the only
   // safe response is to kill it before returning. This is the check that would
   // fire if `defaultPermissions` and `grantableTo` ever disagreed.
-  const contained = withinGrant(issued.value.credential.permissions, grantable.value);
+  const contained = withinGrant(issued.value.credential.permissions, narrowed.value);
   if (!contained.ok) {
     await deps.credentials.revoke(issued.value.credential.id, at);
     return contained;
@@ -408,4 +411,56 @@ export const listWorkspaceCredentials = async (
   const at = deps.clock.now();
   const summaries = await deps.credentials.list({ level: "workspace", workspace });
   return summaries.map((credential) => ({ credential, status: credentialStatus(credential, at) }));
+};
+
+/** Only workspace-bound keys may use the workspace lifecycle endpoints. */
+const workspaceKeys = async (deps: ProjectDependencies, workspace: WorkspaceId) =>
+  (await deps.credentials.list({ level: "workspace", workspace }))
+    .filter(key => key.workspace === workspace && key.project === null && key.kind === "service");
+
+export type RotateWorkspaceCredentialCommand = Omit<RotateCredentialCommand, "project" | "expected"> & {
+  readonly workspace: WorkspaceId;
+};
+
+export const rotateWorkspaceCredential = async (
+  deps: ProjectDependencies,
+  command: RotateWorkspaceCredentialCommand,
+): Promise<Result<RotationOutcome, CredentialFailure>> => {
+  const at = deps.clock.now();
+  const existing = await workspaceKeys(deps, command.workspace);
+  const rotatable = mayRotate(existing, command.credential, "service", at);
+  if (!rotatable.ok) return rotatable;
+  const contained = withinGrant(rotatable.value.permissions, command.held);
+  if (!contained.ok) return contained;
+  const overlap = resolveOverlap(command.overlap);
+  const rotated = await deps.credentials.rotate(command.credential, overlap, at);
+  if (!rotated.ok) return err(asProjectError(rotated.error));
+  const graceEndsAt = Instant.plus(at, overlap);
+  await deps.uow.transact(async ({ outbox }) => {
+    await outbox.enqueue(envelopes([
+      { kind: "WorkspaceCredentialIssued", workspace: command.workspace,
+        credential: rotated.value.issued.credential.id, credentialKind: "service", at },
+      { kind: "WorkspaceCredentialRotated", workspace: command.workspace,
+        outgoing: command.credential, replacement: rotated.value.issued.credential.id, graceEndsAt, at },
+    ], deps.ids));
+  });
+  return ok({ issued: rotated.value.issued, retiring: rotated.value.retiring, graceEndsAt });
+};
+
+export const revokeWorkspaceCredential = async (
+  deps: ProjectDependencies,
+  command: { readonly workspace: WorkspaceId; readonly credential: CredentialId },
+): Promise<Result<CredentialSummary, CredentialFailure>> => {
+  const at = deps.clock.now();
+  const existing = await workspaceKeys(deps, command.workspace);
+  const revocable = mayRevoke(existing, command.credential, at);
+  if (!revocable.ok) return revocable;
+  const revoked = await deps.credentials.revoke(command.credential, at);
+  if (!revoked.ok) return err(asProjectError(revoked.error));
+  await deps.uow.transact(async ({ outbox }) => {
+    await outbox.enqueue(envelopes([
+      { kind: "WorkspaceCredentialRevoked", workspace: command.workspace, credential: command.credential, at },
+    ], deps.ids));
+  });
+  return ok({ ...revocable.value, revokedAt: at });
 };

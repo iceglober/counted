@@ -88,6 +88,8 @@ export const contract = {
     self: credentials.self,
     issueForWorkspace: credentials.issueForWorkspace,
     listForWorkspace: credentials.listForWorkspace,
+    rotateForWorkspace: credentials.rotateForWorkspace,
+    revokeForWorkspace: credentials.revokeForWorkspace,
   },
   dashboards: {
     list: dashboards.list,

@@ -167,6 +167,14 @@ export const WITHHELD: readonly { readonly id: string; readonly because: string 
       "Cuts off a running deployment instantly. credentials.rotate does the same job with an overlap window and is exposed.",
   },
   {
+    id: "credentials.rotateForWorkspace",
+    because: "Replaces a workspace-wide secret used by integrations outside this agent. Workspace credential lifecycle stays in the console and direct API, alongside issuance.",
+  },
+  {
+    id: "credentials.revokeForWorkspace",
+    because: "Immediately cuts off every integration using a workspace-wide key. Like project key revocation, this stays in the console and direct API.",
+  },
+  {
     id: "credentials.issueForWorkspace",
     because:
       "Mints a key that reaches the whole workspace rather than one project, which is a bigger blast radius than any tool here needs: a tool calling this runs as the human's own principal already, and projects.claim — the reason such a key exists — is exposed and works as that principal without one. credentials.issue is the project-scoped half and is exposed.",

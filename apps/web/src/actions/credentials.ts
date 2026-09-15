@@ -12,6 +12,7 @@
  * Revoking has nothing to show, so it redirects like every other write.
  */
 
+import { PermissionSchema } from "@counted/contract";
 import { revalidatePath } from "next/cache";
 import { attempt } from "../lib/client";
 import type { ContractOutputs } from "../lib/client";
@@ -105,4 +106,41 @@ export const revokeCredential = async (form: FormData): Promise<void> => {
       }),
     ),
   );
+};
+
+export const issueWorkspaceCredential = async (_previous: IssueState, form: FormData): Promise<IssueState> => {
+  const permissions = PermissionSchema.array().nonempty().safeParse(form.getAll("permissions"));
+  const expiresInDays = integer(form, "expiresInDays");
+  if (!permissions.success || expiresInDays === null || expiresInDays < 1 || expiresInDays > 3650) {
+    return { status: "failed", failure: { code: "BAD_REQUEST", status: 400, reason: null, message: "Choose at least one permission and an expiry between 1 and 3650 days." } };
+  }
+  const client = await clientForCaller();
+  const outcome = await attempt(client.credentials.issueForWorkspace({
+    workspaceId: text(form, "workspaceId"), name: text(form, "name"),
+    permissions: permissions.data, expiresInMs: expiresInDays * 86_400_000,
+  }));
+  if (!outcome.ok) return { status: "failed", failure: outcome.failure };
+  revalidatePath(path(form).split("?")[0] ?? "/");
+  return { status: "issued", issued: outcome.value.issued };
+};
+
+export const rotateWorkspaceCredential = async (_previous: RotateState, form: FormData): Promise<RotateState> => {
+  const overlapDays = integer(form, "overlapDays");
+  if (overlapDays === null || overlapDays < 0 || overlapDays > 7) {
+    return { status: "failed", failure: { code: "BAD_REQUEST", status: 400, reason: null, message: "Choose a grace period between 0 and 7 days." } };
+  }
+  const client = await clientForCaller();
+  const outcome = await attempt(client.credentials.rotateForWorkspace({
+    workspaceId: text(form, "workspaceId"), credentialId: text(form, "credentialId"), overlapMs: overlapDays * 86_400_000,
+  }));
+  if (!outcome.ok) return { status: "failed", failure: outcome.failure };
+  revalidatePath(path(form).split("?")[0] ?? "/");
+  return { status: "rotated", rotated: outcome.value.rotated };
+};
+
+export const revokeWorkspaceCredential = async (form: FormData): Promise<void> => {
+  const client = await clientForCaller();
+  finish(path(form), await attempt(client.credentials.revokeForWorkspace({
+    workspaceId: text(form, "workspaceId"), credentialId: text(form, "credentialId"),
+  })));
 };

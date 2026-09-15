@@ -34,7 +34,7 @@ import { instant } from "../lib/format";
 import { CreationPending } from "./creation-dialog";
 
 /** One-time secrets stay in React state; never a URL, persistent storage, or a log. */
-function Once({
+export function Once({
   label,
   value,
   note,

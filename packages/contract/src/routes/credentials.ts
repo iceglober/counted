@@ -1,13 +1,8 @@
 /**
  * API keys.
  *
- * The request body has **no `permissions` field**, and never will. The key's
- * permission set is computed server-side from its kind and the issuer's role:
- * an ingest key is exactly `events:write`, and a service key is the
- * intersection of what was asked for with what the issuer holds. v2 accepted a
- * scope list from the client and checked it afterwards, which is how an admin
- * could mint a service key carrying the owner-only `workspace:admin` and act
- * through it. Removing the field removes the request that exploit was made of.
+ * Service-key requests may narrow the issuer's delegable permissions. Empty
+ * or excessive permission sets are refused; ingest keys always carry events:write.
  *
  * `credentials.self` is the one route an ingest key can call. An agent that has
  * just provisioned a project holds a key and nothing else; this is how it
@@ -230,7 +225,7 @@ export const listForWorkspace = oc
       path: "/v1/workspaces/{workspaceId}/credentials",
       summary: "List every API key in a workspace",
       description:
-        "Includes each project's keys and the workspace-wide ones, revoked keys among them: an audit needs them. A project-scoped listing deliberately does not work the other way round.",
+        "Includes each project's keys and the workspace-wide ones, including revoked keys. grantablePermissions describes the service-key permissions the caller may delegate. A project-scoped listing does not expose workspace-wide keys.",
       tags: TAGS,
       authorize: {
         kind: "resource",
@@ -242,4 +237,32 @@ export const listForWorkspace = oc
   )
   .errors(CREDENTIAL_ERRORS)
   .input(z.object({ workspaceId: WorkspaceIdSchema }))
-  .output(z.object({ items: z.array(CredentialSchema) }));
+  .output(z.object({ items: z.array(CredentialSchema), grantablePermissions: z.array(PermissionSchema) }));
+
+export const rotateForWorkspace = oc
+  .meta(route({
+    id: "credentials.rotateForWorkspace",
+    method: "POST",
+    path: "/v1/workspaces/{workspaceId}/credentials/{credentialId}/rotate",
+    summary: "Rotate a workspace service key",
+    description: "Preserves the key's permissions. The caller must hold all of them. The old key expires after the overlap window (24 hours by default, at most 7 days). Project-bound keys must use the project route.",
+    tags: TAGS,
+    authorize: { kind: "resource", permission: "credentials:write", resource: "workspace", param: "workspaceId" },
+  }))
+  .errors(CREDENTIAL_ERRORS)
+  .input(z.object({ workspaceId: WorkspaceIdSchema, credentialId: CredentialIdSchema, overlapMs: DurationMsSchema.optional() }))
+  .output(z.object({ rotated: RotatedCredentialSchema }));
+
+export const revokeForWorkspace = oc
+  .meta(route({
+    id: "credentials.revokeForWorkspace",
+    method: "DELETE",
+    path: "/v1/workspaces/{workspaceId}/credentials/{credentialId}",
+    summary: "Revoke a workspace service key",
+    description: "Immediately stops a workspace-wide service key. Project-bound keys must use the project route.",
+    tags: TAGS,
+    authorize: { kind: "resource", permission: "credentials:write", resource: "workspace", param: "workspaceId" },
+  }))
+  .errors(CREDENTIAL_ERRORS)
+  .input(z.object({ workspaceId: WorkspaceIdSchema, credentialId: CredentialIdSchema }))
+  .output(z.object({ revoked: z.literal(true), credential: CredentialIdSchema }));

@@ -184,3 +184,57 @@ test("a shared dashboard is readable without an account until its owner revokes 
     await expect(shared.getByRole("heading", { name: dashboard.name, exact: true })).toHaveCount(0);
   } finally { await guest.close(); }
 });
+
+test("workspace service keys have a contained, permission-scoped lifecycle", async ({ page }, testInfo) => {
+  const fixture = await account(page);
+  const path = `/api/v1/workspaces/${fixture.workspaceId}/credentials`;
+  await page.goto(`/w/${fixture.workspaceId}/settings`);
+  await page.getByRole("button", { name: "New service key", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "New workspace service key", exact: true });
+  await expect(dialog).toBeVisible();
+  expect(await dialog.evaluate(element => element.scrollHeight <= element.clientHeight + 1 && element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("workspace-key-dialog.png"), animations: "disabled" });
+  await dialog.getByLabel("Name", { exact: true }).fill("Narrow browser key");
+  await dialog.getByRole("combobox", { name: "Permissions", exact: true }).click();
+  await page.getByRole("option", { name: "Read projects", exact: true }).click();
+  await page.getByRole("option", { name: "Read workspace details", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await dialog.getByRole("button", { name: "Issue key", exact: true }).click();
+  await expect(dialog.getByText("Copy this key before closing.", { exact: false })).toBeVisible();
+  const secret = await dialog.locator("code").innerText();
+  const listing = await (await page.request.get(path)).json();
+  const key = listing.items.find((one: { name: string }) => one.name === "Narrow browser key");
+  expect(key.permissions).toEqual(["queries:run"]);
+  expect(JSON.stringify(listing)).not.toContain(secret);
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.getByText(secret, { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "New service key", exact: true }).click();
+  await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue("");
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Key details: Narrow browser key", exact: true }).click();
+  await page.getByRole("button", { name: "Rotate", exact: true }).click();
+  const rotation = page.getByRole("dialog", { name: "Rotate workspace key", exact: true });
+  await rotation.getByLabel("Grace period (days)", { exact: true }).fill("0");
+  await rotation.getByRole("button", { name: "Rotate key", exact: true }).click();
+  await expect(rotation.getByText("Replacement secret", { exact: true })).toBeVisible();
+  const replacementSecret = await rotation.locator("code").innerText();
+  expect(replacementSecret).not.toBe(secret);
+  await rotation.getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await page.reload();
+  const rows = page.getByRole("table", { name: "Workspace keys", exact: true }).getByRole("row");
+  const active = rows.filter({ hasText: "Expiring" });
+  await active.getByRole("button", { name: "Key details: Narrow browser key", exact: true }).click();
+  await page.getByRole("button", { name: "Revoke", exact: true }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Revoke", exact: true }).click();
+  await page.reload();
+  await expect(page.getByText("Revoked", { exact: true })).toBeVisible();
+  await noHorizontalOverflow(page);
+  await page.screenshot({ path: testInfo.outputPath("workspace-keys.png"), fullPage: true });
+
+  const member = await account(page);
+  await addMember(fixture.workspaceId, member.accountId);
+  await page.goto(`/w/${fixture.workspaceId}/settings`);
+  await expect(page.getByRole("button", { name: "New service key", exact: true })).toHaveCount(0);
+  expect((await page.request.post(path, { data: { name: "refused", permissions: ["queries:run"] } })).status()).toBe(403);
+});

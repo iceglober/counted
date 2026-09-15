@@ -367,14 +367,13 @@ describe("secrets", () => {
       .map(({ op }) => op.operationId)
       .sort();
 
-    // Four, and the fourth is `credentials.issueForWorkspace` — the
-    // workspace-wide service key, which is what lets a credential claim a
-    // project. Anything else appearing in this list is a secret leaking into a
-    // response that was never meant to carry one.
+    // Only issuance, rotation, and initial project provisioning return secrets.
+    // Adding another carrier requires an explicit review here.
     expect(carriers).toEqual([
       "credentials.issue",
       "credentials.issueForWorkspace",
       "credentials.rotate",
+      "credentials.rotateForWorkspace",
       "projects.provision",
     ]);
   });

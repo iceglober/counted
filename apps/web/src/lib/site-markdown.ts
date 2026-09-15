@@ -45,7 +45,7 @@ The SDK keeps a visit id in memory. Every event should have its own idempotencyK
 
 ## Service keys
 
-Secret credentials for API access. Keep them on a trusted server or in a credential manager, never in a browser bundle. Access is limited by the key’s permissions, project or workspace scope, and the issuing member’s role. Create, rotate, and revoke keys from a project’s Keys page or the API.
+Secret credentials for API access. Keep them on a trusted server or in a credential manager, never in a browser bundle. Access is limited by the key’s permissions, project or workspace scope, and the issuing member’s role. For a workspace service key, open Settings → Workspace → Workspace keys → New service key. Choose its permissions and expiry, then copy the secret before closing. You can inspect, rotate, or revoke it from the same table. Project-bound keys are managed on the project’s Keys page. Both lifecycles are also available through the API.
 
 ## Accounts and agent authorization
 

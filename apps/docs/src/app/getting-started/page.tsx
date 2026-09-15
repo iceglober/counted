@@ -43,8 +43,11 @@ export default function GetStarted() {
             workspace; you can edit every input.
           </p>
           <p>
-            For an integration, create a service key in your project’s Keys
-            page. Send it as a bearer token to{" "}
+            For access across projects, open Settings → Workspace → Workspace keys
+            → New service key. Select the permissions and expiry, then copy the
+            secret before closing. Owners and admins can inspect, rotate, and revoke
+            keys from that table. For access to one project, use its Keys page.
+            Send your service key as a bearer token to{" "}
             <code>{urls.api}</code>.
           </p>
           <pre
