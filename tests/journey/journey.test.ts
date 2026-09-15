@@ -1341,6 +1341,31 @@ describe("13 · an agent, over MCP", () => {
     await mcp?.stop();
   });
 
+  test("workspace service keys enforce selected grants and complete their lifecycle over HTTP", async () => {
+    const path = `/v1/workspaces/${state.workspace}/credentials`;
+    for (const permissions of [[], ["workspace:admin"], ["billing:write"]]) {
+      const refused = await call(api, owner, "POST", path, { name: `refused ${RUN}`, permissions });
+      expect(refused.status).toBe(permissions.length ? 403 : 400);
+    }
+    const issued = await call(api, owner, "POST", path, { name: `limited ${RUN}`, permissions: ["workspace:read"] });
+    expect(issued.status).toBe(201);
+    expect(at(issued.body, "issued", "credential", "permissions")).toEqual(["workspace:read"]);
+    const key = anonymous();
+    key.bearer = str(issued.body, "issued", "secret");
+    const id = str(issued.body, "issued", "credential", "id");
+    expect((await call(api, key, "GET", `/v1/workspaces/${state.workspace}`)).status).toBe(200);
+    expect((await call(api, key, "POST", path, { name: "must not escalate" })).status).toBe(403);
+    const rotated = await call(api, owner, "POST", `${path}/${id}/rotate`, { overlapMs: 0 });
+    expect(rotated.status).toBe(200);
+    expect(at(rotated.body, "rotated", "issued", "credential", "permissions")).toEqual(["workspace:read"]);
+    expect((await call(api, key, "GET", `/v1/workspaces/${state.workspace}`)).status).toBe(401);
+    key.bearer = str(rotated.body, "rotated", "issued", "secret");
+    expect((await call(api, key, "GET", `/v1/workspaces/${state.workspace}`)).status).toBe(200);
+    const replacement = str(rotated.body, "rotated", "issued", "credential", "id");
+    expect((await call(api, owner, "DELETE", `${path}/${replacement}`)).status).toBe(200);
+    expect((await call(api, key, "GET", `/v1/workspaces/${state.workspace}`)).status).toBe(401);
+  });
+
   test("the owner hands the agent a workspace-wide service key", async () => {
     const issued = await call(api, owner, "POST", `/v1/workspaces/${state.workspace}/credentials`, {
       name: `journey agent ${RUN}`,

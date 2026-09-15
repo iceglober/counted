@@ -1,3 +1,4 @@
+import { WorkspaceKeys } from "../../../../components/workspace-keys";
 import { Progress } from "@counted/ui/components/progress";
 import { Alert, AlertDescription } from "@counted/ui/components/alert";
 import {
@@ -98,8 +99,9 @@ const Settings = async ({
       {query.upgraded !== undefined && <CheckoutStatus active={workspace.ok && workspace.value.workspace.plan === "pro" && workspace.value.workspace.payment === "active"} />}
       {query.checkout === "canceled" && <Alert className="my-5"><AlertDescription>Checkout was canceled. Your plan has not changed.</AlertDescription></Alert>}
 
-      <div className="max-w-2xl">
+      <div className={tab === "workspace" ? "max-w-4xl" : "max-w-2xl"}>
         {tab === "workspace" && (
+          <>
           <Region title="Workspace details">
             {!workspace.ok ? (
               <FailureNotice failure={workspace.failure} />
@@ -135,6 +137,8 @@ const Settings = async ({
               </>
             )}
           </Region>
+          <WorkspaceKeys account={account} workspaceId={workspaceId} returnTo={here} />
+          </>
         )}
         {tab === "plan" && (
           <Region title="Current plan">

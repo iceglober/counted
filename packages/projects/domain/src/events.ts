@@ -98,4 +98,18 @@ export type ProjectEvent =
       readonly project: ProjectId;
       readonly credential: CredentialId;
       readonly at: Instant;
+    }
+  | {
+      readonly kind: "WorkspaceCredentialRotated";
+      readonly workspace: WorkspaceId;
+      readonly outgoing: CredentialId;
+      readonly replacement: CredentialId;
+      readonly graceEndsAt: Instant;
+      readonly at: Instant;
+    }
+  | {
+      readonly kind: "WorkspaceCredentialRevoked";
+      readonly workspace: WorkspaceId;
+      readonly credential: CredentialId;
+      readonly at: Instant;
     };

@@ -44,11 +44,13 @@ export function CreationDialog({
   trigger = title,
   children,
   wide = false,
+  disabled = false,
 }: {
   title: string;
   trigger?: string;
   children: ReactNode;
   wide?: boolean;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -59,7 +61,7 @@ export function CreationDialog({
         if (!busy) setOpen(next);
       }}
     >
-      <DialogTrigger render={<Button />}>{trigger}</DialogTrigger>
+      <DialogTrigger disabled={disabled} render={<Button />}>{trigger}</DialogTrigger>
       <DialogContent
         className={`app-content @container/form p-5 sm:p-7 ${wide ? "max-w-xl sm:max-w-xl" : ""}`}
         showCloseButton={!busy}

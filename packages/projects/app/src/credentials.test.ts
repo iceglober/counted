@@ -12,6 +12,9 @@ import { credentialStatus, type CredentialFacts } from "@counted/projects-domain
 import type { CredentialSummary } from "@counted/identity-ports";
 import {
   issueCredential,
+  issueWorkspaceCredential,
+  rotateWorkspaceCredential,
+  revokeWorkspaceCredential,
   listCredentials,
   revokeCredential,
   rotateCredential,
@@ -388,5 +391,77 @@ describe("revokeCredential — the last usable ingest key", () => {
       ok: false,
       error: { kind: "CredentialRevoked", credential: id },
     });
+  });
+});
+
+
+describe("workspace service keys", () => {
+  const command = { workspace: WS, name: "workspace agent", issuedBy: ACTOR, held: OWNER, expiresIn: null };
+
+  test("issues precisely the requested permissions, and keeps omission compatible", async () => {
+    const h = harness(NOW);
+    const issued = await issueWorkspaceCredential(h.deps, { ...command, requested: ["queries:run"] });
+    expect(issued.ok).toBe(true);
+    if (!issued.ok) return;
+    expect(issued.value.credential.permissions).toEqual(["queries:run"]);
+    expect(issued.value.credential.project).toBeNull();
+    const full = await issueWorkspaceCredential(h.deps, { ...command, name: "compatible" });
+    expect(full.ok).toBe(true);
+    if (!full.ok) return;
+    expect([...full.value.credential.permissions].sort()).toEqual([...ADMIN].sort());
+  });
+
+  test.each(([[], ["workspace:admin"], ["billing:write"], ["projects:delete"]] as Permission[][]).map(requested => ({ requested })))("refuses empty or nondelegable grants before writing: %j", async ({ requested }) => {
+    const h = harness(NOW);
+    const result = await issueWorkspaceCredential(h.deps, { ...command, requested });
+    expect(result.ok).toBe(false);
+    expect(h.credentials.rows.size).toBe(0);
+    expect(h.outbox.enqueued).toHaveLength(0);
+  });
+
+  test("revokes a store-issued key that exceeds the requested ceiling", async () => {
+    const h = harness(NOW);
+    h.credentials.configure({ grantInstead: ["queries:run", "projects:write"] });
+    const result = await issueWorkspaceCredential(h.deps, { ...command, requested: ["queries:run"] });
+    expect(result.ok).toBe(false);
+    expect([...h.credentials.rows.values()].every(key => key.revokedAt === NOW)).toBe(true);
+    expect(h.outbox.enqueued).toHaveLength(0);
+  });
+
+  test("rotation preserves a narrowed grant and retires the old key; revocation stops its replacement", async () => {
+    const h = harness(NOW);
+    const issued = await issueWorkspaceCredential(h.deps, { ...command, requested: ["queries:run"] });
+    if (!issued.ok) throw new Error("fixture failed");
+    const rotated = await rotateWorkspaceCredential(h.deps, { workspace: WS, credential: issued.value.credential.id, held: OWNER, overlap: Duration.millis(0) });
+    expect(rotated.ok).toBe(true);
+    if (!rotated.ok) return;
+    expect(rotated.value.issued.credential.permissions).toEqual(["queries:run"]);
+    expect(rotated.value.issued.secret).not.toBe(issued.value.secret);
+    expect(credentialStatus(rotated.value.retiring, NOW)).toBe("expired");
+    const revoked = await revokeWorkspaceCredential(h.deps, { workspace: WS, credential: rotated.value.issued.credential.id });
+    expect(revoked.ok).toBe(true);
+    if (revoked.ok) expect(credentialStatus(revoked.value, NOW)).toBe("revoked");
+    expect(h.outbox.kinds()).toContain("projects.WorkspaceCredentialRotated");
+    expect(h.outbox.kinds()).toContain("projects.WorkspaceCredentialRevoked");
+  });
+
+  test("rotation cannot grant permissions the current caller has lost", async () => {
+    const h = harness(NOW);
+    const issued = await issueWorkspaceCredential(h.deps, { ...command, requested: ["queries:run"] });
+    if (!issued.ok) throw new Error("fixture failed");
+    const result = await rotateWorkspaceCredential(h.deps, { workspace: WS, credential: issued.value.credential.id, held: ["credentials:write"], overlap: null });
+    expect(result.ok).toBe(false);
+    expect(h.credentials.rows.size).toBe(1);
+  });
+
+  test("workspace lifecycle cannot mutate another workspace or a project-bound key", async () => {
+    const { h, first } = await provisioned();
+    const issued = await issueWorkspaceCredential(h.deps, command);
+    if (!issued.ok) throw new Error("fixture failed");
+    for (const [workspace, credential] of [[WorkspaceId("other"), issued.value.credential.id], [WS, first]] as const) {
+      expect((await rotateWorkspaceCredential(h.deps, { workspace, credential, held: OWNER, overlap: null })).ok).toBe(false);
+      expect((await revokeWorkspaceCredential(h.deps, { workspace, credential })).ok).toBe(false);
+    }
+    expect([...h.credentials.rows.values()].every(key => key.revokedAt === null)).toBe(true);
   });
 });

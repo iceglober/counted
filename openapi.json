@@ -5048,7 +5048,7 @@
       "get": {
         "operationId": "credentials.listForWorkspace",
         "summary": "List every API key in a workspace",
-        "description": "Includes each project's keys and the workspace-wide ones, revoked keys among them: an audit needs them. A project-scoped listing deliberately does not work the other way round.",
+        "description": "Includes each project's keys and the workspace-wide ones, including revoked keys. grantablePermissions describes the service-key permissions the caller may delegate. A project-scoped listing does not expose workspace-wide keys.",
         "tags": [
           "credentials"
         ],
@@ -5078,10 +5078,35 @@
                       "items": {
                         "$ref": "#/components/schemas/Credential"
                       }
+                    },
+                    "grantablePermissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "events:write",
+                          "queries:run",
+                          "projects:read",
+                          "projects:write",
+                          "projects:delete",
+                          "dashboards:read",
+                          "dashboards:write",
+                          "monitors:read",
+                          "monitors:write",
+                          "credentials:read",
+                          "credentials:write",
+                          "workspace:read",
+                          "workspace:admin",
+                          "billing:read",
+                          "billing:write"
+                        ],
+                        "description": "A permission."
+                      }
                     }
                   },
                   "required": [
-                    "items"
+                    "items",
+                    "grantablePermissions"
                   ],
                   "additionalProperties": false
                 }
@@ -5236,6 +5261,451 @@
         "x-counted-authorization": {
           "kind": "resource",
           "permission": "credentials:read",
+          "resource": "workspace",
+          "param": "workspaceId"
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/credentials/{credentialId}/rotate": {
+      "post": {
+        "operationId": "credentials.rotateForWorkspace",
+        "summary": "Rotate a workspace service key",
+        "description": "Preserves the key's permissions. The caller must hold all of them. The old key expires after the overlap window (24 hours by default, at most 7 days). Project-bound keys must use the project route.",
+        "tags": [
+          "credentials"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "required": true,
+            "name": "workspaceId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Workspace id."
+            }
+          },
+          {
+            "in": "path",
+            "required": true,
+            "name": "credentialId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Credential id."
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "overlapMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "A length of time in milliseconds."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rotated": {
+                      "$ref": "#/components/schemas/RotatedCredential"
+                    }
+                  },
+                  "required": [
+                    "rotated"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BadRequest2"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No usable credential was presented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Unauthorized"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential may not be issued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Forbidden3"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NotFound4"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The credential is not in a state that allows this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Conflict4"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "The credential is no longer usable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Gone2"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is well-formed but cannot be carried out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UnprocessableContent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TooManyRequests"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "serviceKey": []
+          },
+          {
+            "consoleSession": []
+          }
+        ],
+        "x-counted-authorization": {
+          "kind": "resource",
+          "permission": "credentials:write",
+          "resource": "workspace",
+          "param": "workspaceId"
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/credentials/{credentialId}": {
+      "delete": {
+        "operationId": "credentials.revokeForWorkspace",
+        "summary": "Revoke a workspace service key",
+        "description": "Immediately stops a workspace-wide service key. Project-bound keys must use the project route.",
+        "tags": [
+          "credentials"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "required": true,
+            "name": "workspaceId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Workspace id."
+            }
+          },
+          {
+            "in": "path",
+            "required": true,
+            "name": "credentialId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Credential id."
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revoked": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "credential": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "description": "Credential id."
+                    }
+                  },
+                  "required": [
+                    "revoked",
+                    "credential"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BadRequest2"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No usable credential was presented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Unauthorized"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential may not be issued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Forbidden3"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NotFound4"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The credential is not in a state that allows this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Conflict4"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "The credential is no longer usable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Gone2"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is well-formed but cannot be carried out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UnprocessableContent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TooManyRequests"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "serviceKey": []
+          },
+          {
+            "consoleSession": []
+          }
+        ],
+        "x-counted-authorization": {
+          "kind": "resource",
+          "permission": "credentials:write",
           "resource": "workspace",
           "param": "workspaceId"
         }
